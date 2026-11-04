@@ -1,25 +1,30 @@
-# <PROJECT_NAME>
+# stuffcloud
 
-> TODO: One-line description of what this project is.
+Project foundation for stuffcloud. Purpose and stack are not decided yet.
 
 ## Type
-TODO — e.g. "Web app", "CLI tool", "Infrastructure repo", "Library".
+Greenfield project (public, GPL-3.0).
 
 ## Stack
-TODO — languages, frameworks, key dependencies.
+Not decided yet. When chosen: enable the matching block in `.github/workflows/ci.yml`
+(keep job id `build`) and the ecosystem in `.github/dependabot.yml`.
 
 ## Structure
 ```
-TODO — top-level directory layout
+.github/        workflows (ci, claude review, workflow-lint, secret-scan), rulesets, templates
+scripts/ci/     label script + tests (opt-in via repo variable LABELS_ENABLED)
+docs/           TEMPLATE-SETUP.md (setup reference inherited from the template)
 ```
 
 ## Commands
 ```sh
-TODO — build / dev / test / lint commands
+python -m unittest discover -s scripts/ci -p "test_*.py"   # CI helper tests
 ```
 
 ## Notes
-TODO — env vars, deployment, anything a future session needs to know that isn't obvious from the code.
+- Merge gate: ruleset in `.github/rulesets/default.json` (required checks: build,
+  workflow-lint, gitleaks, claude-review).
+- Claude review needs the Actions secret `CLAUDE_CODE_OAUTH_TOKEN`; without it the job skips and stays green.
 
 ---
 

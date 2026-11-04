@@ -27,7 +27,7 @@ gh api --method POST repos/<owner>/<repo>/rulesets --input .github/rulesets/defa
 | Rule | Effect |
 |---|---|
 | `pull_request` | No direct push to the default branch, everything through PRs; **every review thread must be resolved** |
-| `required_status_checks` | `build`, `workflow-lint` and `gitleaks` must pass, each bound to `integration_id: 15368` (GitHub Actions) so no other app can report a same-named check |
+| `required_status_checks` | `build`, `workflow-lint`, `gitleaks` and `claude-review` must pass, each bound to `integration_id: 15368` (GitHub Actions) so no other app can report a same-named check |
 | `non_fast_forward` | No force-push |
 | `deletion` | The default branch cannot be deleted |
 
@@ -52,7 +52,7 @@ The check context is the **job id** of the workflow (none of these jobs sets a
 | `build` | `ci.yml` | stack lint/test; runs on every PR (no `paths:` filter, convention C1) |
 | `workflow-lint` | `workflow-lint.yml` | actionlint + zizmor |
 | `gitleaks` | `secret-scan.yml` | PR-range secret scan |
-| `claude-review` | `claude-code-review.yml` | **optional**, not in `default.json`, see below |
+| `claude-review` | `claude-code-review.yml` | required in stuffcloud (added to `default.json`); see below |
 
 Confirm the names against a real run before applying (`gh pr checks <n>` on a
 PR, or `gh api repos/<owner>/<repo>/commits/<sha>/check-runs --jq '.check_runs[].name'`).

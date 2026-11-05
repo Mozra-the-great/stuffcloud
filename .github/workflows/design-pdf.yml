@@ -5,9 +5,12 @@ name: Rebuild design PDF
 # when the `build` check says the PDF is stale.
 #
 # The run commits the PDF and docs/design/pdf-source.sha256 to the branch. Pushes made
-# with the workflow token do not start other workflows, so the run also dispatches
-# `ci.yml` for the new commit; the other required checks start with your next push
-# (for example an empty commit: `git commit --allow-empty -m "chore: rerun checks"`).
+# with the workflow token do not start other workflows, so the run dispatches the
+# workflows behind the required checks `build`, `workflow-lint` and `gitleaks` for the
+# new commit. `claude-review` only runs for pull_request events and cannot be
+# dispatched; it starts with your next push (for example an empty commit:
+# `git commit --allow-empty -m "chore: rerun checks"`). Pushing with a deploy key
+# instead would start every workflow, but that needs a repository secret.
 # Never runs on main: main only receives the PDF through a reviewed PR.
 
 on:
@@ -73,4 +76,6 @@ jobs:
           git add docs/design/stuffcloud-design-system.pdf docs/design/pdf-source.sha256
           git commit -m "chore: rebuild the design PDF"
           git push "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "HEAD:refs/heads/${BRANCH}"
-          gh workflow run ci.yml --repo "$REPO" --ref "$BRANCH"
+          for wf in ci.yml workflow-lint.yml secret-scan.yml; do
+            gh workflow run "$wf" --repo "$REPO" --ref "$BRANCH"
+          done

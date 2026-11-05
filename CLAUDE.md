@@ -22,6 +22,13 @@ docs/           TEMPLATE-SETUP.md (setup reference inherited from the template)
 python -m unittest discover -s scripts/ci -p "test_*.py"   # CI helper tests
 ```
 
+## Changelog
+Every PR with a visible change (code, docs, design, CI) adds an entry under
+`[Unreleased]` in `CHANGELOG.md` (Keep a Changelog: Added / Changed / Fixed /
+Removed), written in English, with the PR number in parentheses. Add it in the
+same PR, not afterwards. Pure typo fixes and dependency bumps by Dependabot are
+exempt. A release moves `[Unreleased]` under the new version heading.
+
 ## Notes
 - Merge gate: ruleset in `.github/rulesets/default.json` (required checks: build,
   workflow-lint, gitleaks, claude-review).

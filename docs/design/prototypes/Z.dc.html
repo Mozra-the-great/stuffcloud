@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud my sites</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</helmet>
+<div class="frame">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#">Tools</a><a href="#" aria-current="page">Hosting</a><a href="#">Docs</a></nav></div><div class="hdr-r"><a href="#">Account</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+
+<main class="main" style="padding:40px;display:flex;flex-direction:column;gap:28px;flex:1">
+<div class="row" style="justify-content:space-between;align-items:flex-end"><div class="stack-s"><p class="eyebrow">hosting / my sites</p><h1 class="title">My sites</h1></div><a class="btn" href="#">New site</a></div>
+
+<div class="stats">
+<div><span class="label">Sites</span><b>12</b><span class="mono mut" style="font-size:12px">of 100</span></div>
+<div><span class="label">Storage</span><b>1.2 GB</b><span class="bar"><i style="width:24%"></i></span><span class="mono mut" style="font-size:12px">of 5 GB</span></div>
+<div><span class="label">Expiring soon</span><b>2</b><span class="mono mut" style="font-size:12px">within 3 days</span></div>
+</div>
+
+<div class="row" style="flex-wrap:nowrap"><label class="label" for="s" style="position:absolute;left:-9999px">Search sites</label><input class="field" id="s" type="search" placeholder="search address"><button class="btn btn-ghost" type="button">Filter</button></div>
+
+<table class="tbl">
+<thead><tr><th>Address</th><th>Type</th><th>Expires</th><th>Access</th><th>Size</th><th><span style="position:absolute;left:-9999px">Actions</span></th></tr></thead>
+<tbody>
+<tr><td data-l="Address" class="mono" style="color:var(--lilac)">k3x9q2mf.sites.test</td><td data-l="Type">Folder</td><td data-l="Expires">in 7 days</td><td data-l="Access"><span class="badge"><i class="dot"></i>LAN</span></td><td data-l="Size" class="mono">1.2 MB</td><td><div class="row"><a class="btn btn-ghost" href="#" style="min-height:44px;padding:0 16px">Open</a><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Extend</button><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Delete</button></div></td></tr>
+<tr><td data-l="Address" class="mono" style="color:var(--lilac)">notes-m4r7.example.org</td><td data-l="Type">Text</td><td data-l="Expires">never</td><td data-l="Access"><span class="badge"><i class="dot pink"></i>Public</span></td><td data-l="Size" class="mono">12 KB</td><td><div class="row"><a class="btn btn-ghost" href="#" style="min-height:44px;padding:0 16px">Open</a><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Extend</button><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Delete</button></div></td></tr>
+<tr><td data-l="Address" class="mono" style="color:var(--lilac)">party-9bx2.example.org</td><td data-l="Type">Template</td><td data-l="Expires">in 1 day</td><td data-l="Access"><span class="badge"><i class="dot pink"></i>Public · password</span></td><td data-l="Size" class="mono">340 KB</td><td><div class="row"><a class="btn btn-ghost" href="#" style="min-height:44px;padding:0 16px">Open</a><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Extend</button><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Delete</button></div></td></tr>
+<tr><td data-l="Address" class="mono" style="color:var(--lilac)">portfolio-h2k5.sites.test</td><td data-l="Type">Builder</td><td data-l="Expires">in 28 days</td><td data-l="Access"><span class="badge"><i class="dot"></i>LAN</span></td><td data-l="Size" class="mono">8.4 MB</td><td><div class="row"><a class="btn btn-ghost" href="#" style="min-height:44px;padding:0 16px">Open</a><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Extend</button><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Delete</button></div></td></tr>
+</tbody>
+</table>
+</main>
+
+<footer class="foot"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

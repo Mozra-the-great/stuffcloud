@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud all tools, halloween</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</helmet>
+<div class="frame s-halloween">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#" aria-current="page">Tools</a><a href="#">Hosting</a><a href="#">Docs</a></nav></div><div class="hdr-r"><a href="#">Log in</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+
+<main style="flex:1;display:flex;flex-direction:column">
+<div class="stack" style="padding:40px;gap:24px"><div class="stack-s"><p class="eyebrow">tools</p><h1 class="title">Tools</h1></div>
+<div class="row" style="flex-wrap:nowrap;max-width:560px;border:1px solid var(--line2);padding:0 16px"><span class="mono" style="color:var(--pink);font-weight:700">&gt;</span><label for="q" style="position:absolute;left:-9999px">Search tools</label><input class="field" id="q" type="search" placeholder="search tools, e.g. merge pdf" style="border:0;padding:0 4px"><span class="mono mut" style="font-size:12px;border:1px solid var(--line2);padding:2px 8px">/</span></div></div>
+<nav class="tabs" aria-label="Categories" style="border-top:1px solid var(--line)"><a href="#" aria-current="page">All</a><a href="#">PDF</a><a href="#">Images</a><a href="#">Convert</a><a href="#">Network</a><a href="#">Text</a><a href="#">Dev</a></nav>
+
+<div class="cells" style="border-top:0">
+<a class="cell" href="#"><img src="doc.svg" alt="" style="width:40px;height:40px"><div><div style="font-size:28px;font-weight:500;letter-spacing:-.5px">PDF</div><div style="margin-top:10px;font-size:15px;line-height:1.55;color:#b4b4bc">Merge, split, rotate, compress, protect.</div></div></a>
+<a class="cell" href="#"><img src="mtn.svg" alt="" style="width:48px;height:32px"><div><div style="font-size:28px;font-weight:500;letter-spacing:-.5px">Images</div><div style="margin-top:10px;font-size:15px;line-height:1.55;color:#b4b4bc">Resize, convert, compress, strip EXIF.</div></div></a>
+<a class="cell" href="#"><img src="conv.svg" alt="" style="width:36px;height:40px"><div><div style="font-size:28px;font-weight:500;letter-spacing:-.5px">Convert</div><div style="margin-top:10px;font-size:15px;line-height:1.55;color:#b4b4bc">JSON, YAML, XML, Base64, colours, units.</div></div></a>
+<a class="cell" href="#"><img src="globe.svg" alt="" style="width:40px;height:40px"><div><div style="font-size:28px;font-weight:500;letter-spacing:-.5px">Network</div><div style="margin-top:10px;font-size:15px;line-height:1.55;color:#b4b4bc">Subnets, MAC lookup, user-agent parser.</div></div></a>
+<a class="cell" href="#"><img src="letter.svg" alt="" style="width:40px;height:40px"><div><div style="font-size:28px;font-weight:500;letter-spacing:-.5px">Text</div><div style="margin-top:10px;font-size:15px;line-height:1.55;color:#b4b4bc">Diff, QR, UUID, lorem ipsum, Markdown.</div></div></a>
+<a class="cell" href="#"><img src="dice.svg" alt="" style="width:40px;height:40px"><div><div style="font-size:28px;font-weight:500;letter-spacing:-.5px">Dev extras</div><div style="margin-top:10px;font-size:15px;line-height:1.55;color:#b4b4bc">Hashes, regex, JWT, cron, timestamps.</div></div></a>
+</div>
+<div class="panel" style="--mh:200px;--mhm:160px;border-top:1px solid var(--line)"><div class="b1"></div><div class="b2"></div><img class="axo axo-s bob" src="axo.svg" alt="Stuffy, the stuffcloud mascot"></div>
+</main>
+
+<footer class="foot" style="margin-top:0"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+<details class="theme"><summary><img src="deco-witch.svg" alt="">Halloween</summary><div class="tcard"><h2>Halloween</h2><ul><li>A time for costumes and carving pumpkins.</li><li>No tricks here: your files stay in your browser.</li></ul><label class="toggle"><input type="checkbox">Hide decorations</label></div></details>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

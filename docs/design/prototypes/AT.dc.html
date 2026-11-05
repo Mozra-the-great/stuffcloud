@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud page builder</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+.bld{display:grid;grid-template-columns:240px 1fr 280px;flex:1;min-height:640px}
+.bld-l,.bld-r{display:flex;flex-direction:column}
+.bld-l{border-right:1px solid var(--line)}
+.bld-r{border-left:1px solid var(--line)}
+.blk{display:flex;align-items:center;gap:14px;min-height:56px;padding:0 20px;border-bottom:1px solid var(--line);cursor:grab;font-size:15px}
+.blk:hover{background:#17171a}
+.blk img{width:28px;height:28px;object-fit:contain}
+.stage{background:#17171a;padding:32px;display:flex;justify-content:center;overflow:auto}
+.pg{width:100%;max-width:640px;background:#fff;color:#101012;min-height:520px;display:flex;flex-direction:column}
+.pg-hero{padding:48px 32px;display:flex;flex-direction:column;gap:14px;outline:2px solid var(--pink);outline-offset:-2px}
+.ln{height:10px;background:#d8d8e0}
+@media (max-width:760px){
+.bld{display:flex;flex-direction:column}
+.bld-l{order:2;border-right:0;border-top:1px solid var(--line);flex-direction:row;overflow-x:auto}
+.blk{flex:0 0 auto;border-bottom:0;border-right:1px solid var(--line)}
+.bld-r{display:none}
+.stage{padding:16px}
+}
+</style>
+</helmet>
+<div class="frame">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#">Tools</a><a href="#" aria-current="page">Hosting</a><a href="#">Docs</a></nav></div><div class="hdr-r"><a href="#">Account</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+
+<div class="tabs" role="tablist" aria-label="Pages" style="justify-content:space-between;overflow:visible">
+<div style="display:flex;overflow-x:auto"><a href="#" role="tab" aria-current="page">Home</a><a href="#" role="tab">About</a><a href="#" role="tab" style="color:var(--lilac)">+ Page</a></div>
+<div class="row" style="padding:0 12px;flex-wrap:nowrap"><button class="btn btn-ghost btn-icon" type="button" aria-label="Undo"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 3L2 6l3 3M2 6h8a4 4 0 0 1 0 8H6"/></svg></button><button class="btn" type="button" style="min-height:44px">Publish</button></div>
+</div>
+
+<div class="bld">
+<aside class="bld-l" aria-label="Blocks"><div class="label" style="padding:18px 20px">Blocks</div>
+<a class="blk" href="#"><img src="doc.svg" alt="">Hero</a><a class="blk" href="#"><img src="letter.svg" alt="">Text</a><a class="blk" href="#"><img src="mtn.svg" alt="">Image</a><a class="blk" href="#"><img src="tmpl.svg" alt="">Gallery</a><a class="blk" href="#"><img src="globe.svg" alt="">Links</a><a class="blk" href="#"><img src="conv.svg" alt="">Button</a><a class="blk" href="#"><img src="build.svg" alt="">Columns</a></aside>
+
+<div class="stage"><div class="pg">
+<div style="display:flex;gap:20px;padding:16px 32px;border-bottom:1px solid #e4e4ea;font-size:14px"><b>My page</b><span style="color:#6a6a74">Home</span><span style="color:#6a6a74">About</span></div>
+<div class="pg-hero"><div style="font-size:40px;font-weight:600;letter-spacing:-1px;line-height:1.1">Hello, I make small things.</div><div class="ln" style="width:80%"></div><div class="ln" style="width:60%"></div><div style="align-self:flex-start;background:#101012;color:#fff;padding:12px 22px;font-size:14px;margin-top:8px">Say hi</div></div>
+<div style="padding:32px;display:grid;grid-template-columns:1fr 1fr;gap:16px"><div style="background:#e6f0ff;height:120px;display:flex;align-items:center;justify-content:center"><img src="mtn.svg" alt="" style="width:64px"></div><div style="display:flex;flex-direction:column;gap:10px;justify-content:center"><div class="ln"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:85%"></div></div></div>
+</div></div>
+
+<aside class="bld-r" aria-label="Style"><div class="label" style="padding:18px 20px">Hero · style</div>
+<div class="stack" style="padding:0 20px 20px;gap:20px">
+<div class="fld"><label class="label" for="ht">Heading</label><input class="field" id="ht" type="text" value="Hello, I make small things."></div>
+<fieldset style="margin:0;padding:0;border:0;min-width:0"><legend class="label" style="padding:0;margin-bottom:10px">Background</legend><div class="row"><label style="position:relative"><input class="opt" type="radio" name="bg" checked><span class="box" style="width:48px;padding:0;background:#fff"></span></label><label style="position:relative"><input class="opt" type="radio" name="bg"><span class="box" style="width:48px;padding:0;background:#8b5cf6"></span></label><label style="position:relative"><input class="opt" type="radio" name="bg"><span class="box" style="width:48px;padding:0;background:#ff79b0"></span></label><label style="position:relative"><input class="opt" type="radio" name="bg"><span class="box" style="width:48px;padding:0;background:#101012"></span></label></div></fieldset>
+<fieldset style="margin:0;padding:0;border:0;min-width:0"><legend class="label" style="padding:0;margin-bottom:10px">Align</legend><div class="row"><label style="position:relative"><input class="opt" type="radio" name="al" checked><span class="box">left</span></label><label style="position:relative"><input class="opt" type="radio" name="al"><span class="box">center</span></label></div></fieldset>
+<button class="btn btn-ghost" type="button">Delete block</button>
+</div></aside>
+</div>
+
+<footer class="foot"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

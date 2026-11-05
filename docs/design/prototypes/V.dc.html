@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud create account</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</helmet>
+<div class="frame">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#">Tools</a><a href="#">Hosting</a><a href="#">Docs</a></nav></div><div class="hdr-r"><a href="#">Log in</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+
+<div class="split">
+<main class="main narrow">
+<div class="stack-s"><p class="eyebrow">account / register</p><h1 class="title">Create account</h1></div>
+<a class="btn btn-wide" href="#"><span>Continue with authentik</span><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4"/></svg></a>
+<div class="or">or with e-mail</div>
+<form class="stack" style="gap:20px" onSubmit="{{noop}}">
+<div class="fld"><label class="label" for="mail">E-mail</label><input class="field" id="mail" type="email" autocomplete="username"></div>
+<div class="fld"><label class="label" for="pw">Password</label>
+<div class="row" style="flex-wrap:nowrap"><input class="field" id="pw" type="password" autocomplete="new-password"><button class="btn btn-ghost btn-icon" type="button" aria-label="Show password"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 10s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6z"/><circle cx="10" cy="10" r="2.5"/></svg></button></div>
+<span class="mono mut" style="font-size:12px">12 characters or more</span></div>
+<button class="btn" type="submit">Create account</button>
+</form>
+<p style="margin:0;font-size:15px;color:#c7c7cf">Already have an account? <a class="link" href="#" style="display:inline-flex;align-items:center;min-height:44px">Log in</a></p>
+</main>
+<aside class="panel" style="flex:1 1 480px;border-left:1px solid var(--line);--mh:640px;--mhm:200px">
+<div class="b1"></div><div class="b2"></div><div class="b3"></div>
+<img class="st" src="doc.svg" alt="" style="left:56px;top:200px;width:80px;transform:rotate(-8deg)">
+<img class="st hide-m" src="mtn.svg" alt="" style="left:170px;top:70px;width:96px;transform:rotate(6deg)">
+<img class="st" src="globe.svg" alt="" style="right:60px;top:110px;width:64px;transform:rotate(10deg)">
+<img class="st hide-m" src="dice.svg" alt="" style="right:150px;top:300px;width:60px;transform:rotate(-12deg)">
+<img class="axo bob" src="axo.svg" alt="Stuffy, the stuffcloud mascot">
+</aside>
+</div>
+
+<footer class="foot"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return { noop: (e) => { if (e && e.preventDefault) e.preventDefault(); } };
+}
+}
+</script>
+</body>
+</html>

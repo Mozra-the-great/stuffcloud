@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Sprite generators `docs/design/tools/mascots.py`, `seasons.py` and `stickers.py`
   (ASCII art to SVG) and 42 pixel tool stickers, one per tool. (#85, #87)
 - Tool pages show their sticker beside the title (`.tt` in `stuff.css`). (#88)
+- `docs/design/stuffcloud-design-system.pdf` and its build system
+  (`docs/design/tools/pdf/`: `build.py`, `shots.py`, `build_book.py`); a design
+  change must rebuild the PDF in the same PR (`CLAUDE.md`, `CONTRIBUTING.md`, PR
+  template, `docs/design/README.md`). (#91)
 - Changelog rule: every PR with a visible change adds an entry under
   `[Unreleased]`; documented in `CLAUDE.md`, `CONTRIBUTING.md` and the PR template. (#90)
 - CI building blocks from nagellacke and homelab-infra, stack-agnostic: `ci.yml`

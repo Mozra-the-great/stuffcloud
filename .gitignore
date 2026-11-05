@@ -42,3 +42,6 @@ __pycache__/
 .venv/
 .venv-lint/
 .ruff_cache/
+
+# Third-party design reference screenshots (copyrighted, local only)
+/docs/reference-images/

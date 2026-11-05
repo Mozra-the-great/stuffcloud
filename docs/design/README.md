@@ -92,7 +92,7 @@ header or above the footer, a corner sprite where it fits, and an accessory on S
 Rules: event windows win over seasons; Dec 27 to 31 uses winter. The admin chooses
 *auto by date*, *fixed season* or *off*, and visitors can switch decorations off.
 Decorations never block content, take no focus and stand still under
-`prefers-reduced-motion`. Pages `BQ` (all eight sets), `BS` (Christmas) and `BU`
+`prefers-reduced-motion`. Pages `BQ` (all six sets), `BS` (Christmas) and `BU`
 (Halloween) show them; the mobile boards use the same files.
 
 ## Files
@@ -136,7 +136,7 @@ separate mobile file each, listed below.
 | `BK` | Tool: resize image | same file |
 | `BM` | Empty and error states | same file |
 | `BO` | Docs page (CLI deploy) | same file |
-| `BQ` | Seasonal decorations, all eight sets | same file |
+| `BQ` | Seasonal decorations, all six sets | same file |
 | `BS` | All tools with the Christmas set | same file |
 | `BU` | All tools with the Halloween set | same file |
 | `BA` | API tokens | same file |

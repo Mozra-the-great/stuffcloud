@@ -242,6 +242,7 @@ interface (`put/get/delete/list/usage`).
 
 ## 12. Design and UX
 
+- Visual reference and mockups: `docs/design/` (decisions, tokens, page list).
 - Reference: screenshots in `docs/reference-images/` (local only, git-ignored:
   third-party material). Observed traits: near-black background (about `#101012`),
   thin grid lines, large white type, flat saturated accent blocks (orange, red,

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud set up two-factor</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</helmet>
+<div class="frame">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#">Tools</a><a href="#">Hosting</a><a href="#">Docs</a></nav></div><div class="hdr-r"><a href="#" aria-current="page">Account</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+
+<div class="split">
+<main class="main" style="max-width:760px">
+<div class="stack-s"><p class="eyebrow">account / security / two-factor</p><h1 class="title">Set up two-factor</h1></div>
+
+<section class="stack" style="gap:16px" aria-labelledby="s1">
+<h2 class="label" id="s1" style="margin:0;font-weight:400">1 · Scan</h2>
+<div class="row" style="gap:24px;align-items:flex-start">
+<img class="qr" src="qr.svg" alt="QR code for the authenticator app" style="width:176px;height:176px;flex:0 0 auto">
+<div class="stack-s" style="flex:1 1 240px;min-width:0"><span class="label">Or enter the key</span><span class="mono" style="font-size:18px;word-break:break-all;color:var(--lilac)">JBSW Y3DP EHPK 3PXP</span><button class="btn btn-ghost" type="button" style="align-self:flex-start">Copy key</button></div>
+</div>
+</section>
+
+<section class="stack" style="gap:16px" aria-labelledby="s2">
+<h2 class="label" id="s2" style="margin:0;font-weight:400">2 · Confirm</h2>
+<div class="fld" style="max-width:320px"><label class="label" for="c">6-digit code</label><input class="field" id="c" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000-000" style="font-size:24px;letter-spacing:.2em;min-height:64px"></div>
+</section>
+
+<section class="stack" style="gap:16px" aria-labelledby="s3">
+<h2 class="label" id="s3" style="margin:0;font-weight:400">3 · Save recovery codes</h2>
+<div class="codes"><span>k3f9-2mxa</span><span>q7d2-8wnb</span><span>x4c1-9ztp</span><span>m8h6-3vle</span><span>b2r5-7ykj</span><span>t9g3-1dsq</span><span>w6n8-4fhu</span><span>z1p7-5cxo</span></div>
+<div class="row row-m"><button class="btn btn-ghost" type="button">Copy codes</button><button class="btn btn-ghost" type="button">Download .txt</button></div>
+<label class="toggle"><input type="checkbox">I saved these codes somewhere safe</label>
+</section>
+
+<div class="row row-m"><button class="btn" type="button">Enable two-factor</button><a class="btn btn-ghost" href="#">Cancel</a></div>
+</main>
+<aside class="panel" style="flex:1 1 320px;border-left:1px solid var(--line);--mh:700px;--mhm:200px">
+<div class="b1"></div><div class="b2"></div>
+<img class="st" src="lock.svg" alt="" style="left:50px;top:140px;width:72px;transform:rotate(-8deg)">
+<img class="st hide-m" src="dice.svg" alt="" style="right:60px;top:260px;width:56px;transform:rotate(10deg)">
+<img class="axo axo-s bob" src="axo.svg" alt="Stuffy, the stuffcloud mascot">
+</aside>
+</div>
+
+<footer class="foot"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1100}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

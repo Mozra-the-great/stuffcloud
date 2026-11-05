@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud account security</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</helmet>
+<div class="frame">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#">Tools</a><a href="#">Hosting</a><a href="#">Docs</a></nav></div><div class="hdr-r"><a href="#" aria-current="page">Account</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+<nav class="tabs" aria-label="Account"><a href="#">Profile</a><a href="#" aria-current="page">Security</a><a href="#">API tokens</a></nav>
+
+<div class="split">
+<main class="main" style="max-width:860px">
+<div class="stack-s"><p class="eyebrow">account / security</p><h1 class="title">Security</h1></div>
+
+<section class="stack" style="gap:12px" aria-labelledby="a1"><h2 class="label" id="a1" style="margin:0;font-weight:400">Password</h2>
+<ul class="list"><li><div class="grow"><div>Password</div><div class="mono mut" style="font-size:12px;margin-top:4px">changed 2026-09-12</div></div><button class="btn btn-ghost" type="button">Change</button></li></ul></section>
+
+<section class="stack" style="gap:12px" aria-labelledby="a2"><h2 class="label" id="a2" style="margin:0;font-weight:400">Two-factor</h2>
+<ul class="list"><li><div class="grow"><div>Authenticator app</div><div class="badge" style="margin-top:6px"><i class="dot"></i>enabled</div></div><button class="btn btn-ghost" type="button">Recovery codes</button><button class="btn btn-ghost" type="button">Disable</button></li></ul></section>
+
+<section class="stack" style="gap:12px" aria-labelledby="a3"><h2 class="label" id="a3" style="margin:0;font-weight:400">Passkeys</h2>
+<ul class="list">
+<li><div class="grow"><div>MacBook Touch ID</div><div class="mono mut" style="font-size:12px;margin-top:4px">added 2026-08-03 · used today</div></div><button class="btn btn-ghost" type="button">Remove</button></li>
+<li><div class="grow"><div>YubiKey 5</div><div class="mono mut" style="font-size:12px;margin-top:4px">added 2026-08-03 · used 3 weeks ago</div></div><button class="btn btn-ghost" type="button">Remove</button></li>
+</ul><div><button class="btn" type="button">Add passkey</button></div></section>
+
+<section class="stack" style="gap:12px" aria-labelledby="a4"><h2 class="label" id="a4" style="margin:0;font-weight:400">Your data</h2>
+<div class="row row-m"><button class="btn btn-ghost" type="button">Export my data</button><button class="btn btn-danger" type="button">Delete account</button></div></section>
+</main>
+<aside class="panel" style="flex:1 1 280px;border-left:1px solid var(--line);--mh:600px;--mhm:200px"><div class="b1" style="left:32px;top:65px;width:96px;height:48px"></div><img class="st" src="lock.svg" alt="" style="left:50px;top:150px;width:72px;transform:rotate(-8deg)"><img class="axo axo-s bob" src="axo.svg" alt="Stuffy, the stuffcloud mascot"></aside>
+</div>
+
+<footer class="foot"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1100}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

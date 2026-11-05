@@ -21,8 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   (`docs/design/tools/pdf/`: `build.py`, `shots.py`, `build_book.py`); a design
   change must rebuild the PDF in the same PR, enforced by the `build` check
   (`source_hash.py`, `pdf-source.sha256`) and supported by the "Rebuild design PDF"
-  workflow (`design-pdf.yml`) (`CLAUDE.md`, `CONTRIBUTING.md`, PR
-  template, `docs/design/README.md`). (#91)
+  workflow (`design-pdf.yml`); documented in `CLAUDE.md`, `CONTRIBUTING.md`, the PR
+  template and `docs/design/README.md`. (#91, #92)
 - Changelog rule: every PR with a visible change adds an entry under
   `[Unreleased]`; documented in `CLAUDE.md`, `CONTRIBUTING.md` and the PR template. (#90)
 - CI building blocks from nagellacke and homelab-infra, stack-agnostic: `ci.yml`
@@ -33,14 +33,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `docs/TEMPLATE-SETUP.md`: secrets, runner choice, rulesets and costs of a new repo.
 
 ### Changed
-- `design-pdf.yml` pushes with a write deploy key (secret `DESIGN_PDF_DEPLOY_KEY`), so every required check including `claude-review` runs on the rebuilt commit; without the secret it falls back to the token path. (#94)
-- `design-pdf.yml` also dispatches `workflow-lint.yml` and `secret-scan.yml` for the commit it pushes, so `build`, `workflow-lint` and `gitleaks` report on it; only `claude-review` needs a follow-up push. (#93)
+- `design-pdf.yml` pushes with a write deploy key (secret `DESIGN_PDF_DEPLOY_KEY`),
+  so every required check including `claude-review` runs on the rebuilt commit.
+  Without the secret it falls back to the workflow token and dispatches `ci.yml`,
+  `workflow-lint.yml` and `secret-scan.yml` for the commit; only `claude-review`
+  then needs a follow-up push. (#93, #94)
+- Project placeholders filled in and `claude-review` added to the required checks of
+  the ruleset. (#2)
 - `docs/TEMPLATE-SETUP.md`, README and ruleset README: runner decisions of
   2026-11-04 (D1: hosted runners are the default, the own runner on CT121 only for
   private homelab jobs or as fallback; D2: hosted minutes for private repos are
   available; D6: workflows are copied per repo, no central reusable workflows).
 
 ### Fixed
+- `SECURITY.md`: personal e-mail address removed. (#74)
 - Mockups: Mochi redrawn as a cream cat, Ember's ears made symmetric, Waddle
   redrawn with friendlier eyes. (#77, #79)
 - Mobile: stacked form rows no longer get a fixed height. (#86)

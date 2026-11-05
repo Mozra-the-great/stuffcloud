@@ -69,6 +69,32 @@ focus, and all motion stops under `prefers-reduced-motion`.
 | Ghost | Boo | expired and 404 pages |
 | Cloud | Cumulo | site published; click the logo 5 times: drifts across |
 
+## Seasonal decorations
+
+Eight sets that work on every page through one class on an ancestor (`<html>` in
+production): `s-winter`, `s-christmas`, `s-spring`, `s-easter`, `s-summer`,
+`s-autumn`, `s-halloween`, `s-erntedank`. The rules live at the end of
+`prototypes/stuff.css`, the sprites are `prototypes/deco-*.svg`, all GPL-3.0-or-later.
+Each set has four parts: ambient particles (a slow tiled animation), a strip under the
+header or above the footer, a corner sprite where it fits, and an accessory on Stuffy.
+
+| Set | Window (Germany) | Particles | Strip | Corner | Stuffy |
+|---|---|---|---|---|---|
+| Winter | Jan 1 to Feb 28 | snow | icicles | none | beanie |
+| Christmas | Dec 1 to Dec 26 | snow | light garland | none | Santa hat |
+| Spring | Mar 1 to May 31 | petals | flowers | none | flower crown |
+| Easter | two weeks before to Easter Monday | petals | eggs | none | bunny ears |
+| Summer | Jun 1 to Aug 31 | bubbles | waves | sun | sun hat |
+| Autumn | Sep 1 to Nov 30 | leaves | leaf pile | none | leaf |
+| Halloween | Oct 24 to Nov 2 | bats | pumpkins | hanging spider | witch hat |
+| Harvest festival | week of the first Sunday in October | leaves | apples, wheat, pumpkin | none | apple |
+
+Rules: event windows win over seasons; Dec 27 to 31 uses winter. The admin chooses
+*auto by date*, *fixed season* or *off*, and visitors can switch decorations off.
+Decorations never block content, take no focus and stand still under
+`prefers-reduced-motion`. Pages `BQ` (all eight sets), `BS` (Christmas) and `BU`
+(Halloween) show them; the mobile boards use the same files.
+
 ## Files
 
 Open them in a Design canvas (they use that runtime and need `support.js`; they do
@@ -110,6 +136,9 @@ separate mobile file each, listed below.
 | `BK` | Tool: resize image | same file |
 | `BM` | Empty and error states | same file |
 | `BO` | Docs page (CLI deploy) | same file |
+| `BQ` | Seasonal decorations, all eight sets | same file |
+| `BS` | All tools with the Christmas set | same file |
+| `BU` | All tools with the Halloween set | same file |
 | `BA` | API tokens | same file |
 | `BC` | Admin tools | same file |
 

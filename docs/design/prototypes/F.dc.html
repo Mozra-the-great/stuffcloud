@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud tool page, pink and purple</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#101012}
+a{color:#f4f4f0;text-decoration:none}
+a.nav:hover{color:#ff79b0}
+a.btn-solid:hover,button.btn-solid:hover{background:#ff79b0}
+a.side:hover{background:#17171a}
+button.icon:hover{border-color:#f4f4f0}
+button{font-family:inherit}
+@keyframes bob{0%,49%{transform:translateY(0)}50%,100%{transform:translateY(-4px)}}
+.bob{animation:bob 1.2s steps(1) infinite}
+@media (prefers-reduced-motion: reduce){.bob{animation:none}}
+</style>
+</helmet>
+<div style="min-height: 1100px; background: #101012; color: #f4f4f0; font-family: 'Inter', system-ui, sans-serif; display: flex; flex-direction: column; align-items: center">
+
+<div style="width: 100%; max-width: 1240px; box-sizing: border-box; border-left: 1px solid #26262b; border-right: 1px solid #26262b; display: flex; flex-direction: column">
+
+<header style="display: flex; flex-wrap: wrap; align-items: stretch; justify-content: space-between; border-bottom: 1px solid #26262b">
+<div style="display: flex; flex-wrap: wrap; align-items: stretch">
+<a href="#" style="display: flex; align-items: center; gap: 12px; padding: 0 24px; min-height: 64px; border-right: 1px solid #26262b">
+<svg width="42" height="21" viewBox="0 0 14 7" shape-rendering="crispEdges" role="img" aria-label="stuffcloud logo"><path fill="#6fd0ff" d="M4 0h4v1h-4zM2 1h8v1h-8zM11 1h2v1h-2zM1 2h1v1h-1zM4 2h10v1h-10zM0 3h2v1h-2zM3 3h11v1h-11zM0 4h14v1h-14zM1 5h13v1h-13zM2 6h10v1h-10z"/><path fill="#ffffff" d="M2 2h2v1h-2zM2 3h1v1h-1z"/></svg>
+<span style="font-family: 'Silkscreen', monospace; font-size: 18px">stuffcloud</span>
+</a>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; align-items: stretch; font-size: 15px; font-weight: 500">
+<a class="nav" href="#" aria-current="page" style="display: flex; align-items: center; padding: 0 24px; min-height: 64px; border-right: 1px solid #26262b; color: #ff79b0">Tools</a>
+<a class="nav" href="#" style="display: flex; align-items: center; padding: 0 24px; min-height: 64px; border-right: 1px solid #26262b">Hosting</a>
+<a class="nav" href="#" style="display: flex; align-items: center; padding: 0 24px; min-height: 64px; border-right: 1px solid #26262b">Docs</a>
+</nav>
+</div>
+<div style="display: flex; align-items: stretch; font-size: 15px; font-weight: 500">
+<a class="nav" href="#" style="display: flex; align-items: center; padding: 0 24px; min-height: 64px; border-left: 1px solid #26262b">Log in</a>
+</div>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; align-items: stretch; border-bottom: 1px solid #26262b">
+
+<aside style="flex: 0 0 260px; min-width: 220px; box-sizing: border-box; border-right: 1px solid #26262b; display: flex; flex-direction: column">
+<nav aria-label="PDF tools" style="display: flex; flex-direction: column">
+<div style="padding: 24px 24px 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 1px; color: #a2a2ab">PDF</div>
+<a class="side" href="#" aria-current="page" style="display: flex; align-items: center; gap: 12px; padding: 0 24px; min-height: 52px; border-top: 1px solid #26262b; background: #17171a; font-weight: 600; font-size: 15px"><span style="width: 8px; height: 8px; background: #ff79b0"></span>Merge</a>
+<a class="side" href="#" style="display: flex; align-items: center; gap: 12px; padding: 0 24px; min-height: 52px; border-top: 1px solid #26262b; font-size: 15px"><span style="width: 8px; height: 8px; background: #3a3a42"></span>Split</a>
+<a class="side" href="#" style="display: flex; align-items: center; gap: 12px; padding: 0 24px; min-height: 52px; border-top: 1px solid #26262b; font-size: 15px"><span style="width: 8px; height: 8px; background: #3a3a42"></span>Rotate &amp; reorder</a>
+<a class="side" href="#" style="display: flex; align-items: center; gap: 12px; padding: 0 24px; min-height: 52px; border-top: 1px solid #26262b; font-size: 15px"><span style="width: 8px; height: 8px; background: #3a3a42"></span>Images to PDF</a>
+<a class="side" href="#" style="display: flex; align-items: center; gap: 12px; padding: 0 24px; min-height: 52px; border-top: 1px solid #26262b; font-size: 15px"><span style="width: 8px; height: 8px; background: #3a3a42"></span>PDF to images</a>
+<a class="side" href="#" style="display: flex; align-items: center; gap: 12px; padding: 0 24px; min-height: 52px; border-top: 1px solid #26262b; font-size: 15px"><span style="width: 8px; height: 8px; background: #3a3a42"></span>Compress</a>
+<a class="side" href="#" style="display: flex; align-items: center; gap: 12px; padding: 0 24px; min-height: 52px; border-top: 1px solid #26262b; font-size: 15px"><span style="width: 8px; height: 8px; background: #3a3a42"></span>Password</a>
+<a class="side" href="#" style="display: flex; align-items: center; gap: 12px; padding: 0 24px; min-height: 52px; border-top: 1px solid #26262b; border-bottom: 1px solid #26262b; font-size: 15px"><span style="width: 8px; height: 8px; background: #3a3a42"></span>Metadata</a>
+</nav>
+</aside>
+
+<main style="flex: 1 1 520px; min-width: 0; box-sizing: border-box; padding: 40px; display: flex; flex-direction: column; gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #a2a2ab">tools / pdf / merge</p>
+<h1 style="margin: 0; font-size: 48px; font-weight: 500; letter-spacing: -1.2px; line-height: 1.05">Merge PDF</h1>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; border: 1px dashed #6b5a8f; padding: 24px 28px">
+<span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #c7c7cf">drop PDFs here</span>
+<button class="btn-solid" type="button" style="background: #f4f4f0; color: #101012; border: 0; padding: 0 24px; min-height: 44px; font-weight: 600; font-size: 15px; cursor: pointer">Choose files</button>
+</div>
+
+<ul aria-label="Files to merge" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border: 1px solid #26262b">
+
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 14px 16px; border-bottom: 1px solid #26262b">
+<span aria-hidden="true" style="display: grid; grid-template-columns: repeat(2, 4px); gap: 3px; opacity: .6"><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i></span>
+<svg width="40" height="40" viewBox="0 0 10 10" shape-rendering="crispEdges" aria-hidden="true"><path fill="#c78bff" d="M0 0h8v1h-8zM0 1h1v1h-1zM8 1h1v1h-1zM0 2h1v1h-1zM9 2h1v1h-1zM0 3h1v1h-1zM9 3h1v1h-1zM0 4h1v1h-1zM9 4h1v1h-1zM0 5h1v1h-1zM9 5h1v1h-1zM0 6h1v1h-1zM9 6h1v1h-1zM0 7h1v1h-1zM9 7h1v1h-1zM0 8h1v1h-1zM9 8h1v1h-1zM0 9h10v1h-10z"/><path fill="#f6eeff" d="M1 1h7v1h-7zM1 2h8v1h-8zM1 3h1v1h-1zM8 3h1v1h-1zM1 4h8v1h-8zM1 5h1v1h-1zM7 5h2v1h-2zM1 6h8v1h-8zM1 7h1v1h-1zM8 7h1v1h-1zM1 8h8v1h-8z"/><path fill="#ff4f8b" d="M2 3h6v1h-6zM2 5h5v1h-5zM2 7h6v1h-6z"/></svg>
+<div style="flex: 1 1 200px; min-width: 0"><div style="font-size: 16px; font-weight: 500; overflow-wrap: anywhere">invoice-2026-10.pdf</div><div style="margin-top: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #a2a2ab">2 pages · 148 KB</div></div>
+<div style="display: flex; gap: 8px">
+<button class="icon" type="button" aria-label="Move invoice-2026-10.pdf up" disabled style="width: 44px; height: 44px; background: transparent; border: 1px solid #26262b; color: #5a5a64; cursor: not-allowed"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 13V3M3 8l5-5 5 5"/></svg></button>
+<button class="icon" type="button" aria-label="Move invoice-2026-10.pdf down" style="width: 44px; height: 44px; background: transparent; border: 1px solid #3a3a42; color: #f4f4f0; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v10M3 8l5 5 5-5"/></svg></button>
+<button class="icon" type="button" aria-label="Remove invoice-2026-10.pdf" style="width: 44px; height: 44px; background: transparent; border: 1px solid #3a3a42; color: #f4f4f0; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg></button>
+</div>
+</li>
+
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 14px 16px; border-bottom: 1px solid #26262b">
+<span aria-hidden="true" style="display: grid; grid-template-columns: repeat(2, 4px); gap: 3px; opacity: .6"><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i></span>
+<svg width="40" height="40" viewBox="0 0 10 10" shape-rendering="crispEdges" aria-hidden="true"><path fill="#c78bff" d="M0 0h8v1h-8zM0 1h1v1h-1zM8 1h1v1h-1zM0 2h1v1h-1zM9 2h1v1h-1zM0 3h1v1h-1zM9 3h1v1h-1zM0 4h1v1h-1zM9 4h1v1h-1zM0 5h1v1h-1zM9 5h1v1h-1zM0 6h1v1h-1zM9 6h1v1h-1zM0 7h1v1h-1zM9 7h1v1h-1zM0 8h1v1h-1zM9 8h1v1h-1zM0 9h10v1h-10z"/><path fill="#f6eeff" d="M1 1h7v1h-7zM1 2h8v1h-8zM1 3h1v1h-1zM8 3h1v1h-1zM1 4h8v1h-8zM1 5h1v1h-1zM7 5h2v1h-2zM1 6h8v1h-8zM1 7h1v1h-1zM8 7h1v1h-1zM1 8h8v1h-8z"/><path fill="#ff4f8b" d="M2 3h6v1h-6zM2 5h5v1h-5zM2 7h6v1h-6z"/></svg>
+<div style="flex: 1 1 200px; min-width: 0"><div style="font-size: 16px; font-weight: 500; overflow-wrap: anywhere">contract-signed.pdf</div><div style="margin-top: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #a2a2ab">12 pages · 1.4 MB</div></div>
+<div style="display: flex; gap: 8px">
+<button class="icon" type="button" aria-label="Move contract-signed.pdf up" style="width: 44px; height: 44px; background: transparent; border: 1px solid #3a3a42; color: #f4f4f0; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 13V3M3 8l5-5 5 5"/></svg></button>
+<button class="icon" type="button" aria-label="Move contract-signed.pdf down" style="width: 44px; height: 44px; background: transparent; border: 1px solid #3a3a42; color: #f4f4f0; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v10M3 8l5 5 5-5"/></svg></button>
+<button class="icon" type="button" aria-label="Remove contract-signed.pdf" style="width: 44px; height: 44px; background: transparent; border: 1px solid #3a3a42; color: #f4f4f0; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg></button>
+</div>
+</li>
+
+<li style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 14px 16px">
+<span aria-hidden="true" style="display: grid; grid-template-columns: repeat(2, 4px); gap: 3px; opacity: .6"><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i><i style="width: 4px; height: 4px; background: #a2a2ab"></i></span>
+<svg width="40" height="40" viewBox="0 0 10 10" shape-rendering="crispEdges" aria-hidden="true"><path fill="#c78bff" d="M0 0h8v1h-8zM0 1h1v1h-1zM8 1h1v1h-1zM0 2h1v1h-1zM9 2h1v1h-1zM0 3h1v1h-1zM9 3h1v1h-1zM0 4h1v1h-1zM9 4h1v1h-1zM0 5h1v1h-1zM9 5h1v1h-1zM0 6h1v1h-1zM9 6h1v1h-1zM0 7h1v1h-1zM9 7h1v1h-1zM0 8h1v1h-1zM9 8h1v1h-1zM0 9h10v1h-10z"/><path fill="#f6eeff" d="M1 1h7v1h-7zM1 2h8v1h-8zM1 3h1v1h-1zM8 3h1v1h-1zM1 4h8v1h-8zM1 5h1v1h-1zM7 5h2v1h-2zM1 6h8v1h-8zM1 7h1v1h-1zM8 7h1v1h-1zM1 8h8v1h-8z"/><path fill="#ff4f8b" d="M2 3h6v1h-6zM2 5h5v1h-5zM2 7h6v1h-6z"/></svg>
+<div style="flex: 1 1 200px; min-width: 0"><div style="font-size: 16px; font-weight: 500; overflow-wrap: anywhere">scan-0042.pdf</div><div style="margin-top: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #a2a2ab">5 pages · 3.9 MB</div></div>
+<div style="display: flex; gap: 8px">
+<button class="icon" type="button" aria-label="Move scan-0042.pdf up" style="width: 44px; height: 44px; background: transparent; border: 1px solid #3a3a42; color: #f4f4f0; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 13V3M3 8l5-5 5 5"/></svg></button>
+<button class="icon" type="button" aria-label="Move scan-0042.pdf down" disabled style="width: 44px; height: 44px; background: transparent; border: 1px solid #26262b; color: #5a5a64; cursor: not-allowed"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3v10M3 8l5 5 5-5"/></svg></button>
+<button class="icon" type="button" aria-label="Remove scan-0042.pdf" style="width: 44px; height: 44px; background: transparent; border: 1px solid #3a3a42; color: #f4f4f0; cursor: pointer"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg></button>
+</div>
+</li>
+
+</ul>
+</main>
+
+<aside style="flex: 0 0 320px; min-width: 260px; box-sizing: border-box; border-left: 1px solid #26262b; display: flex; flex-direction: column">
+<div style="padding: 40px 28px 28px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="out" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 1px; color: #a2a2ab">FILE NAME</label>
+<input id="out" type="text" value="merged.pdf" style="box-sizing: border-box; width: 100%; min-height: 48px; background: transparent; border: 1px solid #3a3a42; color: #f4f4f0; padding: 0 14px; font-family: 'JetBrains Mono', monospace; font-size: 15px">
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 10px 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; border-top: 1px solid #26262b; padding-top: 20px">
+<dt style="color: #a2a2ab">files</dt><dd style="margin: 0">3</dd>
+<dt style="color: #a2a2ab">pages</dt><dd style="margin: 0">19</dd>
+<dt style="color: #a2a2ab">size</dt><dd style="margin: 0">5.4 MB</dd>
+</dl>
+<button class="btn-solid" type="button" style="background: #f4f4f0; color: #101012; border: 0; min-height: 56px; font-weight: 600; font-size: 16px; cursor: pointer">Merge PDF</button>
+</div>
+<div style="position: relative; flex: 1; min-height: 260px; overflow: hidden; border-top: 1px solid #26262b; background-color: #8b5cf6; background-image: linear-gradient(rgba(16,16,18,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(16,16,18,.18) 1px, transparent 1px); background-size: 40px 40px">
+<div style="position: absolute; left: 40px; top: 40px; width: 80px; height: 40px; background: rgba(255,255,255,.22)"></div>
+<div style="position: absolute; right: 0; top: 80px; width: 40px; height: 80px; background: rgba(255,79,139,.55)"></div>
+<div style="position: absolute; left: 0; top: 160px; width: 40px; height: 40px; background: rgba(16,16,18,.25)"></div>
+<svg class="bob" style="position: absolute; left: 50%; bottom: 0; margin-left: -80px" width="160" height="110" viewBox="0 0 16 11" shape-rendering="crispEdges" role="img" aria-label="Stuffy the axolotl"><path fill="#ff4f8b" d="M0 0h1v1h-1zM2 0h1v1h-1zM13 0h1v1h-1zM15 0h1v1h-1zM0 1h3v1h-3zM13 1h3v1h-3zM1 2h2v1h-2zM13 2h2v1h-2zM0 4h2v1h-2zM14 4h2v1h-2z"/><path fill="#ffa6c4" d="M3 2h10v1h-10zM2 3h12v1h-12zM2 4h2v1h-2zM6 4h4v1h-4zM12 4h2v1h-2zM2 5h2v1h-2zM6 5h4v1h-4zM12 5h2v1h-2zM2 6h12v1h-12zM2 7h1v1h-1zM5 7h6v1h-6zM13 7h1v1h-1zM3 8h4v1h-4zM9 8h4v1h-4zM2 9h12v1h-12zM1 10h2v1h-2zM5 10h2v1h-2zM9 10h2v1h-2zM13 10h2v1h-2z"/><path fill="#1a0b14" d="M4 4h2v1h-2zM10 4h2v1h-2zM4 5h1v1h-1zM10 5h1v1h-1z"/><path fill="#ffffff" d="M5 5h1v1h-1zM11 5h1v1h-1z"/><path fill="#ff7aa6" d="M3 7h2v1h-2zM11 7h2v1h-2z"/><path fill="#8a1f4a" d="M7 8h2v1h-2z"/></svg>
+</div>
+</aside>
+
+</div>
+
+<footer style="padding: 28px 40px 36px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; font-size: 13px; color: #a2a2ab">
+<span>stuffcloud · GPL-3.0 · no trackers</span>
+<span style="display: flex; gap: 24px"><a href="#" style="color: #a2a2ab">Source</a><a href="#" style="color: #a2a2ab">Privacy</a><a href="#" style="color: #a2a2ab">Report abuse</a></span>
+</footer>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1100}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

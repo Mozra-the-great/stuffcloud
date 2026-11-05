@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud admin settings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</helmet>
+<div class="frame">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#">Tools</a><a href="#">Hosting</a><a href="#" aria-current="page">Admin</a></nav></div><div class="hdr-r"><a href="#">Account</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+<nav class="tabs" aria-label="Admin"><a href="#">Users</a><a href="#">Zones</a><a href="#" aria-current="page">Settings</a><a href="#">Tools</a><a href="#">Audit log</a></nav>
+
+<form class="main" onSubmit="{{noop}}" style="margin:0;padding:40px;max-width:860px;flex:1">
+<div class="stack-s"><p class="eyebrow">admin / settings</p><h1 class="title">Settings</h1></div>
+
+<fieldset class="stack" style="margin:0;padding:0;border:0;min-width:0;gap:12px"><legend class="label" style="padding:0;margin-bottom:12px">Sign-up</legend>
+<label style="position:relative;display:block"><input class="opt" type="radio" name="su"><span class="box" style="justify-content:flex-start">Open</span></label>
+<label style="position:relative;display:block"><input class="opt" type="radio" name="su" checked><span class="box" style="justify-content:flex-start">Invitation only</span></label>
+<label style="position:relative;display:block"><input class="opt" type="radio" name="su"><span class="box" style="justify-content:flex-start">OIDC only</span></label></fieldset>
+
+<section class="stack" style="gap:16px;border-top:1px solid var(--line);padding-top:28px" aria-labelledby="o1"><h2 class="label" id="o1" style="margin:0;font-weight:400">OIDC · authentik</h2>
+<div class="fld"><label class="label" for="iss">Issuer URL</label><input class="field" id="iss" type="url" value="https://auth.example.org/application/o/stuffcloud/"></div>
+<div class="row row-m" style="flex-wrap:nowrap"><div class="fld" style="flex:1 1 0"><label class="label" for="cid">Client ID</label><input class="field" id="cid" type="text" value="stuffcloud"></div><div class="fld" style="flex:1 1 0"><label class="label" for="cs">Client secret</label><input class="field" id="cs" type="password" value="stored-secret"></div></div>
+<div class="fld"><span class="label">Group to role</span>
+<div class="row" style="flex-wrap:nowrap"><input class="field" aria-label="Group for admin" value="stuffcloud-admins"><span class="mono mut">→</span><select class="field" aria-label="Role"><option>Admin</option></select></div>
+<div class="row" style="flex-wrap:nowrap"><input class="field" aria-label="Group for moderator" value="stuffcloud-mods"><span class="mono mut">→</span><select class="field" aria-label="Role"><option>Moderator</option></select></div></div></section>
+
+<section class="stack" style="gap:16px;border-top:1px solid var(--line);padding-top:28px" aria-labelledby="m1"><h2 class="label" id="m1" style="margin:0;font-weight:400">E-mail (optional)</h2>
+<div class="row row-m" style="flex-wrap:nowrap"><div class="fld" style="flex:2 1 0"><label class="label" for="h">SMTP host</label><input class="field" id="h" type="text" placeholder="smtp.example.org"></div><div class="fld" style="flex:1 1 0"><label class="label" for="p">Port</label><input class="field" id="p" type="text" value="587"></div></div>
+<div class="row"><button class="btn btn-ghost" type="button">Send test mail</button></div></section>
+
+<section class="stack" style="gap:16px;border-top:1px solid var(--line);padding-top:28px" aria-labelledby="q1"><h2 class="label" id="q1" style="margin:0;font-weight:400">Limits</h2>
+<div class="row row-m" style="flex-wrap:nowrap"><div class="fld" style="flex:1 1 0"><label class="label" for="qa">Anonymous · per site</label><input class="field" id="qa" type="text" value="10 MB"></div><div class="fld" style="flex:1 1 0"><label class="label" for="qb">Account · per site</label><input class="field" id="qb" type="text" value="200 MB"></div></div>
+<div class="row row-m" style="flex-wrap:nowrap"><div class="fld" style="flex:1 1 0"><label class="label" for="qc">Account · total</label><input class="field" id="qc" type="text" value="5 GB"></div><div class="fld" style="flex:1 1 0"><label class="label" for="qd">Account · sites</label><input class="field" id="qd" type="text" value="100"></div></div></section>
+
+<div class="row row-m" style="border-top:1px solid var(--line);padding-top:28px"><button class="btn" type="submit">Save settings</button><a class="btn btn-ghost" href="#">Reset</a></div>
+</form>
+
+<footer class="foot"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1500}}'>
+class Component extends DCLogic {
+renderVals() {
+return { noop: (e) => { if (e && e.preventDefault) e.preventDefault(); } };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud two-factor code</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#101012}
+a{color:#f4f4f0;text-decoration:none}
+a.nav:hover{color:#ff79b0}
+a.link{color:#c78bff;text-decoration:underline;text-underline-offset:3px}
+a.link:hover{color:#ff79b0}
+button.btn-solid:hover{background:#ff79b0}
+button{font-family:inherit}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #f4f4f0;outline-offset:2px}
+.otp:focus-within .cell{border-color:#ff79b0}
+.st{filter:drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff)}
+@keyframes bob{0%,49%{transform:translateY(0)}50%,100%{transform:translateY(-4px)}}
+.bob{animation:bob 1.2s steps(1) infinite}
+@media (prefers-reduced-motion: reduce){.bob{animation:none}}
+</style>
+</helmet>
+<div style="min-height: 1000px; background: #101012; color: #f4f4f0; font-family: 'Inter', system-ui, sans-serif; display: flex; flex-direction: column; align-items: center">
+
+<div style="width: 100%; max-width: 1240px; box-sizing: border-box; border-left: 1px solid #26262b; border-right: 1px solid #26262b; display: flex; flex-direction: column">
+
+<header style="display: flex; flex-wrap: wrap; align-items: stretch; justify-content: space-between; border-bottom: 1px solid #26262b">
+<div style="display: flex; flex-wrap: wrap; align-items: stretch">
+<a href="#" style="display: flex; align-items: center; gap: 12px; padding: 0 24px; min-height: 64px; border-right: 1px solid #26262b">
+<svg width="42" height="21" viewBox="0 0 14 7" shape-rendering="crispEdges" role="img" aria-label="stuffcloud logo"><path fill="#6fd0ff" d="M4 0h4v1h-4zM2 1h8v1h-8zM11 1h2v1h-2zM1 2h1v1h-1zM4 2h10v1h-10zM0 3h2v1h-2zM3 3h11v1h-11zM0 4h14v1h-14zM1 5h13v1h-13zM2 6h10v1h-10z"/><path fill="#ffffff" d="M2 2h2v1h-2zM2 3h1v1h-1z"/></svg>
+<span style="font-family: 'Silkscreen', monospace; font-size: 18px">stuffcloud</span>
+</a>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; align-items: stretch; font-size: 15px; font-weight: 500">
+<a class="nav" href="#" style="display: flex; align-items: center; padding: 0 24px; min-height: 64px; border-right: 1px solid #26262b">Tools</a>
+<a class="nav" href="#" style="display: flex; align-items: center; padding: 0 24px; min-height: 64px; border-right: 1px solid #26262b">Hosting</a>
+<a class="nav" href="#" style="display: flex; align-items: center; padding: 0 24px; min-height: 64px; border-right: 1px solid #26262b">Docs</a>
+</nav>
+</div>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; align-items: stretch; border-bottom: 1px solid #26262b">
+
+<main style="flex: 1 1 520px; min-width: 0; box-sizing: border-box; padding: 56px 56px 64px; display: flex; flex-direction: column; justify-content: center; gap: 32px; max-width: 640px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #a2a2ab">account / two-factor</p>
+<h1 style="margin: 0; font-size: 48px; font-weight: 500; letter-spacing: -1.2px; line-height: 1.05">Enter your code</h1>
+</div>
+
+<form onSubmit="{{noop}}" style="margin: 0; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="code" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 1px; color: #a2a2ab">6-DIGIT CODE</label>
+<div class="otp" style="position: relative; display: flex; align-items: center">
+<div aria-hidden="true" style="display: flex; align-items: center; pointer-events: none">
+<span class="cell" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 60px; height: 76px; border: 1px solid #3a3a42; margin-right: 8px; font-family: 'JetBrains Mono', monospace; font-size: 36px"><span style="color: #f4f4f0">{{d0}}</span><span style="color: #3a3a42">{{p0}}</span></span>
+<span class="cell" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 60px; height: 76px; border: 1px solid #3a3a42; margin-right: 8px; font-family: 'JetBrains Mono', monospace; font-size: 36px"><span style="color: #f4f4f0">{{d1}}</span><span style="color: #3a3a42">{{p1}}</span></span>
+<span class="cell" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 60px; height: 76px; border: 1px solid #3a3a42; font-family: 'JetBrains Mono', monospace; font-size: 36px"><span style="color: #f4f4f0">{{d2}}</span><span style="color: #3a3a42">{{p2}}</span></span>
+<span style="width: 20px; height: 2px; background: #a2a2ab; margin: 0 18px"></span>
+<span class="cell" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 60px; height: 76px; border: 1px solid #3a3a42; margin-right: 8px; font-family: 'JetBrains Mono', monospace; font-size: 36px"><span style="color: #f4f4f0">{{d3}}</span><span style="color: #3a3a42">{{p3}}</span></span>
+<span class="cell" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 60px; height: 76px; border: 1px solid #3a3a42; margin-right: 8px; font-family: 'JetBrains Mono', monospace; font-size: 36px"><span style="color: #f4f4f0">{{d4}}</span><span style="color: #3a3a42">{{p4}}</span></span>
+<span class="cell" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 60px; height: 76px; border: 1px solid #3a3a42; font-family: 'JetBrains Mono', monospace; font-size: 36px"><span style="color: #f4f4f0">{{d5}}</span><span style="color: #3a3a42">{{p5}}</span></span>
+</div>
+<input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" value="{{code}}" onChange="{{onCode}}" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; margin: 0; opacity: 0; font-size: 16px; cursor: text">
+</div>
+</div>
+<button class="btn-solid" type="submit" style="min-height: 56px; background: #f4f4f0; color: #101012; border: 0; font-weight: 600; font-size: 16px; cursor: pointer">Verify</button>
+</form>
+
+<div style="display: flex; flex-direction: column; border-top: 1px solid #26262b">
+<a class="link" href="#" style="display: flex; align-items: center; min-height: 52px; font-size: 15px; border-bottom: 1px solid #26262b">Use a recovery code</a>
+<a class="link" href="#" style="display: flex; align-items: center; min-height: 52px; font-size: 15px; border-bottom: 1px solid #26262b">Use a passkey instead</a>
+<a class="link" href="#" style="display: flex; align-items: center; min-height: 52px; font-size: 15px">Back to log in</a>
+</div>
+</main>
+
+<aside style="flex: 1 1 480px; min-width: 0; position: relative; min-height: 640px; overflow: hidden; border-left: 1px solid #26262b; background-color: #8b5cf6; background-image: linear-gradient(rgba(16,16,18,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(16,16,18,.18) 1px, transparent 1px); background-size: 65px 65px">
+<div style="position: absolute; left: 65px; top: 65px; width: 130px; height: 65px; background: rgba(255,255,255,.22)"></div>
+<div style="position: absolute; left: 325px; top: 130px; width: 65px; height: 130px; background: rgba(255,79,139,.5)"></div>
+<div style="position: absolute; right: 65px; top: 0; width: 130px; height: 65px; background: rgba(16,16,18,.25)"></div>
+<svg class="st" style="position: absolute; left: 80px; top: 200px; transform: rotate(-8deg)" width="81" height="90" viewBox="0 0 9 10" shape-rendering="crispEdges" aria-hidden="true"><path fill="#4f8cff" d="M2 0h5v1h-5zM1 1h2v1h-2zM6 1h2v1h-2zM1 2h1v1h-1zM7 2h1v1h-1zM1 3h1v1h-1zM7 3h1v1h-1zM0 4h9v1h-9zM0 5h1v1h-1zM8 5h1v1h-1zM0 6h1v1h-1zM8 6h1v1h-1zM0 7h1v1h-1zM8 7h1v1h-1zM0 8h1v1h-1zM8 8h1v1h-1zM0 9h9v1h-9z"/><path fill="#ffd23f" d="M1 5h7v1h-7zM1 6h3v1h-3zM5 6h3v1h-3zM1 7h3v1h-3zM5 7h3v1h-3zM1 8h7v1h-7z"/><path fill="#5a3b00" d="M4 6h1v1h-1zM4 7h1v1h-1z"/></svg>
+<svg class="st" style="position: absolute; left: 190px; top: 80px; transform: rotate(6deg)" width="63" height="63" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true"><path fill="#3ddc84" d="M0 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM0 2h1v1h-1zM6 2h1v1h-1zM0 3h1v1h-1zM6 3h1v1h-1zM0 4h1v1h-1zM6 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM0 6h7v1h-7z"/><path fill="#eafff3" d="M1 1h5v1h-5zM1 2h1v1h-1zM3 2h1v1h-1zM5 2h1v1h-1zM1 3h2v1h-2zM4 3h2v1h-2zM1 4h1v1h-1zM3 4h1v1h-1zM5 4h1v1h-1zM1 5h5v1h-5z"/><path fill="#0b3d22" d="M2 2h1v1h-1zM4 2h1v1h-1zM3 3h1v1h-1zM2 4h1v1h-1zM4 4h1v1h-1z"/></svg>
+<svg class="st" style="position: absolute; right: 90px; top: 150px; transform: rotate(10deg)" width="70" height="77" viewBox="0 0 10 11" shape-rendering="crispEdges" aria-hidden="true"><path fill="#ff5c3a" d="M6 0h1v1h-1zM6 1h2v1h-2zM0 2h9v1h-9zM6 3h2v1h-2zM6 4h1v1h-1z"/><path fill="#ffd23f" d="M3 6h1v1h-1zM2 7h2v1h-2zM1 8h9v1h-9zM2 9h2v1h-2zM3 10h1v1h-1z"/></svg>
+<svg class="st" style="position: absolute; right: 160px; top: 320px; transform: rotate(-12deg)" width="56" height="56" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true"><path fill="#c78bff" d="M2 0h3v1h-3zM1 1h2v1h-2zM4 1h2v1h-2zM0 2h2v1h-2zM5 2h2v1h-2zM0 3h7v1h-7zM0 4h2v1h-2zM5 4h2v1h-2zM0 5h2v1h-2zM5 5h2v1h-2zM0 6h2v1h-2zM5 6h2v1h-2z"/></svg>
+<svg class="bob" style="position: absolute; left: 50%; bottom: 0; margin-left: -128px" width="256" height="176" viewBox="0 0 16 11" shape-rendering="crispEdges" role="img" aria-label="Stuffy, the stuffcloud mascot, a pink pixel axolotl"><path fill="#ff4f8b" d="M0 0h1v1h-1zM2 0h1v1h-1zM13 0h1v1h-1zM15 0h1v1h-1zM0 1h3v1h-3zM13 1h3v1h-3zM1 2h2v1h-2zM13 2h2v1h-2zM0 4h2v1h-2zM14 4h2v1h-2z"/><path fill="#ffa6c4" d="M3 2h10v1h-10zM2 3h12v1h-12zM2 4h2v1h-2zM6 4h4v1h-4zM12 4h2v1h-2zM2 5h2v1h-2zM6 5h4v1h-4zM12 5h2v1h-2zM2 6h12v1h-12zM2 7h1v1h-1zM5 7h6v1h-6zM13 7h1v1h-1zM3 8h4v1h-4zM9 8h4v1h-4zM2 9h12v1h-12zM1 10h2v1h-2zM5 10h2v1h-2zM9 10h2v1h-2zM13 10h2v1h-2z"/><path fill="#1a0b14" d="M4 4h2v1h-2zM10 4h2v1h-2zM4 5h1v1h-1zM10 5h1v1h-1z"/><path fill="#ffffff" d="M5 5h1v1h-1zM11 5h1v1h-1z"/><path fill="#ff7aa6" d="M3 7h2v1h-2zM11 7h2v1h-2z"/><path fill="#8a1f4a" d="M7 8h2v1h-2z"/></svg>
+</aside>
+
+</div>
+
+<footer style="padding: 28px 40px 36px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; font-size: 13px; color: #a2a2ab">
+<span>stuffcloud · GPL-3.0 · no trackers</span>
+<span style="display: flex; gap: 24px"><a href="#" style="color: #a2a2ab">Source</a><a href="#" style="color: #a2a2ab">Privacy</a><a href="#" style="color: #a2a2ab">Report abuse</a></span>
+</footer>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { code: '' };
+}
+renderVals() {
+const code = this.state.code || '';
+const vals = {
+noop: (e) => { if (e && e.preventDefault) e.preventDefault(); },
+code: code,
+onCode: (e) => { this.setState({ code: String(e.target.value).replace(/\D/g, '').slice(0, 6) }); }
+};
+for (let i = 0; i < 6; i++) {
+vals['d' + i] = code[i] || '';
+vals['p' + i] = code[i] ? '' : '0';
+}
+return vals;
+}
+}
+</script>
+</body>
+</html>

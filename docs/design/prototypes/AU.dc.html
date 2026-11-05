@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud templates</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+.tg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0;border-top:1px solid var(--line)}
+.tc{display:flex;flex-direction:column;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tp{height:200px;position:relative;overflow:hidden;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:10px;padding:20px}
+.tp i{display:block;height:8px;background:rgba(255,255,255,.55)}
+.tp b{display:block;font:600 20px var(--sans);color:#fff}
+</style>
+</helmet>
+<div class="frame">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#">Tools</a><a href="#" aria-current="page">Hosting</a><a href="#">Docs</a></nav></div><div class="hdr-r"><a href="#">Account</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+
+<main style="flex:1;display:flex;flex-direction:column">
+<div class="stack-s" style="padding:40px"><p class="eyebrow">hosting / new / template</p><h1 class="title">Start from a template</h1></div>
+<div class="tg">
+<article class="tc"><div class="tp" style="background:#8b5cf6;align-items:center;justify-content:center"><div style="width:56px;height:56px;border-radius:50%;background:#ff79b0"></div><b>Alex Doe</b><i style="width:70%"></i><i style="width:70%"></i><i style="width:70%"></i></div><div class="pad stack-s"><h2 class="sub" style="font-size:22px">Link in bio</h2><span class="mono mut" style="font-size:12px">name, links, business card</span><button class="btn" type="button" style="margin-top:10px">Use template</button></div></article>
+<article class="tc"><div class="tp" style="background:#ff4f8b"><b>You are invited</b><i style="width:50%"></i><i style="width:35%"></i><div style="margin-top:auto;align-self:flex-start;background:#fff;color:#101012;padding:6px 14px;font:12px var(--mono)">SAT 20 · 18:00</div></div><div class="pad stack-s"><h2 class="sub" style="font-size:22px">Invitation</h2><span class="mono mut" style="font-size:12px">date, place, calendar file</span><button class="btn" type="button" style="margin-top:10px">Use template</button></div></article>
+<article class="tc"><div class="tp" style="background:#3a3a52;flex-direction:row;gap:16px"><div style="width:28%;display:flex;flex-direction:column;gap:8px"><i></i><i></i><i></i><i></i></div><div style="flex:1;display:flex;flex-direction:column;gap:8px"><b>Docs</b><i></i><i style="width:80%"></i><i></i><i style="width:60%"></i></div></div><div class="pad stack-s"><h2 class="sub" style="font-size:22px">Documentation</h2><span class="mono mut" style="font-size:12px">pages from Markdown</span><button class="btn" type="button" style="margin-top:10px">Use template</button></div></article>
+<article class="tc"><div class="tp" style="background:#8b5cf6;align-items:center;justify-content:flex-end;padding-bottom:0"><b style="font-size:16px">Coming soon</b><img src="axo.svg" alt="" style="width:110px;margin-top:10px"></div><div class="pad stack-s"><h2 class="sub" style="font-size:22px">Under construction</h2><span class="mono mut" style="font-size:12px">pixel scene, countdown</span><button class="btn" type="button" style="margin-top:10px">Use template</button></div></article>
+</div>
+</main>
+
+<footer class="foot"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

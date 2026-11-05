@@ -100,34 +100,31 @@ a.cell:hover{background:#17171a}
 .bar{height:8px;background:var(--line);position:relative}
 .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--pink)}
 /* ---- seasonal decorations ---------------------------------------------------
-   Put one class on an ancestor (html in production): s-winter, s-christmas, s-spring,
-   s-easter, s-summer, s-autumn, s-halloween, s-erntedank. Ambient particles, a strip
-   under the header or above the footer, a corner sprite and a hat on the mascot. */
+   Put one class on an ancestor (html in production): s-winter, s-christmas, s-easter,
+   s-autumn, s-halloween, s-erntedank. Spring and summer have no decoration. Sparse
+   particles sit behind the content, plus a strip under the header or above the
+   footer, a corner sprite where it fits and an accessory on the mascot. */
 .panel{--aw:256px}
 .panel:has(.axo-s){--aw:160px}
-:is(.s-winter,.s-christmas,.s-spring,.s-easter,.s-summer,.s-autumn,.s-halloween,.s-erntedank){position:relative;--hdr-h:64px}
-:is(.s-winter,.s-christmas,.s-spring,.s-easter,.s-summer,.s-autumn,.s-halloween,.s-erntedank)::before{content:"";position:var(--deco-pos,fixed);inset:0;pointer-events:none;z-index:50;background-image:var(--deco-bg);background-repeat:repeat;background-size:192px;animation:var(--deco-anim);opacity:.85}
-@keyframes fall{to{background-position:0 192px}}
-@keyframes rise{to{background-position:0 -192px}}
-@keyframes drift{to{background-position:192px 96px}}
-.s-winter{--deco-bg:url(deco-snow.svg);--deco-anim:fall 16s linear infinite;--hat:url(deco-beanie.svg);--hw:9;--hh:5}
-.s-christmas{--deco-bg:url(deco-snow.svg);--deco-anim:fall 12s linear infinite;--hat:url(deco-santa.svg);--hw:9;--hh:6}
-.s-spring{--deco-bg:url(deco-petals.svg);--deco-anim:fall 22s linear infinite;--hat:url(deco-flowers.svg);--hw:10;--hh:3;--hb:8.4;--strip:url(deco-flowerrow.svg);--sw:32;--sh:7}
-.s-easter{--deco-bg:url(deco-petals.svg);--deco-anim:fall 22s linear infinite;--hat:url(deco-bunnyears.svg);--hw:8;--hh:5;--hb:8.7;--strip:url(deco-eggs.svg);--sw:32;--sh:7}
-.s-summer{--deco-bg:url(deco-bubbles.svg);--deco-anim:rise 18s linear infinite;--hat:url(deco-sunhat.svg);--hw:11;--hh:4;--hb:8.3;--strip:url(deco-waves.svg);--sw:16;--sh:4}
-.s-autumn{--deco-bg:url(deco-leaves.svg);--deco-anim:fall 18s linear infinite;--hat:url(deco-leaf.svg);--hw:5;--hh:5;--strip:url(deco-leafpile.svg);--sw:32;--sh:6}
-.s-halloween{--deco-bg:url(deco-bats.svg);--deco-anim:drift 24s linear infinite;--hat:url(deco-witch.svg);--hw:9;--hh:6;--strip:url(deco-pumpkins.svg);--sw:32;--sh:8}
-.s-erntedank{--deco-bg:url(deco-leaves.svg);--deco-anim:fall 20s linear infinite;--hat:url(deco-apple.svg);--hw:5;--hh:5;--strip:url(deco-harvest.svg);--sw:36;--sh:8}
-:is(.s-winter,.s-christmas,.s-spring,.s-easter,.s-summer,.s-autumn,.s-halloween,.s-erntedank) .panel:has(.axo)::after{content:"";position:absolute;left:50%;bottom:calc(var(--aw) / 16 * var(--hb,8.6));width:calc(var(--aw) / 16 * var(--hw));height:calc(var(--aw) / 16 * var(--hh));margin-left:calc(var(--aw) / 16 * var(--hw) / -2);background:var(--hat) center/contain no-repeat;animation:bob 1.2s steps(1) infinite;pointer-events:none;z-index:3}
-:is(.s-spring,.s-easter,.s-summer,.s-autumn,.s-halloween,.s-erntedank) .foot{position:relative}
-:is(.s-spring,.s-easter,.s-summer,.s-autumn,.s-halloween,.s-erntedank) .foot::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:calc(var(--sh) * 5px);background:var(--strip) repeat-x left bottom / calc(var(--sw) * 5px) calc(var(--sh) * 5px);pointer-events:none}
+:is(.s-winter,.s-christmas,.s-easter,.s-autumn,.s-halloween,.s-erntedank){position:relative;isolation:isolate;--hdr-h:64px}
+:is(.s-winter,.s-christmas,.s-easter,.s-autumn,.s-halloween,.s-erntedank)::before{content:"";position:var(--deco-pos,fixed);inset:0;pointer-events:none;z-index:-1;background-image:var(--deco-bg),var(--deco-bg);background-repeat:repeat;background-size:400px 400px,530px 530px;background-position:0 0,137px 211px;animation:var(--deco-anim);opacity:.8}
+@keyframes fall{to{background-position:0 400px,137px 741px}}
+@keyframes drift{to{background-position:400px 400px,667px 741px}}
+.s-winter{--deco-bg:url(deco-snow.svg);--deco-anim:fall 60s linear infinite;--hat:url(deco-beanie.svg);--hw:9;--hh:5}
+.s-christmas{--deco-bg:url(deco-snow.svg);--deco-anim:fall 50s linear infinite;--hat:url(deco-santa.svg);--hw:9;--hh:6}
+.s-easter{--hat:url(deco-bunnyears.svg);--hw:8;--hh:5;--hb:8.7;--strip:url(deco-eggs.svg);--sw:32;--sh:7}
+.s-autumn{--deco-bg:url(deco-leaves.svg);--deco-anim:fall 70s linear infinite;--hat:url(deco-leaf.svg);--hw:5;--hh:5;--strip:url(deco-leafpile.svg);--sw:32;--sh:6}
+.s-halloween{--deco-bg:url(deco-bats.svg);--deco-anim:drift 90s linear infinite;--hat:url(deco-witch.svg);--hw:9;--hh:6;--strip:url(deco-pumpkins.svg);--sw:32;--sh:8}
+.s-erntedank{--deco-bg:url(deco-leaves.svg);--deco-anim:fall 80s linear infinite;--hat:url(deco-apple.svg);--hw:5;--hh:5;--strip:url(deco-harvest.svg);--sw:36;--sh:8}
+:is(.s-winter,.s-christmas,.s-easter,.s-autumn,.s-halloween,.s-erntedank) .panel:has(.axo)::after{content:"";position:absolute;left:50%;bottom:calc(var(--aw) / 16 * var(--hb,8.6));width:calc(var(--aw) / 16 * var(--hw));height:calc(var(--aw) / 16 * var(--hh));margin-left:calc(var(--aw) / 16 * var(--hw) / -2);background:var(--hat) center/contain no-repeat;animation:bob 1.2s steps(1) infinite;pointer-events:none;z-index:3}
+:is(.s-easter,.s-autumn,.s-halloween,.s-erntedank) .foot{position:relative}
+:is(.s-easter,.s-autumn,.s-halloween,.s-erntedank) .foot::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:calc(var(--sh) * 5px);background:var(--strip) repeat-x left bottom / calc(var(--sw) * 5px) calc(var(--sh) * 5px);pointer-events:none}
 :is(.s-winter,.s-christmas) .hdr{position:relative}
 .s-winter .hdr::after{content:"";position:absolute;left:0;right:0;top:100%;height:25px;background:url(deco-icicles.svg) repeat-x left top / 80px 25px;pointer-events:none;z-index:5}
 .s-christmas .hdr::after{content:"";position:absolute;left:0;right:0;top:100%;height:40px;background:url(deco-garland.svg) repeat-x left top / 120px 40px;pointer-events:none;z-index:5}
-.s-summer::after{content:"";position:absolute;right:24px;top:84px;width:66px;height:66px;background:url(deco-sun.svg) center / contain no-repeat;pointer-events:none;z-index:5;animation:bob 1.2s steps(1) infinite}
 .s-halloween::after{content:"";position:absolute;left:32px;top:var(--hdr-h);width:42px;height:78px;background:url(deco-spider.svg) top / contain no-repeat;pointer-events:none;z-index:5}
-@media (prefers-reduced-motion:reduce){:is(.s-winter,.s-christmas,.s-spring,.s-easter,.s-summer,.s-autumn,.s-halloween,.s-erntedank)::before,:is(.s-winter,.s-christmas,.s-spring,.s-easter,.s-summer,.s-autumn,.s-halloween,.s-erntedank) .panel::after,.s-summer::after{animation:none}}
-@media (max-width:760px){.panel{--aw:150px}.panel:has(.axo-s){--aw:110px}:is(.s-winter,.s-christmas,.s-spring,.s-easter,.s-summer,.s-autumn,.s-halloween,.s-erntedank){--hdr-h:56px}.s-summer::after{top:72px;width:48px;height:48px}}
+@media (prefers-reduced-motion:reduce){:is(.s-winter,.s-christmas,.s-easter,.s-autumn,.s-halloween,.s-erntedank)::before,:is(.s-winter,.s-christmas,.s-easter,.s-autumn,.s-halloween,.s-erntedank) .panel::after{animation:none}}
+@media (max-width:760px){.panel{--aw:150px}.panel:has(.axo-s){--aw:110px}:is(.s-winter,.s-christmas,.s-easter,.s-autumn,.s-halloween,.s-erntedank){--hdr-h:56px}}
 @media (max-width:760px){
 .brand{padding:0 16px;min-height:56px}.brand img{width:36px;height:18px}.brand span{font-size:16px}
 .nav,.hdr-r{display:none}.menu-btn{display:flex}

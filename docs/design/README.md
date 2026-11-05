@@ -71,20 +71,19 @@ focus, and all motion stops under `prefers-reduced-motion`.
 
 ## Seasonal decorations
 
-Eight sets that work on every page through one class on an ancestor (`<html>` in
-production): `s-winter`, `s-christmas`, `s-spring`, `s-easter`, `s-summer`,
-`s-autumn`, `s-halloween`, `s-erntedank`. The rules live at the end of
+Six sets that work on every page through one class on an ancestor (`<html>` in
+production): `s-winter`, `s-christmas`, `s-easter`, `s-autumn`, `s-halloween`,
+`s-erntedank`. Spring and summer deliberately have no decoration. The rules live at the end of
 `prototypes/stuff.css`, the sprites are `prototypes/deco-*.svg`, all GPL-3.0-or-later.
-Each set has four parts: ambient particles (a slow tiled animation), a strip under the
-header or above the footer, a corner sprite where it fits, and an accessory on Stuffy.
+Each set has up to four parts: a few randomly scattered particles that drift slowly
+*behind* the content, a strip under the header or above the footer, a corner sprite
+where it fits, and an accessory on Stuffy.
 
 | Set | Window (Germany) | Particles | Strip | Corner | Stuffy |
 |---|---|---|---|---|---|
 | Winter | Jan 1 to Feb 28 | snow | icicles | none | beanie |
 | Christmas | Dec 1 to Dec 26 | snow | light garland | none | Santa hat |
-| Spring | Mar 1 to May 31 | petals | flowers | none | flower crown |
-| Easter | two weeks before to Easter Monday | petals | eggs | none | bunny ears |
-| Summer | Jun 1 to Aug 31 | bubbles | waves | sun | sun hat |
+| Easter | two weeks before to Easter Monday | none | eggs | none | bunny ears |
 | Autumn | Sep 1 to Nov 30 | leaves | leaf pile | none | leaf |
 | Halloween | Oct 24 to Nov 2 | bats | pumpkins | hanging spider | witch hat |
 | Harvest festival | week of the first Sunday in October | leaves | apples, wheat, pumpkin | none | apple |
@@ -92,7 +91,7 @@ header or above the footer, a corner sprite where it fits, and an accessory on S
 Rules: event windows win over seasons; Dec 27 to 31 uses winter. The admin chooses
 *auto by date*, *fixed season* or *off*, and visitors can switch decorations off.
 Decorations never block content, take no focus and stand still under
-`prefers-reduced-motion`. Pages `BQ` (all eight sets), `BS` (Christmas) and `BU`
+`prefers-reduced-motion`. Pages `BQ` (all six sets), `BS` (Christmas) and `BU`
 (Halloween) show them; the mobile boards use the same files.
 
 ## Files

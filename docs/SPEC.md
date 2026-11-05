@@ -262,9 +262,11 @@ interface (`put/get/delete/list/usage`).
 - Palette: pink and violet for surfaces and accents; stickers keep their own bright
   colours so categories stay recognisable. Grid layout with thin cell lines.
   Tokens, page list and component decisions are in `docs/design/README.md`.
-- Seasonal decorations (winter, Christmas, spring, Easter, summer, autumn, Halloween,
-  harvest festival) are a purely visual layer chosen by date; the admin can set
-  *auto*, a fixed season or *off*, visitors can switch it off, and it never blocks
+- Seasonal decorations (winter, autumn, Christmas with Advent, Easter, Halloween, harvest
+  festival and special days such as New Year, Valentine's Day, carnival, Women's Day, Earth
+  Day, Europe Day, Pride, Unity Day, Nicholas Day and Human Rights Day; none in spring and
+  summer) are a purely visual layer chosen by date; the admin can set *auto*, a fixed set
+  or *off*, visitors can switch it off, and it never blocks
   content (details in `docs/design/README.md`).
 - QR codes offer two styles, *raw* and *stuffcloud* (violet modules, magenta
   finder squares, mascot in the centre); the stuffcloud style needs error-correction

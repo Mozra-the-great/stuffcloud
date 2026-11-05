@@ -71,29 +71,49 @@ focus, and all motion stops under `prefers-reduced-motion`.
 
 ## Seasonal decorations
 
-Eight sets that work on every page through one class on an ancestor (`<html>` in
-production): `s-winter`, `s-christmas`, `s-spring`, `s-easter`, `s-summer`,
-`s-autumn`, `s-halloween`, `s-erntedank`. The rules live at the end of
+Seventeen sets that work on every page through classes on an ancestor (`<html>` in
+production), for example `s-christmas s-advent-3`. The rules live at the end of
 `prototypes/stuff.css`, the sprites are `prototypes/deco-*.svg`, all GPL-3.0-or-later.
-Each set has four parts: ambient particles (a slow tiled animation), a strip under the
-header or above the footer, a corner sprite where it fits, and an accessory on Stuffy.
+**Spring and summer deliberately have no decoration.**
 
-| Set | Window (Germany) | Particles | Strip | Corner | Stuffy |
-|---|---|---|---|---|---|
-| Winter | Jan 1 to Feb 28 | snow | icicles | none | beanie |
-| Christmas | Dec 1 to Dec 26 | snow | light garland | none | Santa hat |
-| Spring | Mar 1 to May 31 | petals | flowers | none | flower crown |
-| Easter | two weeks before to Easter Monday | petals | eggs | none | bunny ears |
-| Summer | Jun 1 to Aug 31 | bubbles | waves | sun | sun hat |
-| Autumn | Sep 1 to Nov 30 | leaves | leaf pile | none | leaf |
-| Halloween | Oct 24 to Nov 2 | bats | pumpkins | hanging spider | witch hat |
-| Harvest festival | week of the first Sunday in October | leaves | apples, wheat, pumpkin | none | apple |
+Each set has up to four parts: a few randomly scattered particles that drift slowly
+*behind* the content, a strip under the header or above the footer, a corner sprite
+where it fits, and an accessory on Stuffy.
 
-Rules: event windows win over seasons; Dec 27 to 31 uses winter. The admin chooses
-*auto by date*, *fixed season* or *off*, and visitors can switch decorations off.
-Decorations never block content, take no focus and stand still under
-`prefers-reduced-motion`. Pages `BQ` (all eight sets), `BS` (Christmas) and `BU`
-(Halloween) show them; the mobile boards use the same files.
+| Set | Window (Germany) | Parts |
+|---|---|---|
+| Winter | Jan 3 to Feb 28, Dec 27 to 30 | a few snowflakes, icicles, beanie |
+| New Year | Dec 31 to Jan 2 | confetti, sparks, fireworks, party hat |
+| Valentine's Day | Feb 13 to 14 | drifting hearts, heart garland, heart |
+| Carnival | Weiberfastnacht to Shrove Tuesday | confetti, bunting, jester hat |
+| Women's Day | Mar 8 | violets, Venus sign, violet flower |
+| Earth Day | Apr 22 | grass and trees, globe, sprout |
+| Easter | two weeks before to Easter Monday | eggs, bunny ears |
+| Europe Day | May 9 | EU flag, star crown |
+| Pride | Jun 1 to 30 | rainbow line under the header, rainbow |
+| Autumn | Sep 1 to Nov 30 | a few leaves, leaf pile, leaf |
+| Unity Day | Oct 3 | black-red-gold line, flag band |
+| Harvest festival | week of the first Sunday in October | a few leaves, apples, wheat, pumpkin, apple |
+| Halloween | Oct 24 to Nov 2 | bats, hanging spider, pumpkins, witch hat |
+| Nicholas Day | Dec 6 | boots, nuts, mitre |
+| Human Rights Day | Dec 10 | people holding hands, dove |
+| Advent | four Sundays before Christmas to Dec 23 | wreath with 1 to 4 candles lit (here 3), on top of Christmas |
+| Christmas | Dec 1 to Dec 26 | few snowflakes, light garland, Santa hat |
+
+Rules:
+- Priority: special days (single days) win over holidays (Christmas, Easter, Halloween,
+  harvest festival), holidays win over seasons. Example: Dec 6 and Dec 10 override
+  Christmas for that day; Advent adds the wreath on top of Christmas.
+- Moving dates are computed: Easter Sunday by the usual rule, Weiberfastnacht = Easter
+  minus 52 days, Shrove Tuesday = Easter minus 47 days; Advent Sundays are the four
+  Sundays before Dec 25 (the wreath lights one more candle per Sunday).
+- The admin chooses *auto by date*, *fixed set* or *off*, and visitors can switch
+  decorations off.
+- Decorations never block content, take no focus and stand still under
+  `prefers-reduced-motion`.
+
+Pages `BQ` (all sets), `BS` (Christmas) and `BU` (Halloween) show them; the mobile
+boards use the same files.
 
 ## Files
 
@@ -136,7 +156,7 @@ separate mobile file each, listed below.
 | `BK` | Tool: resize image | same file |
 | `BM` | Empty and error states | same file |
 | `BO` | Docs page (CLI deploy) | same file |
-| `BQ` | Seasonal decorations, all eight sets | same file |
+| `BQ` | Seasonal decorations, all sets | same file |
 | `BS` | All tools with the Christmas set | same file |
 | `BU` | All tools with the Halloween set | same file |
 | `BA` | API tokens | same file |

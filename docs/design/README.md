@@ -60,7 +60,7 @@ focus, and all motion stops under `prefers-reduced-motion`.
 | Animal | Name | Where it shows up |
 |---|---|---|
 | Axolotl | Stuffy | main mascot: home, tools, forms |
-| Black cat | Mochi | Konami code: walks along the bottom edge |
+| Cream cat | Mochi | Konami code: walks along the bottom edge |
 | Frog | Hop | a tool finished: hops across the result |
 | Bunny | Bun | rarely (1 in 20 page loads): peeks in from the edge |
 | Jellyfish | Bloop | long jobs: floats in the progress bar |

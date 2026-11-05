@@ -4,13 +4,13 @@ name: Rebuild design PDF
 # Chrome. Run it from the Actions tab (or `gh workflow run design-pdf.yml -f branch=<name>`)
 # when the `build` check says the PDF is stale.
 #
-# The run commits the PDF and docs/design/pdf-source.sha256 to the branch. Pushes made
-# with the workflow token do not start other workflows, so the run dispatches the
-# workflows behind the required checks `build`, `workflow-lint` and `gitleaks` for the
-# new commit. `claude-review` only runs for pull_request events and cannot be
-# dispatched; it starts with your next push (for example an empty commit:
-# `git commit --allow-empty -m "chore: rerun checks"`). Pushing with a deploy key
-# instead would start every workflow, but that needs a repository secret.
+# The run commits the PDF and docs/design/pdf-source.sha256 to the branch. It pushes
+# over SSH with the deploy key in the Actions secret DESIGN_PDF_DEPLOY_KEY (a write
+# deploy key of this repository): unlike a push with the workflow token, that push
+# starts every workflow, so all required checks, claude-review included, report on the
+# new commit. Without the secret it falls back to the token: then only the workflows
+# behind `build`, `workflow-lint` and `gitleaks` are dispatched and `claude-review`
+# needs a follow-up push (`git commit --allow-empty -m "chore: rerun checks"`).
 # Never runs on main: main only receives the PDF through a reviewed PR.
 
 on:
@@ -65,6 +65,8 @@ jobs:
         run: python docs/design/tools/pdf/build.py
 
       - name: Commit and push the result
+        env:
+          DEPLOY_KEY: ${{ secrets.DESIGN_PDF_DEPLOY_KEY }}
         run: |
           if git diff --quiet -- docs/design/stuffcloud-design-system.pdf docs/design/pdf-source.sha256 \
              && [ -z "$(git ls-files --others --exclude-standard docs/design)" ]; then
@@ -75,7 +77,16 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/design/stuffcloud-design-system.pdf docs/design/pdf-source.sha256
           git commit -m "chore: rebuild the design PDF"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "HEAD:refs/heads/${BRANCH}"
-          for wf in ci.yml workflow-lint.yml secret-scan.yml; do
-            gh workflow run "$wf" --repo "$REPO" --ref "$BRANCH"
-          done
+          if [ -n "$DEPLOY_KEY" ]; then
+            key="$RUNNER_TEMP/design-pdf-key"
+            printf '%s\n' "$DEPLOY_KEY" > "$key"
+            chmod 600 "$key"
+            GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+              git push "git@github.com:${REPO}.git" "HEAD:refs/heads/${BRANCH}"
+            rm -f "$key"
+          else
+            git push "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "HEAD:refs/heads/${BRANCH}"
+            for wf in ci.yml workflow-lint.yml secret-scan.yml; do
+              gh workflow run "$wf" --repo "$REPO" --ref "$BRANCH"
+            done
+          fi

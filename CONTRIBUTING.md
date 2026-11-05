@@ -10,10 +10,12 @@ change:
    `fix/...`, `chore/...`, `docs/...`, `refactor/...`, `test/...`.
 3. Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
    `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`.
-4. Add an entry under `[Unreleased]` in `CHANGELOG.md` (English, with the PR number).
-5. Open a pull request against `main`. CI (and, where configured, Claude Code
+4. Design change? Rebuild the PDF (`python docs/design/tools/pdf/build.py`, see
+   `docs/design/README.md`) and commit it with the PR.
+5. Add an entry under `[Unreleased]` in `CHANGELOG.md` (English, with the PR number).
+6. Open a pull request against `main`. CI (and, where configured, Claude Code
    review) must pass before merge.
-6. No `git push --force` on `main`.
+7. No `git push --force` on `main`.
 
 ## CI
 

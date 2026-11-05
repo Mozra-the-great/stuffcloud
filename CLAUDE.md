@@ -29,6 +29,16 @@ Removed), written in English, with the PR number in parentheses. Add it in the
 same PR, not afterwards. Pure typo fixes and dependency bumps by Dependabot are
 exempt. A release moves `[Unreleased]` under the new version heading.
 
+## Design PDF
+`docs/design/stuffcloud-design-system.pdf` is generated from `docs/design/`. Any PR
+that changes the design (mockups in `docs/design/prototypes/`, `stuff.css`, stickers,
+mascots, decorations, `THEME-TEXTS.md`, tokens or rules in `docs/design/README.md`)
+must regenerate and commit the PDF in the same PR:
+`pip install -r docs/design/tools/pdf/requirements.txt` once, then
+`python docs/design/tools/pdf/build.py`. A new mockup also goes into `PAGES` in
+`docs/design/tools/pdf/shots.py`; a new sticker group into `STICKER_GROUPS` in
+`docs/design/tools/pdf/build_book.py` (unlisted stickers land in "Other").
+
 ## Notes
 - Merge gate: ruleset in `.github/rulesets/default.json` (required checks: build,
   workflow-lint, gitleaks, claude-review).

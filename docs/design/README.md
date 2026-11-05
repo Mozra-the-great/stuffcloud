@@ -211,3 +211,22 @@ white 2px outline, slight tilt and two-step bob like the others.
 | Text and generators | `lorem`, `uuid`, `qr`, `diff`, `textops` |
 | Dev | `hash`, `password`, `regex`, `url`, `jwt`, `markdown`, `sql` |
 | Hosting and misc | `paste`, `site`, `expiry`, `report`, `shield`, `trash`, `download`, `burn` |
+
+## Design PDF
+
+`stuffcloud-design-system.pdf` (next to this file) is the whole design system as one
+document: principles, colours with contrast ratios, typography, components, stickers,
+mascots, seasonal sets, the page inventory and screenshots of every mockup (desktop
+and the first mobile screen). It is generated, never edited by hand.
+
+```sh
+pip install -r docs/design/tools/pdf/requirements.txt   # once; Playwright and Pillow
+python docs/design/tools/pdf/build.py                    # writes the PDF next to this file
+```
+
+Needs Chrome or Chromium (set `CHROME` for a specific binary) and internet access for
+the Google Fonts. **Every design change must rebuild and commit the PDF in the same
+PR.** The script warns when a mockup in `prototypes/` is missing from `PAGES` in
+`tools/pdf/shots.py`; new sticker groups are listed in `STICKER_GROUPS` in
+`tools/pdf/build_book.py`. The chapters themselves live in `build_book.py`.
+

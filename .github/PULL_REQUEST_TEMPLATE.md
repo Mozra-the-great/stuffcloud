@@ -7,3 +7,4 @@
 - [ ] Tested locally
 - [ ] Existing test suite passes
 - [ ] New tests added, if applicable
+- [ ] `CHANGELOG.md` updated under `[Unreleased]` (or not needed: typo / Dependabot)

@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `docs/SPEC.md`: project specification (draft 0.2) with the decisions of the
+  requirements interviews. (#3, #76, #78)
+- `docs/design/`: design reference with the final style (dark grid, pink and
+  violet), tokens, page library for desktop and mobile in `prototypes/` (72 mockups,
+  `stuff.css`), mascots and easter eggs, 17 seasonal and special-day decoration
+  sets with the theme button, and `THEME-TEXTS.md`. (#75, #76, #80, #83, #84, #89)
+- Sprite generators `docs/design/tools/mascots.py`, `seasons.py` and `stickers.py`
+  (ASCII art to SVG) and 42 pixel tool stickers, one per tool. (#85, #87)
+- Tool pages show their sticker beside the title (`.tt` in `stuff.css`). (#88)
+- Changelog rule: every PR with a visible change adds an entry under
+  `[Unreleased]`; documented in `CLAUDE.md`, `CONTRIBUTING.md` and the PR template. (#90)
 - CI building blocks from nagellacke and homelab-infra, stack-agnostic: `ci.yml`
   skeleton (job `build`), `workflow-lint.yml` (actionlint + zizmor),
   `secret-scan.yml` (gitleaks) with `.gitleaks.toml`, `dependabot.yml`, opt-in
@@ -22,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   available; D6: workflows are copied per repo, no central reusable workflows).
 
 ### Fixed
+- Mockups: Mochi redrawn as a cream cat, Ember's ears made symmetric, Waddle
+  redrawn with friendlier eyes. (#77, #79)
+- Mobile: stacked form rows no longer get a fixed height. (#86)
 - `claude.yml`: the job only starts for `@claude` mentions from an `OWNER`,
   `MEMBER` or `COLLABORATOR` (job-level `author_association` gate), so drive-by
   mentions on a public repo cannot start a run. The action's own write-permission

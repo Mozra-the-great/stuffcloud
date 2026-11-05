@@ -73,7 +73,11 @@ are JavaScript/WASM and run in the browser anyway.
 
 - **App zone**: LAN only (for example `stuff.<internal-domain>`). Contains tools,
   login, editor, admin. Not reachable from the internet.
-- **Site zones**: an admin-managed list of root domains. Each zone has a
+- **Site zones**: an admin-managed list of root domains. No domain is hard-coded:
+  every operator enters their own, any number of zones, each with its own visibility
+  and DNS provider settings, in the admin UI (**Admin > Zones**). Only the app zone's
+  address is deployment configuration (environment variable), because the proxy needs
+  it at boot. Each zone has a
   *visibility*: `internal` or `public`. A hosted site chooses a zone, so
   visibility follows the zone.
 - Subdomain: randomly generated (>= 8 chars from a lowercase base32-like alphabet,
@@ -306,8 +310,9 @@ Hosting ships after auth and quotas on purpose: it is the security-critical part
 1. **Mascot art:** original pixel art (Stuffy plus a cast of extra animals), licensed
    GPL-3.0-or-later like the repo. Extra animals and easter eggs are tracked in
    `docs/design/`.
-2. **Root domains per zone:** configured by the admin (issue H-02); the DNS provider
-   is Cloudflare first. Names are chosen at rollout, no blocker before phase 3.
+2. **Root domains per zone:** entered by the operator in the admin settings (Admin >
+   Zones, issue H-02), any number of zones per instance, nothing hard-coded; the DNS
+   provider is Cloudflare first. The first-run setup asks for the first zone.
 3. **PDF compression:** light method first, Ghostscript only as optional extra
    (section 7).
 4. **Background removal:** U²-Netp by default, BiRefNet-lite opt-in (section 7).

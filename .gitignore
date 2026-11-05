@@ -45,3 +45,7 @@ __pycache__/
 
 # Third-party design reference screenshots (copyrighted, local only)
 /docs/reference-images/
+
+# Local queue prompt and work files (never committed)
+/PromptV*.md
+/.queue/

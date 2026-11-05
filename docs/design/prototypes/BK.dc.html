@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud resize image</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+.prev{background:#17171a;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;min-height:320px;position:relative}
+.prev img{width:46%;height:auto}
+input[type=range]{width:100%;accent-color:var(--pink);height:44px}
+</style>
+</helmet>
+<div class="frame">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#" aria-current="page">Tools</a><a href="#">Hosting</a><a href="#">Docs</a></nav></div><div class="hdr-r"><a href="#">Log in</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+<nav class="tabs" aria-label="Image tools"><a href="#" aria-current="page">Resize</a><a href="#">Crop</a><a href="#">Convert</a><a href="#">Compress</a><a href="#">Remove background</a><a href="#">Pixel art</a></nav>
+
+<form class="split" onSubmit="{{noop}}" style="margin:0">
+<main class="main">
+<div class="stack-s"><p class="eyebrow">tools / images / resize</p><h1 class="title">Resize image</h1></div>
+<div class="prev"><img class="bob" src="mtn.svg" alt="Preview of photo-2026.jpg" style="animation:none"><span class="badge" style="position:absolute;left:12px;bottom:12px">photo-2026.jpg · 4032 × 3024 · 3.9 MB</span></div>
+<div class="row row-m"><button class="btn btn-ghost" type="button">Choose another image</button></div>
+</main>
+<aside class="side">
+<div class="pad stack" style="gap:22px">
+<div class="row" style="flex-wrap:nowrap;align-items:flex-end"><div class="fld" style="flex:1 1 0"><label class="label" for="w">Width</label><input class="field" id="w" type="text" inputmode="numeric" value="1600"></div><button class="btn btn-ghost btn-icon" type="button" aria-label="Aspect ratio locked" aria-pressed="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 10l4-4M5 8L3.5 9.5a2.5 2.5 0 0 0 3.5 3.5L8 12M11 8l1.5-1.5A2.5 2.5 0 0 0 9 3L8 4"/></svg></button><div class="fld" style="flex:1 1 0"><label class="label" for="h">Height</label><input class="field" id="h" type="text" inputmode="numeric" value="1200"></div></div>
+<div class="fld"><label class="label" for="f">Format</label><select class="field" id="f"><option>JPG</option><option>PNG</option><option>WebP</option><option>AVIF</option></select></div>
+<div class="fld"><label class="label" for="q">Quality · 82</label><input id="q" type="range" min="1" max="100" value="82"></div>
+<label class="toggle"><input type="checkbox" checked>Remove EXIF and location</label>
+<dl class="dl" style="border-top:1px solid var(--line);padding-top:18px"><dt>before</dt><dd>3.9 MB</dd><dt>after</dt><dd style="color:var(--green)">412 KB</dd></dl>
+<button class="btn" type="submit">Download</button>
+</div>
+</aside>
+</form>
+
+<footer class="foot" style="margin-top:0"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+return { noop: (e) => { if (e && e.preventDefault) e.preventDefault(); } };
+}
+}
+</script>
+</body>
+</html>

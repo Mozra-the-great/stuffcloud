@@ -1,12 +1,13 @@
 # stuffcloud
 
-Project foundation for stuffcloud. Purpose and stack are not decided yet.
+Self-hosted toolbox (client-side tools) + one-click static hosting. Full spec: `docs/SPEC.md`.
 
 ## Type
 Greenfield project (public, GPL-3.0).
 
 ## Stack
-Not decided yet. When chosen: enable the matching block in `.github/workflows/ci.yml`
+Planned (see `docs/SPEC.md`): TypeScript strict, Fastify + SQLite, Svelte/Vite, Caddy, Docker Compose.
+When implementation starts: enable the matching block in `.github/workflows/ci.yml`
 (keep job id `build`) and the ecosystem in `.github/dependabot.yml`.
 
 ## Structure

@@ -33,7 +33,10 @@ exempt. A release moves `[Unreleased]` under the new version heading.
 `docs/design/stuffcloud-design-system.pdf` is generated from `docs/design/`. Any PR
 that changes the design (mockups in `docs/design/prototypes/`, `stuff.css`, stickers,
 mascots, decorations, `THEME-TEXTS.md`, tokens or rules in `docs/design/README.md`)
-must regenerate and commit the PDF in the same PR:
+must regenerate and commit the PDF (and `docs/design/pdf-source.sha256`) in the same PR;
+the `build` check fails when they are stale. Without a local Chrome run the
+"Rebuild design PDF" workflow on the branch instead (`gh workflow run design-pdf.yml -f branch=<name>`).
+Locally:
 `pip install -r docs/design/tools/pdf/requirements.txt` once, then
 `python docs/design/tools/pdf/build.py`. A new mockup also goes into `PAGES` in
 `docs/design/tools/pdf/shots.py`; a new sticker group into `STICKER_GROUPS` in

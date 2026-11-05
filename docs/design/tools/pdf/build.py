@@ -43,6 +43,7 @@ def main() -> None:
         shutil.copy(os.path.join(DESIGN, "THEME-TEXTS.md"), os.path.join(work, "THEME-TEXTS.md"))
         shots.render(work, os.path.join(work, "out"))
         subprocess.run([sys.executable, os.path.join(HERE, "build_book.py"), work, PDF, os.path.join(work, "THEME-TEXTS.md")], check=True, cwd=HERE)
+    subprocess.run([sys.executable, os.path.join(HERE, "source_hash.py"), "--write"], check=True)
     print("wrote", PDF)
 
 

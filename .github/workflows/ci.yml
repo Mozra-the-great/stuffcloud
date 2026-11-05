@@ -74,6 +74,14 @@ jobs:
       # - name: Syntax check
       #   run: git ls-files -z '*.sh' | xargs -0 -r -n1 sh -n
 
+      # ── Design PDF is current ────────────────────────────────────────────────
+      # The hash of the design sources must match docs/design/pdf-source.sha256,
+      # which build.py writes with the PDF. Fails when docs/design changed without
+      # a PDF rebuild. Standard library only.
+      - name: Design PDF is current
+        if: ${{ hashFiles('docs/design/tools/pdf/source_hash.py') != '' }}
+        run: python3 docs/design/tools/pdf/source_hash.py --check
+
       # Keeps the job meaningful (and green) while no stack block is enabled yet.
       - name: Repository sanity
         run: |

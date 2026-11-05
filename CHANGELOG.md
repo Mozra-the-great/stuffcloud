@@ -19,7 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Tool pages show their sticker beside the title (`.tt` in `stuff.css`). (#88)
 - `docs/design/stuffcloud-design-system.pdf` and its build system
   (`docs/design/tools/pdf/`: `build.py`, `shots.py`, `build_book.py`); a design
-  change must rebuild the PDF in the same PR (`CLAUDE.md`, `CONTRIBUTING.md`, PR
+  change must rebuild the PDF in the same PR, enforced by the `build` check
+  (`source_hash.py`, `pdf-source.sha256`) and supported by the "Rebuild design PDF"
+  workflow (`design-pdf.yml`) (`CLAUDE.md`, `CONTRIBUTING.md`, PR
   template, `docs/design/README.md`). (#91)
 - Changelog rule: every PR with a visible change adds an entry under
   `[Unreleased]`; documented in `CLAUDE.md`, `CONTRIBUTING.md` and the PR template. (#90)

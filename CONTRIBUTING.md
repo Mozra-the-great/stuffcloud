@@ -10,8 +10,9 @@ change:
    `fix/...`, `chore/...`, `docs/...`, `refactor/...`, `test/...`.
 3. Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
    `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`.
-4. Design change? Rebuild the PDF (`python docs/design/tools/pdf/build.py`, see
-   `docs/design/README.md`) and commit it with the PR.
+4. Design change? Rebuild the PDF (`python docs/design/tools/pdf/build.py`, or the
+   "Rebuild design PDF" workflow on your branch) and commit it with the PR; the
+   `build` check fails while it is stale. See `docs/design/README.md`.
 5. Add an entry under `[Unreleased]` in `CHANGELOG.md` (English, with the PR number).
 6. Open a pull request against `main`. CI (and, where configured, Claude Code
    review) must pass before merge.

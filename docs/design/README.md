@@ -224,6 +224,16 @@ pip install -r docs/design/tools/pdf/requirements.txt   # once; Playwright and P
 python docs/design/tools/pdf/build.py                    # writes the PDF next to this file
 ```
 
+Without a local Chrome, run the **Rebuild design PDF** workflow (Actions tab, or
+`gh workflow run design-pdf.yml -f branch=<branch>`): it rebuilds on the branch and
+commits the result. Pushes by the workflow do not start the other checks, so push an
+empty commit afterwards (`git commit --allow-empty -m "chore: rerun checks"`).
+
+The build also writes `pdf-source.sha256`, a fingerprint of the mockups,
+`THEME-TEXTS.md` and the build scripts. The `build` check in CI compares it with the
+current sources and fails while the PDF is stale, so a design change cannot merge
+without a rebuilt PDF.
+
 Needs Chrome or Chromium (set `CHROME` for a specific binary) and internet access for
 the Google Fonts. **Every design change must rebuild and commit the PDF in the same
 PR.** The script warns when a mockup in `prototypes/` is missing from `PAGES` in

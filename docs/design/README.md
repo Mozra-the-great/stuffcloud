@@ -170,6 +170,19 @@ separate mobile file each, listed below.
 | `BA` | API tokens | same file |
 | `BC` | Admin tools | same file |
 
+## Sprite sources
+
+The mascot and decoration sprites are drawn as ASCII art and turned into SVG by two
+small scripts, so edits stay reviewable and reproducible:
+
+```sh
+python docs/design/tools/mascots.py docs/design/prototypes   # mascot-*.svg
+python docs/design/tools/seasons.py docs/design/prototypes   # deco-*.svg
+```
+
+Edit the ASCII rows (one character per pixel, `.` is empty) and the palette next to
+them, run the script, and commit the changed SVGs.
+
 ## Open points
 
 - Mockups were reviewed in the canvas only; the mobile layouts of the responsive

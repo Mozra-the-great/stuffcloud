@@ -226,8 +226,9 @@ python docs/design/tools/pdf/build.py                    # writes the PDF next t
 
 Without a local Chrome, run the **Rebuild design PDF** workflow (Actions tab, or
 `gh workflow run design-pdf.yml -f branch=<branch>`): it rebuilds on the branch and
-commits the result. Pushes by the workflow do not start the other checks, so push an
-empty commit afterwards (`git commit --allow-empty -m "chore: rerun checks"`).
+commits the result. The workflow starts `build`, `workflow-lint` and `gitleaks` for its commit itself;
+`claude-review` cannot be started that way, so push an empty commit afterwards
+(`git commit --allow-empty -m "chore: rerun checks"`).
 
 The build also writes `pdf-source.sha256`, a fingerprint of the mockups,
 `THEME-TEXTS.md` and the build scripts. The `build` check in CI compares it with the

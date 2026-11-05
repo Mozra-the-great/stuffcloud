@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud qr code generator</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</helmet>
+<div class="frame">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#" aria-current="page">Tools</a><a href="#">Hosting</a><a href="#">Docs</a></nav></div><div class="hdr-r"><a href="#">Log in</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+<nav class="tabs" aria-label="Text tools"><a href="#">Diff</a><a href="#" aria-current="page">QR code</a><a href="#">UUID</a><a href="#">Lorem ipsum</a><a href="#">Markdown</a></nav>
+
+<form class="split" onSubmit="{{noop}}" style="margin:0">
+<main class="main">
+<div class="stack-s"><p class="eyebrow">tools / text / qr-code</p><div class="tt"><img src="sticker-qr.svg" alt=""><h1 class="title">QR code</h1></div></div>
+<fieldset style="margin:0;padding:0;border:0;min-width:0"><legend class="label" style="padding:0;margin-bottom:12px">Content</legend><div class="row"><label style="position:relative"><input class="opt" type="radio" name="t" checked><span class="box">Text or URL</span></label><label style="position:relative"><input class="opt" type="radio" name="t"><span class="box">Wi-Fi</span></label><label style="position:relative"><input class="opt" type="radio" name="t"><span class="box">Contact</span></label></div></fieldset>
+<div class="fld"><label class="label" for="c">Text or URL</label><textarea class="field" id="c" style="min-height:140px">https://k3x9q2mf.sites.test</textarea></div>
+<div class="row row-m" style="flex-wrap:nowrap">
+<div class="fld" style="flex:1 1 0"><label class="label" for="s">Size</label><select class="field" id="s"><option>512 px</option><option>1024 px</option><option>2048 px</option></select></div>
+<div class="fld" style="flex:1 1 0"><label class="label" for="e">Error correction</label><select class="field" id="e"><option>High (H)</option><option>Quartile (Q)</option><option>Medium (M)</option><option>Low (L)</option></select></div>
+</div>
+</main>
+<aside class="side">
+<div class="pad stack">
+<fieldset style="margin:0;padding:0;border:0;min-width:0"><legend class="label" style="padding:0;margin-bottom:12px">Style</legend><div class="row"><label style="position:relative"><input class="opt" type="radio" name="st"><span class="box">Raw</span></label><label style="position:relative"><input class="opt" type="radio" name="st" checked><span class="box">stuffcloud</span></label></div></fieldset>
+<div style="align-self:center"><img class="qr" src="qr.svg" alt="QR code preview" style="width:220px;height:220px"></div>
+<div class="row" style="flex-wrap:nowrap"><button class="btn" type="button" style="flex:1">Download PNG</button><button class="btn btn-ghost" type="button" style="flex:1">Download SVG</button></div>
+<span class="badge"><i class="dot"></i>scan test passed</span>
+</div>
+<div class="panel" style="flex:1;border-top:1px solid var(--line);--mh:160px;--mhm:140px"><div class="b1" style="left:32px;top:32px;width:64px;height:32px"></div><img class="axo axo-s bob" src="axo.svg" alt="Stuffy, the stuffcloud mascot"></div>
+</aside>
+</form>
+
+<footer class="foot" style="margin-top:0"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+return { noop: (e) => { if (e && e.preventDefault) e.preventDefault(); } };
+}
+}
+</script>
+</body>
+</html>

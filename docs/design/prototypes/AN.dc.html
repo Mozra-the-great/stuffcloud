@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud admin users</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</helmet>
+<div class="frame">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#">Tools</a><a href="#">Hosting</a><a href="#" aria-current="page">Admin</a></nav></div><div class="hdr-r"><a href="#">Account</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+<nav class="tabs" aria-label="Admin"><a href="#" aria-current="page">Users</a><a href="#">Zones</a><a href="#">Settings</a><a href="#">Tools</a><a href="#">Audit log</a></nav>
+
+<main class="main" style="padding:40px;gap:28px;flex:1">
+<div class="row" style="justify-content:space-between;align-items:flex-end"><div class="stack-s"><p class="eyebrow">admin / users</p><h1 class="title">Users</h1></div><button class="btn" type="button">Invite user</button></div>
+<div class="row" style="flex-wrap:nowrap"><label class="label" for="s" style="position:absolute;left:-9999px">Search users</label><input class="field" id="s" type="search" placeholder="search e-mail or name"></div>
+<table class="tbl">
+<thead><tr><th>User</th><th>Role</th><th>Sign-in</th><th>Sites</th><th>Status</th><th><span style="position:absolute;left:-9999px">Actions</span></th></tr></thead>
+<tbody>
+<tr><td data-l="User">moritz@example.org</td><td data-l="Role"><select class="field" aria-label="Role of moritz" style="min-height:44px;width:auto"><option>Admin</option><option>Moderator</option><option>User</option></select></td><td data-l="Sign-in" class="mono">authentik</td><td data-l="Sites" class="mono">12</td><td data-l="Status"><span class="badge"><i class="dot"></i>active</span></td><td><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Disable</button></td></tr>
+<tr><td data-l="User">mia@example.org</td><td data-l="Role"><select class="field" aria-label="Role of mia" style="min-height:44px;width:auto"><option>Moderator</option><option>Admin</option><option>User</option></select></td><td data-l="Sign-in" class="mono">passkey + 2FA</td><td data-l="Sites" class="mono">3</td><td data-l="Status"><span class="badge"><i class="dot"></i>active</span></td><td><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Disable</button></td></tr>
+<tr><td data-l="User">tom@example.org</td><td data-l="Role"><select class="field" aria-label="Role of tom" style="min-height:44px;width:auto"><option>User</option><option>Moderator</option><option>Admin</option></select></td><td data-l="Sign-in" class="mono">password</td><td data-l="Sites" class="mono">0</td><td data-l="Status"><span class="badge"><i class="dot amber"></i>invited</span></td><td><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Resend</button></td></tr>
+<tr><td data-l="User">lena@example.org</td><td data-l="Role"><select class="field" aria-label="Role of lena" style="min-height:44px;width:auto"><option>User</option><option>Moderator</option><option>Admin</option></select></td><td data-l="Sign-in" class="mono">authentik</td><td data-l="Sites" class="mono">7</td><td data-l="Status"><span class="badge"><i class="dot gray"></i>disabled</span></td><td><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Enable</button></td></tr>
+</tbody>
+</table>
+</main>
+
+<footer class="foot"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

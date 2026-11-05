@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud docs</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+.doc{display:flex;flex-wrap:wrap;flex:1}
+.doc>nav{flex:0 0 260px;min-width:220px;border-right:1px solid var(--line)}
+.doc>nav a{display:flex;align-items:center;min-height:48px;padding:0 24px;border-top:1px solid var(--line);font-size:15px}
+.doc>nav a[aria-current=page]{background:#17171a;font-weight:600;box-shadow:inset 3px 0 0 var(--pink)}
+.doc>nav a:hover{color:var(--pink)}
+.art{flex:1 1 520px;min-width:0;padding:40px;max-width:860px;display:flex;flex-direction:column;gap:20px;line-height:1.7;font-size:16px;color:#d8d8de}
+.art h2{margin:16px 0 0;font-size:26px;font-weight:500;letter-spacing:-.5px;color:var(--fg)}
+.art p{margin:0}
+.cb{margin:0;padding:16px 18px;border:1px solid var(--line2);background:#0c0c0e;font:14px/1.7 var(--mono);overflow-x:auto;color:#e8e8ee;scrollbar-width:none}
+.cb .c{color:var(--mut)}.cb .k{color:var(--lilac)}
+.note{border-left:3px solid var(--pink);padding:4px 0 4px 16px;color:var(--fg)}
+@media (max-width:760px){.doc>nav{flex:1 1 100%;border-right:0;border-bottom:1px solid var(--line)}.doc>nav a{padding:0 16px}.art{padding:28px 16px}}
+</style>
+</helmet>
+<div class="frame">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#">Tools</a><a href="#">Hosting</a><a href="#" aria-current="page">Docs</a></nav></div><div class="hdr-r"><a href="#">Log in</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+
+<div class="doc">
+<nav aria-label="Docs"><div class="label" style="padding:24px 24px 14px">Hosting</div><a href="#">Overview</a><a href="#" aria-current="page">Deploy with the CLI</a><a href="#">Expiry and access</a><a href="#">Zones and domains</a><div class="label" style="padding:24px 24px 14px;border-top:1px solid var(--line)">Account</div><a href="#">Sign in with authentik</a><a href="#">API tokens</a></nav>
+<main class="art">
+<div class="stack-s"><p class="eyebrow">docs / hosting / cli</p><h1 class="title" style="color:var(--fg)">Deploy with the CLI</h1></div>
+<p>Publish a folder from your terminal or from CI. The CLI needs an API token with the <span class="mono" style="color:var(--lilac)">sites:write</span> scope.</p>
+<h2>Install</h2>
+<pre class="cb">npm install --global stuffcloud</pre>
+<h2>Deploy</h2>
+<pre class="cb"><span class="c"># publish ./dist for 7 days</span>
+stuffcloud deploy ./dist --expires 7d
+
+<span class="c"># protect it with a password</span>
+stuffcloud deploy ./dist --password</pre>
+<div class="note">Anonymous deploys reach internal zones only. Public zones and permanent sites need an account.</div>
+<h2>Use it in CI</h2>
+<pre class="cb"><span class="k">env</span>:
+  STUFFCLOUD_TOKEN: <span class="c">(from your CI secret store)</span></pre>
+</main>
+</div>
+
+<footer class="foot" style="margin-top:0"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

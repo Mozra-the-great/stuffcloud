@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud moderation queue</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</helmet>
+<div class="frame">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#">Tools</a><a href="#">Hosting</a><a href="#" aria-current="page">Moderation</a></nav></div><div class="hdr-r"><a href="#">Account</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+<nav class="tabs" aria-label="Moderation"><a href="#" aria-current="page">Open · 7</a><a href="#">Handled</a><a href="#">Blocklist</a></nav>
+
+<main class="main" style="padding:40px;gap:28px;flex:1">
+<div class="stack-s"><p class="eyebrow">moderation / reports</p><h1 class="title">Reports</h1></div>
+<table class="tbl">
+<thead><tr><th>Site</th><th>Reason</th><th>Reports</th><th>First report</th><th><span style="position:absolute;left:-9999px">Actions</span></th></tr></thead>
+<tbody>
+<tr><td data-l="Site" class="mono" style="color:var(--lilac)">x7k2m9qa.example.org</td><td data-l="Reason">Phishing or scam</td><td data-l="Reports" class="mono">5</td><td data-l="First report" class="mono">2h ago</td><td><div class="row"><a class="btn btn-ghost" href="#" style="min-height:44px;padding:0 16px">Preview</a><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Unpublish</button><button class="btn btn-danger" type="button" style="min-height:44px;padding:0 16px">Delete</button><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Dismiss</button></div></td></tr>
+<tr><td data-l="Site" class="mono" style="color:var(--lilac)">dl-9fa3.example.org</td><td data-l="Reason">Malware</td><td data-l="Reports" class="mono">2</td><td data-l="First report" class="mono">6h ago</td><td><div class="row"><a class="btn btn-ghost" href="#" style="min-height:44px;padding:0 16px">Preview</a><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Unpublish</button><button class="btn btn-danger" type="button" style="min-height:44px;padding:0 16px">Delete</button><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Dismiss</button></div></td></tr>
+<tr><td data-l="Site" class="mono" style="color:var(--lilac)">promo-q2x8.example.org</td><td data-l="Reason">Spam</td><td data-l="Reports" class="mono">1</td><td data-l="First report" class="mono">1d ago</td><td><div class="row"><a class="btn btn-ghost" href="#" style="min-height:44px;padding:0 16px">Preview</a><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Unpublish</button><button class="btn btn-danger" type="button" style="min-height:44px;padding:0 16px">Delete</button><button class="btn btn-ghost" type="button" style="min-height:44px;padding:0 16px">Dismiss</button></div></td></tr>
+</tbody>
+</table>
+</main>
+
+<footer class="foot"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

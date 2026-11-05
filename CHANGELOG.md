@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `docs/TEMPLATE-SETUP.md`: secrets, runner choice, rulesets and costs of a new repo.
 
 ### Changed
+- `design-pdf.yml` pushes with a write deploy key (secret `DESIGN_PDF_DEPLOY_KEY`), so every required check including `claude-review` runs on the rebuilt commit; without the secret it falls back to the token path. (#94)
 - `design-pdf.yml` also dispatches `workflow-lint.yml` and `secret-scan.yml` for the commit it pushes, so `build`, `workflow-lint` and `gitleaks` report on it; only `claude-review` needs a follow-up push. (#93)
 - `docs/TEMPLATE-SETUP.md`, README and ruleset README: runner decisions of
   2026-11-04 (D1: hosted runners are the default, the own runner on CT121 only for

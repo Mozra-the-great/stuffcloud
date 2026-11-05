@@ -109,6 +109,7 @@ a.cell:hover{background:#17171a}
 .panel{background-size:32px 32px}
 .panel .b1{left:32px;top:32px;width:64px;height:32px}.panel .b2{right:32px;top:64px;width:32px;height:64px}.panel .b3{right:64px;width:64px;height:32px}
 .hide-m{display:none}
+.tabs{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent)}
 .split .panel .st{top:14px !important;bottom:auto !important;width:48px !important;transform:rotate(-6deg) !important}
 .split .panel .st:nth-of-type(odd){transform:rotate(6deg) !important}
 .panel{min-height:var(--mhm,200px)}

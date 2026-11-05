@@ -17,7 +17,8 @@ variants) are intentionally not part of this folder.
 - **Type:** Silkscreen (pixel) for the wordmark and headings in console contexts,
   JetBrains Mono for labels and code, Inter for UI text and long copy.
   Fonts are self-hosted in the real app (the mockups load them from Google Fonts).
-- **Mascot:** Stuffy, a pink pixel axolotl. It never speaks: no speech bubbles.
+- **Mascot:** Stuffy, a pink pixel axolotl, plus a cast of extra animals for easter
+  eggs (see below). None of them ever speaks: no speech bubbles.
 - **No filler copy.** Pages carry labels, state and data only, no marketing text.
 - **Motion:** the mascot bobs in two steps; everything stops under
   `prefers-reduced-motion`.
@@ -49,6 +50,24 @@ variants) are intentionally not part of this folder.
   until it matches.
 - **Mobile:** menu button instead of the navigation; tables become cards; action
   buttons stay on one row; tab bars scroll without a visible scrollbar.
+
+## Mascots and easter eggs
+
+All art is original pixel art, licensed **GPL-3.0-or-later** like the code
+(`prototypes/axo.svg` and `prototypes/mascot-*.svg`). Eggs never block content or take
+focus, and all motion stops under `prefers-reduced-motion`.
+
+| Animal | Name | Where it shows up |
+|---|---|---|
+| Axolotl | Stuffy | main mascot: home, tools, forms |
+| Black cat | Mochi | Konami code: walks along the bottom edge |
+| Frog | Hop | a tool finished: hops across the result |
+| Bunny | Bun | rarely (1 in 20 page loads): peeks in from the edge |
+| Jellyfish | Bloop | long jobs: floats in the progress bar |
+| Penguin | Waddle | December to February: slides across the home page |
+| Fox | Ember | burn after reading: appears when the page is consumed |
+| Ghost | Boo | expired and 404 pages |
+| Cloud | Cumulo | site published; click the logo 5 times: drifts across |
 
 ## Files
 
@@ -85,6 +104,12 @@ separate mobile file each, listed below.
 | `AU` | Templates | same file |
 | `AW` | All tools | same file |
 | `AY` | Recovery code (error state) | same file |
+| `BE` | Mascots and easter eggs | same file |
+| `BG` | Tool: JSON to YAML converter | same file |
+| `BI` | Tool: QR code generator | same file |
+| `BK` | Tool: resize image | same file |
+| `BM` | Empty and error states | same file |
+| `BO` | Docs page (CLI deploy) | same file |
 | `BA` | API tokens | same file |
 | `BC` | Admin tools | same file |
 
@@ -92,10 +117,9 @@ separate mobile file each, listed below.
 
 - Mockups were reviewed in the canvas only; the mobile layouts of the responsive
   pages rely on breakpoints and are not tested on real devices.
-- Tab bars on mobile have no scrollbar and no overflow hint yet.
+- Tab bars on mobile have no scrollbar; a soft fade on the right edge hints that
+  more tabs follow.
 - The page builder on mobile shows the canvas and block bar only, without the style
   panel.
-- Mascot and sticker art is original pixel art. Its asset license is still open
-  (`docs/SPEC.md`, open question 1).
 - The third-party screenshots used as a mood reference are not included (third-party
   material).

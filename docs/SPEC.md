@@ -1,8 +1,8 @@
 # stuffcloud — Specification
 
-Status: draft 0.1 (2026-11-05). Decisions below come from the requirements
+Status: draft 0.2 (2026-11-05). Decisions below come from the requirements
 catalogue and the owner's answers; items still open are listed in
-[Open questions](#16-open-questions).
+[Decisions](#16-decisions-on-the-former-open-questions).
 
 ## 1. Vision
 
@@ -41,8 +41,8 @@ Non-goals (v1)
   **not yet verified**; check the exact version before use. Watch for licenses
   that changed between major versions (e.g. `ua-parser-js` v2 is AGPL-3.0, v1 is
   MIT) and for copyleft WASM builds (e.g. Ghostscript is AGPL).
-- Pixel-art mascots and stickers are original work or carry a GPL-compatible
-  asset license; no third-party brand art (see section 12).
+- Pixel-art mascots, stickers and easter eggs are original work and are licensed
+  under **GPL-3.0-or-later** like the code; no third-party brand art (see section 12).
 
 ## 4. Architecture overview
 
@@ -123,11 +123,11 @@ Library candidates (license must be verified per version before adoption):
 | PDF | merge, split, rotate/delete/reorder pages | pdf-lib, pdf.js |
 | PDF | images to PDF, PDF to images | pdf-lib, pdf.js |
 | PDF | set/remove password, edit metadata | qpdf (WASM), pdf-lib |
-| PDF | compress | Ghostscript WASM (AGPL, heavy) or image re-encode via pdf.js + pdf-lib; decide in phase 1 |
+| PDF | compress | **light method first**: re-encode embedded images via pdf.js + pdf-lib, object-stream optimisation via qpdf. Ghostscript WASM (AGPL, very large) only as an optional, lazily loaded extra if the light method falls short; measured in spike T-13 |
 | Image | resize, crop, rotate | Canvas, wasm-vips |
 | Image | convert PNG/JPG/WebP/AVIF | wasm-vips or jSquash |
 | Image | compress, strip EXIF | jSquash, exif libs |
-| Image | background removal, pixel-art filter | in-browser ML model (large lazy download, license check) / own pixelate filter |
+| Image | background removal, pixel-art filter | **U²-Netp** (Apache-2.0 weights, about 5 MB) through ONNX Runtime Web (MIT) as default; **BiRefNet-lite** (MIT, about 114 MB) as an opt-in higher-quality download; own pixelate filter. Not used: `@imgly/background-removal` (GPL/AGPL, commercial dual license), MODNet (conflicting license statements). Exact weights are re-checked at adoption |
 | Convert | JSON / YAML / XML | js-yaml, fast-xml-parser |
 | Convert | Base64 encode/decode | native |
 | Convert | colour picker + formats | colord |
@@ -251,8 +251,18 @@ interface (`put/get/delete/list/usage`).
   animals, stickers and small animations, not from large UI chrome.
 - Typography: **pixel font for headings**, **monospace** for UI/code,
   **sans-serif for long text**; all fonts self-hosted (no external font requests).
-- **One main mascot** plus **one sticker per tool**; original pixel art, idle
-  animations of a few frames.
+- **One main mascot** (Stuffy, a pink pixel axolotl) plus **one sticker per tool**,
+  and a small cast of extra animals for easter eggs; original pixel art under
+  GPL-3.0-or-later, idle animations of a few frames. The mascot never speaks (no
+  speech bubbles), and pages carry no filler copy.
+- Palette: pink and violet for surfaces and accents; stickers keep their own bright
+  colours so categories stay recognisable. Grid layout with thin cell lines.
+  Tokens, page list and component decisions are in `docs/design/README.md`.
+- QR codes offer two styles, *raw* and *stuffcloud* (violet modules, magenta
+  finder squares, mascot in the centre); the stuffcloud style needs error-correction
+  level H and an automatic scan test, falling back to raw.
+- Destructive actions (delete site) need a typed confirmation; the 2FA code field is
+  shown as `000-000` over one real input.
 - Accessibility: WCAG 2.2 AA contrast, full keyboard use, visible focus,
   `prefers-reduced-motion` disables all animation, decorative mascots are
   `aria-hidden`, touch targets >= 44 px.
@@ -291,15 +301,19 @@ interface (`put/get/delete/list/usage`).
 
 Hosting ships after auth and quotas on purpose: it is the security-critical part.
 
-## 16. Open questions
+## 16. Decisions on the former open questions
 
-1. Product tagline, mascot concept and names; how the pixel art is made (by hand,
-   AI-assisted, commissioned) and under which asset license.
-2. Exact root domains per zone and the DNS provider for DNS-01.
-3. PDF compression approach (Ghostscript WASM: AGPL and size, or a lighter method).
-4. Background-removal model: license and download size.
-5. CLI distribution: npm or release binaries.
-6. Retention period for audit logs and reports.
-7. Whether the public-zone interstitial warning is on by default.
-8. The reference screenshots are Mistral pages: keep local only (current) or replace
-   them with an own moodboard before anything derived from them is published.
+1. **Mascot art:** original pixel art (Stuffy plus a cast of extra animals), licensed
+   GPL-3.0-or-later like the repo. Extra animals and easter eggs are tracked in
+   `docs/design/`.
+2. **Root domains per zone:** configured by the admin (issue H-02); the DNS provider
+   is Cloudflare first. Names are chosen at rollout, no blocker before phase 3.
+3. **PDF compression:** light method first, Ghostscript only as optional extra
+   (section 7).
+4. **Background removal:** U²-Netp by default, BiRefNet-lite opt-in (section 7).
+5. **CLI distribution:** npm package first; standalone binaries attached to releases
+   later.
+6. **Retention:** audit log 12 months; handled reports 6 months after handling;
+   unhandled reports until handled; no IP addresses in either.
+7. **Public-zone interstitial warning:** on by default, admin can switch it off.
+8. **Reference screenshots:** stay local and git-ignored (third-party material).

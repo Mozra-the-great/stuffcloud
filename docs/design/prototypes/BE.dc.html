@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>stuffcloud mascots and easter eggs</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="stuff.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+.mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));border-top:1px solid var(--line)}
+.mc{display:flex;flex-direction:column;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.mp{height:200px;position:relative;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);background-color:var(--violet);background-image:linear-gradient(rgba(16,16,18,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(16,16,18,.18) 1px,transparent 1px);background-size:40px 40px}
+.mp img{height:120px;width:auto;animation:bob 1.2s steps(1) infinite}
+@media (prefers-reduced-motion:reduce){.mp img{animation:none}}
+</style>
+</helmet>
+<div class="frame">
+<header class="hdr"><div class="hdr-l"><a class="brand" href="#"><img src="logo.svg" alt=""><span>stuffcloud</span></a><nav class="nav" aria-label="Main"><a href="#">Tools</a><a href="#">Hosting</a><a href="#">Docs</a></nav></div><div class="hdr-r"><a href="#">Log in</a></div><button class="menu-btn" type="button" aria-label="Open menu"><svg width="20" height="14" viewBox="0 0 20 14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M0 1h20M0 7h20M0 13h20"/></svg></button></header>
+
+<main style="flex:1;display:flex;flex-direction:column">
+<div class="stack-s" style="padding:40px"><p class="eyebrow">design / mascots</p><h1 class="title">Mascots</h1></div>
+<div class="mg">
+<article class="mc"><div class="mp"><img src="axo.svg" alt="Stuffy, a pink axolotl"></div><div class="pad stack-s"><h2 class="sub" style="font-size:22px">Stuffy</h2><span class="mono mut" style="font-size:12px">main mascot · home, tools, forms</span></div></article>
+<article class="mc"><div class="mp"><img src="mascot-cat.svg" alt="Mochi, a black cat"></div><div class="pad stack-s"><h2 class="sub" style="font-size:22px">Mochi</h2><span class="mono mut" style="font-size:12px">cat · Konami code: walks along the bottom edge</span></div></article>
+<article class="mc"><div class="mp"><img src="mascot-frog.svg" alt="Hop, a green frog"></div><div class="pad stack-s"><h2 class="sub" style="font-size:22px">Hop</h2><span class="mono mut" style="font-size:12px">frog · tool finished: hops across the result</span></div></article>
+<article class="mc"><div class="mp"><img src="mascot-bunny.svg" alt="Bun, a white bunny"></div><div class="pad stack-s"><h2 class="sub" style="font-size:22px">Bun</h2><span class="mono mut" style="font-size:12px">bunny · rare: peeks in from the edge on 1 of 20 loads</span></div></article>
+<article class="mc"><div class="mp"><img src="mascot-jelly.svg" alt="Bloop, a blue jellyfish"></div><div class="pad stack-s"><h2 class="sub" style="font-size:22px">Bloop</h2><span class="mono mut" style="font-size:12px">jellyfish · long jobs: floats in the progress bar</span></div></article>
+<article class="mc"><div class="mp"><img src="mascot-penguin.svg" alt="Waddle, a penguin"></div><div class="pad stack-s"><h2 class="sub" style="font-size:22px">Waddle</h2><span class="mono mut" style="font-size:12px">penguin · December to February: slides across the home page</span></div></article>
+<article class="mc"><div class="mp"><img src="mascot-fox.svg" alt="Ember, a fox"></div><div class="pad stack-s"><h2 class="sub" style="font-size:22px">Ember</h2><span class="mono mut" style="font-size:12px">fox · burn after reading: appears when the page is consumed</span></div></article>
+<article class="mc"><div class="mp"><img src="mascot-ghost.svg" alt="Boo, a ghost"></div><div class="pad stack-s"><h2 class="sub" style="font-size:22px">Boo</h2><span class="mono mut" style="font-size:12px">ghost · expired and 404 pages</span></div></article>
+<article class="mc"><div class="mp"><img src="mascot-cloudy.svg" alt="Cumulo, a smiling cloud"></div><div class="pad stack-s"><h2 class="sub" style="font-size:22px">Cumulo</h2><span class="mono mut" style="font-size:12px">cloud · site published; click the logo 5 times: drifts across</span></div></article>
+</div>
+<div class="pad mono mut" style="font-size:12px;padding:24px 40px;border-bottom:1px solid var(--line)">All motion stops under reduced-motion; eggs never block content or take focus.</div>
+</main>
+
+<footer class="foot" style="margin-top:0"><div>stuffcloud · GPL-3.0 · no trackers</div><span><a href="#">Source</a><a href="#">Privacy</a><a href="#">Report abuse</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1100}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

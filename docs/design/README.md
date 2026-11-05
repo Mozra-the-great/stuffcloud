@@ -112,7 +112,14 @@ Rules:
 - Decorations never block content, take no focus and stand still under
   `prefers-reduced-motion`.
 
-Pages `BQ` (all sets), `BS` (Christmas) and `BU` (Halloween) show them; the mobile
+**Theme button.** Whenever a themed set is active, a small pill with the theme icon and
+name sits in the bottom right corner (`<details>`, so it works without script). It opens
+a card with a few positive facts (texts in `THEME-TEXTS.md`) and a switch to hide
+decorations. **Dressed-up mascots:** every extra animal wears the accessory of the active
+set; hats are scaled per animal (`.mx` in `stuff.css`).
+
+Pages `BE` (mascots in Christmas, Halloween, Easter and Pride outfits), `BW` (theme
+button for every set), `BQ` (all sets), `BS` (Christmas) and `BU` (Halloween) show them; the mobile
 boards use the same files.
 
 ## Files
@@ -157,6 +164,7 @@ separate mobile file each, listed below.
 | `BM` | Empty and error states | same file |
 | `BO` | Docs page (CLI deploy) | same file |
 | `BQ` | Seasonal decorations, all sets | same file |
+| `BW` | Theme button and card for every set | same file |
 | `BS` | All tools with the Christmas set | same file |
 | `BU` | All tools with the Halloween set | same file |
 | `BA` | API tokens | same file |

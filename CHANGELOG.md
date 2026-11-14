@@ -14,15 +14,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   unbiased generation from caller-supplied random bytes), with unit, property
   (proptest) and regression tests; strict workspace lint set (`unsafe` forbidden,
   no `unwrap`/indexing/unchecked arithmetic), pinned toolchain, release profile
-  with overflow checks.
+  with overflow checks. (#101)
 - `fuzz/`: cargo-fuzz targets `safe_rel_path` and `subdomain` with invariant
-  checks, seeds and a dictionary.
+  checks, seeds and a dictionary. (#101)
 - `deny.toml`: cargo-deny gate for RustSec advisories, GPL-3.0-compatible
-  licenses, crates.io-only sources and wildcard versions.
+  licenses, crates.io-only sources and wildcard versions. (#101)
 - `deep-tests.yml`: nightly long fuzzing with a cached, minimised corpus, full
   mutation run, Miri, 500 000 property-test cases, fresh advisories and the beta
-  toolchain.
-- Label `area/backend` with path rules for the Rust files.
+  toolchain. (#101)
+- Label `area/backend` with path rules for the Rust files. (#101)
+- `codeql.yml` (CodeQL advanced setup, `security-extended`, Rust, Python and
+  Actions): runs as job `codeql` inside `ci.yml`, so the required `build` check
+  covers it, fails on any result, and runs weekly on `main`; config in
+  `.github/codeql/codeql-config.yml`. (#103)
 - `docs/SPEC.md`: project specification (draft 0.2) with the decisions of the
   requirements interviews. (#3, #76, #78)
 - `docs/design/`: design reference with the final style (dark grid, pink and
@@ -53,12 +57,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   internet reaches (site password, burn-after-reading, reports); shared `core`
   crate; OpenAPI-generated frontend client; standalone CLI binaries; hardened
   containers; subdomain and path rules spelled out; section 14 rewritten as a
-  test strategy that errs on the side of too many tests.
+  test strategy that errs on the side of too many tests. (#101)
 - `ci.yml`: `build` is now an aggregate over fmt, clippy, tests (debug and
   release), rustdoc, coverage (95 % floor), mutation testing, a short fuzz run per
   target, cargo-deny and the repository checks. `dependabot.yml` enables cargo
   for the workspace and `fuzz/`. CLAUDE.md, README, CONTRIBUTING, the PR template
-  and the ruleset README describe the new pipeline.
+  and the ruleset README describe the new pipeline. (#101)
 - `design-pdf.yml` pushes with a write deploy key (secret `DESIGN_PDF_DEPLOY_KEY`),
   so every required check including `claude-review` runs on the rebuilt commit.
   Without the secret it falls back to the workflow token and dispatches `ci.yml`,

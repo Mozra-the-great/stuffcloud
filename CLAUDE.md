@@ -54,7 +54,7 @@ Tests are part of the security design; err on the side of too many (SPEC section
 
 ## CI
 `ci.yml` job `build` is the required check: an aggregate over fmt, clippy, test,
-docs, coverage, mutants, fuzz, supply-chain and repo-checks (add new jobs to its
+docs, coverage, mutants, fuzz, supply-chain, codeql and repo-checks (add new jobs to its
 `needs`). `deep-tests.yml` runs nightly: long fuzzing (grows the cached corpus),
 full mutants, Miri, 500k proptest cases, fresh advisories, beta toolchain.
 Toolchain bump: `rust-toolchain.toml` + `rust-version` in `Cargo.toml`; nightly
@@ -82,8 +82,12 @@ Locally:
 
 ## Notes
 - Merge gate: ruleset in `.github/rulesets/default.json` (required checks: build,
-  workflow-lint, gitleaks, claude-review). CodeQL default setup (Rust + JS/TS) is a
-  repo setting; make `CodeQL` required once it has run on `main`.
+  workflow-lint, gitleaks, claude-review). CodeQL is the advanced setup
+  (`codeql.yml`, called by `ci.yml` as job `codeql`, so `build` covers it); it fails
+  on any result. Do not enable the default setup in the repo settings (it blocks the
+  uploads). False positives: dismiss in code scanning and exclude the query in
+  `.github/codeql/codeql-config.yml` with a reason. Add `javascript-typescript` to
+  its matrix when `web/` exists.
 - Claude review needs the Actions secret `CLAUDE_CODE_OAUTH_TOKEN`; without it the job skips and stays green.
 
 ---

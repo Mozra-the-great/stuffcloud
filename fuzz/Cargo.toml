@@ -1,0 +1,36 @@
+# Fuzz targets for stuffcloud-core (cargo-fuzz, libFuzzer). A separate workspace:
+# cargo-fuzz needs a nightly toolchain, the main workspace stays on stable.
+#
+#   cargo +nightly-2026-11-01 fuzz run safe_rel_path fuzz/corpus/safe_rel_path \
+#       fuzz/seeds/safe_rel_path -- -dict=fuzz/dicts/stuffcloud.dict -max_total_time=60
+
+[package]
+name = "stuffcloud-fuzz"
+version = "0.0.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4.13"
+stuffcloud-core = { path = "../crates/core" }
+
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "safe_rel_path"
+path = "fuzz_targets/safe_rel_path.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "subdomain"
+path = "fuzz_targets/subdomain.rs"
+test = false
+doc = false
+bench = false

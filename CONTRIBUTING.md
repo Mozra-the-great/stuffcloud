@@ -25,10 +25,22 @@ docs-only PRs too):
 
 | Check | What it does |
 |---|---|
-| `build` | Stack lint/test from `.github/workflows/ci.yml` (plus the label-script tests while `scripts/ci/` exists) |
+| `build` | Aggregate of every job in `.github/workflows/ci.yml`: rustfmt, clippy (warnings are errors), unit/property/regression/doc tests, rustdoc, coverage (95 % floor), mutation testing of the changed lines, 2-minute fuzz run per target, `cargo-deny`, label-script tests, design PDF check |
 | `workflow-lint` | actionlint + zizmor over the workflows and `dependabot.yml` |
 | `gitleaks` | Secret scan over the PR range, using `.gitleaks.toml` |
 | `claude-review` | Optional Claude Code review; needs the `CLAUDE_CODE_OAUTH_TOKEN` secret and is **skipped (green)** without it |
+
+`deep-tests.yml` runs nightly and on demand (not required): long fuzzing, the
+full mutation run, Miri, 500 000 property-test cases, fresh advisories and the
+beta toolchain. Treat a red run like a red PR.
+
+### Tests
+
+Tests are part of the security design (`docs/SPEC.md`, section 14). A change to
+Rust code comes with unit tests for both sides of every boundary; a new
+invariant with a property test; a new parser of untrusted input with a fuzz
+target; a fixed bug with an entry in `tests/regression.rs` and a seed in
+`fuzz/seeds/`. Never lower a threshold or skip a check to get green.
 
 Workflow rules: actions are pinned by full commit SHA with a `# vX.Y.Z` comment,
 event data (`github.event.*`, branch names, titles) goes through `env:` and

@@ -29,6 +29,10 @@ env:
   RUST_BACKTRACE: 1
   # Pinned nightly for cargo-fuzz and Miri; bump together with ci.yml.
   NIGHTLY: nightly-2026-11-01
+  # Explicit fuzz target: the prebuilt cargo-fuzz from install-action is a musl
+  # binary and would otherwise default to x86_64-unknown-linux-musl, where
+  # AddressSanitizer cannot link (statically linked libc).
+  FUZZ_TARGET_TRIPLE: x86_64-unknown-linux-gnu
 
 jobs:
   fuzz-long:
@@ -58,14 +62,14 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: |
           mkdir -p "fuzz/corpus/$TARGET"
-          cargo +"$NIGHTLY" fuzz run "$TARGET" "fuzz/corpus/$TARGET" "fuzz/seeds/$TARGET" -- \
+          cargo +"$NIGHTLY" fuzz run --target "$FUZZ_TARGET_TRIPLE" "$TARGET" "fuzz/corpus/$TARGET" "fuzz/seeds/$TARGET" -- \
             -dict=fuzz/dicts/stuffcloud.dict -max_total_time=2700 -timeout=10 -rss_limit_mb=2048
       # Keep only inputs that add coverage, so the cache stays small and the PR
       # run starts from the essential set.
       - name: Minimise corpus
         env:
           TARGET: ${{ matrix.target }}
-        run: cargo +"$NIGHTLY" fuzz cmin "$TARGET" "fuzz/corpus/$TARGET"
+        run: cargo +"$NIGHTLY" fuzz cmin --target "$FUZZ_TARGET_TRIPLE" "$TARGET" "fuzz/corpus/$TARGET"
       - name: Save fuzz corpus
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

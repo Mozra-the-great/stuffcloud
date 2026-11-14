@@ -37,6 +37,10 @@ env:
   # Nightly for cargo-fuzz only (sanitizers need it). Pinned so a nightly
   # regression cannot turn a PR red; bump together with deep-tests.yml.
   NIGHTLY: nightly-2026-11-01
+  # Explicit fuzz target: the prebuilt cargo-fuzz from install-action is a musl
+  # binary and would otherwise default to x86_64-unknown-linux-musl, where
+  # AddressSanitizer cannot link (statically linked libc).
+  FUZZ_TARGET_TRIPLE: x86_64-unknown-linux-gnu
 
 jobs:
   # ── Repository checks (stack-independent) ──────────────────────────────────
@@ -251,7 +255,7 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: |
           mkdir -p "fuzz/corpus/$TARGET"
-          cargo +"$NIGHTLY" fuzz run "$TARGET" "fuzz/corpus/$TARGET" "fuzz/seeds/$TARGET" -- \
+          cargo +"$NIGHTLY" fuzz run --target "$FUZZ_TARGET_TRIPLE" "$TARGET" "fuzz/corpus/$TARGET" "fuzz/seeds/$TARGET" -- \
             -dict=fuzz/dicts/stuffcloud.dict -max_total_time=120 -timeout=10 -rss_limit_mb=2048
       - name: Upload crash inputs
         if: ${{ failure() }}

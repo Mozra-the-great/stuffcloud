@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   mutation run, Miri, 500 000 property-test cases, fresh advisories and the beta
   toolchain.
 - Label `area/backend` with path rules for the Rust files.
+- `codeql.yml` (CodeQL advanced setup, `security-extended`, Rust, Python and
+  Actions): runs as job `codeql` inside `ci.yml`, so the required `build` check
+  covers it, fails on any result, and runs weekly on `main`; config in
+  `.github/codeql/codeql-config.yml`.
 - `docs/SPEC.md`: project specification (draft 0.2) with the decisions of the
   requirements interviews. (#3, #76, #78)
 - `docs/design/`: design reference with the final style (dark grid, pink and

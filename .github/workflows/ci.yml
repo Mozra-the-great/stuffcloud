@@ -285,10 +285,21 @@ jobs:
       - name: cargo-deny (fuzz workspace)
         run: cargo deny --locked --manifest-path fuzz/Cargo.toml --config deny.toml check
 
+  # ── CodeQL (security-extended, fails on any finding) ───────────────────────
+  # Reusable workflow, so the weekly scheduled run and this one stay identical.
+  codeql:
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    # zizmor suggests the newer `$/...` self-repository syntax, but actionlint
+    # 1.7.12 (workflow-lint) rejects it; switch once actionlint supports it.
+    uses: ./.github/workflows/codeql.yml # zizmor: ignore[self-repository]
+
   # ── Required check: everything above passed ────────────────────────────────
   build:
     if: ${{ always() }}
-    needs: [repo-checks, fmt, clippy, test, docs, coverage, mutants, fuzz, supply-chain]
+    needs: [repo-checks, fmt, clippy, test, docs, coverage, mutants, fuzz, supply-chain, codeql]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

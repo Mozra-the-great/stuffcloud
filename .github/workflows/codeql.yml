@@ -1,0 +1,82 @@
+name: CodeQL
+
+# CodeQL "advanced setup" (a workflow in the repo instead of the default setup in
+# the repo settings): versioned, reviewable, pinned, and stricter. It runs
+#  - as job `codeql` of ci.yml on every PR and push, so the required `build`
+#    aggregate covers it without a ruleset change, and
+#  - weekly on main, because new CodeQL queries find old code.
+#
+# Strict on purpose: the `security-extended` suite, and the job fails on ANY
+# result in the SARIF, not only on what code scanning would flag as new. A false
+# positive is dismissed in code scanning *and* recorded in .github/codeql/
+# (query-filters with a reason), never by removing a language or the gate.
+#
+# Do not also enable the default setup in the repo settings: with default setup
+# active, uploads from this workflow are rejected.
+#
+# Languages: rust, python (scripts/ci, docs/design/tools), actions (workflows).
+# javascript-typescript joins the matrix when web/ is scaffolded.
+
+on:
+  workflow_call: {}
+  schedule:
+    - cron: '41 3 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [rust, python, actions]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-extended
+          config-file: ./.github/codeql/codeql-config.yml
+      - name: Analyze
+        uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: /language:${{ matrix.language }}
+          output: sarif-results
+      - name: Fail on any finding
+        env:
+          LANGUAGE: ${{ matrix.language }}
+        run: |
+          shopt -s nullglob
+          files=(sarif-results/*.sarif)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::no SARIF output for ${LANGUAGE}"
+            exit 1
+          fi
+          count=$(jq '[.runs[].results[]?] | length' "${files[@]}" | awk '{s+=$1} END {print s+0}')
+          jq -r '.runs[].results[]? | "\(.ruleId): \(.message.text) (\(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine))"' "${files[@]}"
+          echo "CodeQL findings for ${LANGUAGE}: ${count}"
+          if [ "${count}" -gt 0 ]; then
+            echo "::error::CodeQL found ${count} result(s) for ${LANGUAGE}"
+            exit 1
+          fi
+      - name: Upload SARIF
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: codeql-sarif-${{ matrix.language }}
+          path: sarif-results
+          if-no-files-found: ignore
+          retention-days: 14

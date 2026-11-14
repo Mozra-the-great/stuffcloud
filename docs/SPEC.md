@@ -353,10 +353,11 @@ Principle: tests are part of the security design, not an afterthought, and they
 are run more than seems necessary from the first line of code. A check is never
 weakened to make a PR green; a lowered threshold needs a reason in the PR.
 
-Required checks (ruleset): `build`, `workflow-lint`, `gitleaks`, `claude-review`,
-and CodeQL (default setup, Rust and JavaScript/TypeScript) once enabled.
+Required checks (ruleset): `build`, `workflow-lint`, `gitleaks`, `claude-review`.
 `build` is an aggregate job in `ci.yml` that is green only when every job of the
-workflow succeeded, so jobs can be added without touching the ruleset.
+workflow succeeded, so jobs can be added without touching the ruleset. CodeQL runs
+as one of those jobs (advanced setup, `codeql.yml`, not the default setup in the
+repo settings).
 
 On every PR and push (`ci.yml`):
 
@@ -369,6 +370,7 @@ On every PR and push (`ci.yml`):
 | `coverage` | `cargo-llvm-cov`, fails below 95 % of lines and of regions |
 | `mutants` | `cargo-mutants` on the lines the PR changes (all mutants on `main`); a surviving mutant fails |
 | `fuzz` | every cargo-fuzz target for 2 minutes with AddressSanitizer, starting from the committed seeds and the nightly corpus |
+| `codeql` | CodeQL `security-extended` for Rust, Python and the workflows (JavaScript/TypeScript with `web/`); fails on any result, also weekly on `main` |
 | `supply-chain` | `cargo-deny`: RustSec advisories (incl. unmaintained, unsound, yanked), licenses (section 3), crates.io only, no wildcard versions |
 | `repo-checks` | label-script tests, design PDF is current |
 

@@ -1,0 +1,18 @@
+[package]
+name = "stuffcloud-core"
+description = "stuffcloud domain types and validation, without I/O"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+unicode-normalization.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true

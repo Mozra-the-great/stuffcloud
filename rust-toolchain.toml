@@ -1,0 +1,7 @@
+# Pinned so local builds and CI use the same compiler and lints. Bump by hand
+# (Dependabot does not read this file) together with `rust-version` in Cargo.toml;
+# the nightly used for fuzzing and Miri is pinned in the workflows (`NIGHTLY`).
+[toolchain]
+channel = "1.97.0"
+components = ["clippy", "rustfmt"]
+profile = "minimal"

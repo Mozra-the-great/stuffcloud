@@ -36,6 +36,13 @@ logs/
 *.tar.gz
 tmp/
 
+# Rust (fuzz/ has its own .gitignore)
+/target/
+mutants.out/
+mutants.out.old/
+lcov.info
+*.profraw
+
 # Python
 __pycache__/
 *.pyc

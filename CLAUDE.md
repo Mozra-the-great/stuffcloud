@@ -6,21 +6,59 @@ Self-hosted toolbox (client-side tools) + one-click static hosting. Full spec: `
 Greenfield project (public, GPL-3.0).
 
 ## Stack
-Planned (see `docs/SPEC.md`): TypeScript strict, Fastify + SQLite, Svelte/Vite, Caddy, Docker Compose.
-When implementation starts: enable the matching block in `.github/workflows/ci.yml`
-(keep job id `build`) and the ecosystem in `.github/dependabot.yml`.
+Rust backend (Cargo workspace: `axum`, `tokio`, SQLite) + Svelte/Vite frontend
+(TypeScript strict), Caddy, Docker Compose. See `docs/SPEC.md` sections 4 and 14.
+Exists so far: `crates/core` (validation, no I/O) and `fuzz/`. `app`, `edge`, `db`,
+`cli` and `web/` are added in the phase that needs them; each new crate inherits
+`[workspace.lints]` (`[lints] workspace = true`).
 
 ## Structure
 ```
-.github/        workflows (ci, claude review, workflow-lint, secret-scan), rulesets, templates
+crates/core/    domain types + validation (SafeRelPath, Subdomain), no I/O
+  tests/        properties.rs (proptest), regression.rs (attack corpus)
+fuzz/           cargo-fuzz targets, seeds, dictionary (own workspace, nightly)
+Cargo.toml      workspace, lint set, release profile (overflow checks on)
+deny.toml       cargo-deny: advisories, GPL-compatible licenses, sources
+rust-toolchain.toml  pinned stable (same as rust-version in Cargo.toml)
+.github/        workflows (ci, deep-tests, claude review, workflow-lint, secret-scan), rulesets, templates
 scripts/ci/     label script + tests (opt-in via repo variable LABELS_ENABLED)
-docs/           TEMPLATE-SETUP.md (setup reference inherited from the template)
+docs/           SPEC.md, design/, TEMPLATE-SETUP.md
 ```
 
 ## Commands
 ```sh
+cargo fmt --all && cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace --all-targets          # unit, property, regression tests
+cargo llvm-cov --workspace --fail-under-lines 95 --fail-under-regions 95
+cargo mutants --workspace                     # every mutant must be caught
+cargo deny check && cargo deny --manifest-path fuzz/Cargo.toml check
+cargo +nightly-2026-11-01 fuzz run safe_rel_path fuzz/corpus/safe_rel_path \
+    fuzz/seeds/safe_rel_path -- -dict=fuzz/dicts/stuffcloud.dict -max_total_time=60
 python -m unittest discover -s scripts/ci -p "test_*.py"   # CI helper tests
 ```
+Tools: `cargo install --locked cargo-llvm-cov cargo-mutants cargo-deny cargo-fuzz`
+(CI pins their versions in the workflows).
+
+## Tests (non-negotiable)
+Tests are part of the security design; err on the side of too many (SPEC section 14).
+- Every rule gets unit tests on both sides of every boundary, every error variant
+  and message is asserted. Coverage floor 95 % lines and regions; never lower it to
+  get green.
+- Every invariant gets a property test; every parser of untrusted input gets a fuzz
+  target that asserts invariants, not just "no panic".
+- Every bug and fuzz finding becomes an entry in `tests/regression.rs` and a seed in
+  `fuzz/seeds/<target>/`.
+- A surviving mutant is a missing test: add the test, do not skip the mutant.
+- Never weaken a check (`#[allow]`, `ignore`, lower thresholds, `continue-on-error`)
+  to make CI pass; `#[expect(..., reason = "...")]` only where the reason is a proof.
+
+## CI
+`ci.yml` job `build` is the required check: an aggregate over fmt, clippy, test,
+docs, coverage, mutants, fuzz, supply-chain and repo-checks (add new jobs to its
+`needs`). `deep-tests.yml` runs nightly: long fuzzing (grows the cached corpus),
+full mutants, Miri, 500k proptest cases, fresh advisories, beta toolchain.
+Toolchain bump: `rust-toolchain.toml` + `rust-version` in `Cargo.toml`; nightly
+bump: `NIGHTLY` in both workflows. Dependabot handles actions and cargo.
 
 ## Changelog
 Every PR with a visible change (code, docs, design, CI) adds an entry under
@@ -44,7 +82,8 @@ Locally:
 
 ## Notes
 - Merge gate: ruleset in `.github/rulesets/default.json` (required checks: build,
-  workflow-lint, gitleaks, claude-review).
+  workflow-lint, gitleaks, claude-review). CodeQL default setup (Rust + JS/TS) is a
+  repo setting; make `CodeQL` required once it has run on `main`.
 - Claude review needs the Actions secret `CLAUDE_CODE_OAUTH_TOKEN`; without it the job skips and stays green.
 
 ---

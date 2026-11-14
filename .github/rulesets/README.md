@@ -49,7 +49,7 @@ The check context is the **job id** of the workflow (none of these jobs sets a
 
 | Context | Workflow | Notes |
 |---|---|---|
-| `build` | `ci.yml` | stack lint/test; runs on every PR (no `paths:` filter, convention C1) |
+| `build` | `ci.yml` | aggregate: green only when every job in `ci.yml` (Rust fmt, clippy, tests, docs, coverage, mutants, fuzz, supply chain, repo checks) succeeded; runs on every PR (no `paths:` filter, convention C1) |
 | `workflow-lint` | `workflow-lint.yml` | actionlint + zizmor |
 | `gitleaks` | `secret-scan.yml` | PR-range secret scan |
 | `claude-review` | `claude-code-review.yml` | required in stuffcloud (added to `default.json`); see below |

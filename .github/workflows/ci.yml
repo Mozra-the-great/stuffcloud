@@ -1,13 +1,20 @@
 name: CI
 
-# Stack-neutral skeleton. The job id `build` is the stable name of the required
-# status check: keep it, and add your stack's steps below by uncommenting ONE of
-# the marked blocks (or adding your own). Delete the blocks you do not need.
+# Every PR and every push to main runs the whole suite below. `build` is the
+# required status check (ruleset): it is an aggregate that only turns green when
+# every other job in this workflow succeeded, so new jobs can be added without
+# touching the ruleset. Keep the job id `build`.
 #
-# `build` must pass on every PR, so this workflow has NO workflow-level `paths:`
-# filter (convention C1): a required check whose workflow does not start is
-# reported as pending forever, not as skipped. If a step should only run for
-# some files, put the condition on the step or job, not on the trigger.
+# No workflow-level `paths:` filter (convention C1): a required check whose
+# workflow does not start is reported as pending forever, not as skipped.
+#
+# Test philosophy (docs/SPEC.md, section 14): deliberately more than needed. Every
+# PR gets lint, unit, property, regression and doc tests, a coverage floor,
+# mutation testing of the changed code, a short fuzz run per target and the
+# supply-chain gate. The long runs (fuzzing for an hour, full mutation run, Miri,
+# fresh advisories) are in deep-tests.yml. The Svelte frontend (web/) gets its
+# own jobs here (npm ci, typecheck, unit tests, Playwright + axe) when it is
+# scaffolded; add them to `needs` of `build`.
 
 on:
   push:
@@ -23,66 +30,268 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  # Nightly for cargo-fuzz only (sanitizers need it). Pinned so a nightly
+  # regression cannot turn a PR red; bump together with deep-tests.yml.
+  NIGHTLY: nightly-2026-11-01
+
 jobs:
-  build:
-    # Public repo: hosted runner, free. Private repo: see docs/TEMPLATE-SETUP.md
-    # (decision D1) before you rely on this - hosted minutes may be exhausted, and
-    # a required check that cannot start blocks every PR (convention C4).
+  # ── Repository checks (stack-independent) ──────────────────────────────────
+  repo-checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      # ── Labels-as-code tests (opt-in set, see .github/labels.json) ────────────
-      # Runs only while the set is present, so deleting scripts/ci/ needs no edit
-      # here. Standard library only: the runner's python3 is enough.
+      # Labels-as-code tests (opt-in set, see .github/labels.json). Runs only while
+      # the set is present. Standard library only: the runner's python3 is enough.
       - name: Test label script
         if: ${{ hashFiles('scripts/ci/test_labels.py') != '' }}
         run: python3 -m unittest discover -s scripts/ci -p "test_*.py"
 
-      # ── Stack block: Python ───────────────────────────────────────────────────
-      # - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-      #   with:
-      #     python-version: '3.12'
-      # - name: Install
-      #   run: python -m pip install -r requirements.txt
-      # - name: Lint
-      #   run: python -m pip install ruff && ruff check .
-      # - name: Test
-      #   run: python -m unittest discover   # or: python -m pytest
-
-      # ── Stack block: Node ─────────────────────────────────────────────────────
-      # - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-      #   with:
-      #     node-version: '22'
-      # - name: Install
-      #   # npm ci, not npm install: it installs the lockfile exactly and fails if
-      #   # package.json and the lockfile disagree, so a green build means something.
-      #   run: npm ci
-      # - name: Build
-      #   run: npm run build --if-present
-      # - name: Test
-      #   run: npm test --if-present
-
-      # ── Stack block: Shell scripts ────────────────────────────────────────────
-      # shellcheck is preinstalled on ubuntu-latest.
-      # - name: ShellCheck
-      #   run: git ls-files -z '*.sh' | xargs -0 -r shellcheck
-      # - name: Syntax check
-      #   run: git ls-files -z '*.sh' | xargs -0 -r -n1 sh -n
-
-      # ── Design PDF is current ────────────────────────────────────────────────
       # The hash of the design sources must match docs/design/pdf-source.sha256,
       # which build.py writes with the PDF. Fails when docs/design changed without
-      # a PDF rebuild. Standard library only.
+      # a PDF rebuild.
       - name: Design PDF is current
         if: ${{ hashFiles('docs/design/tools/pdf/source_hash.py') != '' }}
         run: python3 docs/design/tools/pdf/source_hash.py --check
 
-      # Keeps the job meaningful (and green) while no stack block is enabled yet.
-      - name: Repository sanity
+  # ── Rust: formatting ───────────────────────────────────────────────────────
+  fmt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install toolchain (rust-toolchain.toml)
+        run: rustup toolchain install && rustup show active-toolchain
+      - name: rustfmt (workspace and fuzz targets)
         run: |
-          echo "tracked files: $(git ls-files | wc -l)"
+          cargo fmt --all --check
+          cargo fmt --manifest-path fuzz/Cargo.toml --all --check
+
+  # ── Rust: lints, every warning is an error ─────────────────────────────────
+  clippy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install toolchain (rust-toolchain.toml)
+        run: rustup toolchain install && rustup show active-toolchain
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # The lint set lives in Cargo.toml ([workspace.lints]): pedantic, no unwrap,
+      # no indexing, no unchecked arithmetic, unsafe forbidden.
+      - name: clippy
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+
+  # ── Rust: unit, property, regression and doc tests ─────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install toolchain (rust-toolchain.toml)
+        run: rustup toolchain install && rustup show active-toolchain
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # --locked everywhere: a Cargo.lock that does not match Cargo.toml fails.
+      - name: Tests (debug)
+        env:
+          PROPTEST_CASES: '4096'
+        run: cargo test --workspace --all-targets --all-features --locked
+      - name: Doc tests
+        run: cargo test --workspace --doc --locked
+      # Release profile too: other optimisations, same overflow checks.
+      - name: Tests (release)
+        env:
+          PROPTEST_CASES: '4096'
+        run: cargo test --workspace --all-targets --all-features --locked --release
+
+  # ── Rust: API docs build without broken links or warnings ──────────────────
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install toolchain (rust-toolchain.toml)
+        run: rustup toolchain install && rustup show active-toolchain
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: rustdoc
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --workspace --no-deps --document-private-items --locked
+
+  # ── Rust: coverage floor ────────────────────────────────────────────────────
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install toolchain (rust-toolchain.toml) and llvm-tools
+        run: |
+          rustup toolchain install
+          rustup component add llvm-tools-preview
+      - uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21 # v2.90.4
+        with:
+          tool: cargo-llvm-cov@0.9.1
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # 95 % of lines and regions. Raising it is fine; lowering it needs a reason
+      # in the PR. Code that cannot be reached by tests is a design smell here.
+      - name: Coverage (fails below 95 %)
+        run: |
+          cargo llvm-cov --workspace --all-targets --all-features --locked \
+            --fail-under-lines 95 --fail-under-regions 95 \
+            --lcov --output-path lcov.info
+          cargo llvm-cov report --summary-only
+      - name: Upload coverage report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-lcov
+          path: lcov.info
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ── Rust: mutation testing ──────────────────────────────────────────────────
+  # Changes the code (flips comparisons, replaces return values, deletes match
+  # arms) and expects at least one test to fail for every change. A surviving
+  # mutant is a line the tests do not really check. PRs test the mutants in the
+  # changed lines; pushes to main and the nightly run test all of them.
+  mutants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Install toolchain (rust-toolchain.toml)
+        run: rustup toolchain install && rustup show active-toolchain
+      - uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21 # v2.90.4
+        with:
+          tool: cargo-mutants@27.1.0
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Mutants in the PR diff
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git diff "origin/${BASE_REF}...HEAD" > pr.diff
+          cargo mutants --workspace --in-diff pr.diff --no-shuffle -vV
+      - name: All mutants
+        if: ${{ github.event_name != 'pull_request' }}
+        run: cargo mutants --workspace --no-shuffle -vV
+      - name: Upload mutants report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutants-out
+          path: mutants.out
+          retention-days: 14
+
+  # ── Rust: short fuzz run per target ─────────────────────────────────────────
+  # Starts from the committed seeds plus the corpus the nightly run has grown
+  # (read-only here), with AddressSanitizer. Two minutes per target catches
+  # regressions in what the corpus already reaches; depth comes from the nightly.
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [safe_rel_path, subdomain]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install nightly
+        run: rustup toolchain install "$NIGHTLY" --profile minimal
+      - uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21 # v2.90.4
+        with:
+          tool: cargo-fuzz@0.13.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: fuzz
+          key: ${{ matrix.target }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Restore fuzz corpus from the nightly run
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: fuzz/corpus/${{ matrix.target }}
+          key: fuzz-corpus-${{ matrix.target }}-${{ github.sha }}
+          restore-keys: fuzz-corpus-${{ matrix.target }}-
+      - name: Lockfile is current
+        run: cargo +"$NIGHTLY" fetch --locked --manifest-path fuzz/Cargo.toml
+      - name: Fuzz for 2 minutes
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          mkdir -p "fuzz/corpus/$TARGET"
+          cargo +"$NIGHTLY" fuzz run "$TARGET" "fuzz/corpus/$TARGET" "fuzz/seeds/$TARGET" -- \
+            -dict=fuzz/dicts/stuffcloud.dict -max_total_time=120 -timeout=10 -rss_limit_mb=2048
+      - name: Upload crash inputs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-artifacts-${{ matrix.target }}
+          path: fuzz/artifacts
+          retention-days: 30
+
+  # ── Supply chain: advisories, licenses, sources, bans ──────────────────────
+  supply-chain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install toolchain (rust-toolchain.toml)
+        run: rustup toolchain install && rustup show active-toolchain
+      - uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21 # v2.90.4
+        with:
+          tool: cargo-deny@0.20.2
+      # deny.toml: RustSec advisories (incl. unmaintained, unsound, yanked),
+      # GPL-3.0-compatible licenses only, crates.io only, no wildcard versions.
+      - name: cargo-deny (workspace)
+        run: cargo deny --locked --config deny.toml check
+      - name: cargo-deny (fuzz workspace)
+        run: cargo deny --locked --manifest-path fuzz/Cargo.toml --config deny.toml check
+
+  # ── Required check: everything above passed ────────────────────────────────
+  build:
+    if: ${{ always() }}
+    needs: [repo-checks, fmt, clippy, test, docs, coverage, mutants, fuzz, supply-chain]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # A skipped or cancelled job counts as a failure: green means every job ran.
+      - name: All jobs succeeded
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$RESULTS" | jq -e 'all(.[]; .result == "success")' > /dev/null

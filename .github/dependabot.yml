@@ -22,20 +22,27 @@ updates:
     commit-message:
       prefix: "chore(actions)"
 
+  # Rust: the main workspace and the separate fuzz workspace (own Cargo.lock).
+  # cargo-deny runs on every Dependabot PR like on any other (job supply-chain).
+  # rust-toolchain.toml and the pinned nightly are bumped by hand.
+  - package-ecosystem: "cargo"
+    directories:
+      - "/"
+      - "/fuzz"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      cargo-minor-patch:
+        update-types: ["minor", "patch"]
+
   # ── Stack placeholders: uncomment what the repo actually uses ────────────────
 
-  # Python (requirements*.txt, pyproject.toml, Pipfile)
-  # - package-ecosystem: "pip"
-  #   directory: "/"
-  #   schedule:
-  #     interval: "weekly"
-  #   cooldown:
-  #     default-days: 7
-  #   commit-message:
-  #     prefix: "chore(deps)"
-
-  # Node (package.json + lockfile). Point `directory` at the folder that holds
-  # the lockfile if it is not the repo root.
+  # Node: the Svelte frontend (web/) once it exists. Point `directory` at the
+  # folder that holds the lockfile.
   # - package-ecosystem: "npm"
   #   directory: "/"
   #   schedule:

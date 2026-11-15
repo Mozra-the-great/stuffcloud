@@ -22,7 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `deep-tests.yml`: nightly long fuzzing with a cached, minimised corpus, full
   mutation run, Miri, 500 000 property-test cases, fresh advisories and the beta
   toolchain. (#101)
-- Label `area/backend` with path rules for the Rust files. (#101)
+- Label `area/api` (the backend label the issue backlog already uses) with path
+  rules for the Rust files. (#101, #105)
 - `codeql.yml` (CodeQL advanced setup, `security-extended`, Rust, Python and
   Actions): runs as job `codeql` inside `ci.yml`, so the required `build` check
   covers it, fails on any result, and runs weekly on `main`; config in

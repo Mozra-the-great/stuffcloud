@@ -25,7 +25,7 @@ docs-only PRs too):
 
 | Check | What it does |
 |---|---|
-| `build` | Aggregate of every job in `.github/workflows/ci.yml`: rustfmt, clippy (warnings are errors), unit/property/regression/doc tests, rustdoc, coverage (95 % floor), mutation testing of the changed lines, 2-minute fuzz run per target, `cargo-deny`, CodeQL (`security-extended`, fails on any result), label-script tests, design PDF check |
+| `build` | Aggregate of every job in `.github/workflows/ci.yml`: rustfmt, clippy (warnings are errors), unit/property/regression/doc tests, rustdoc, coverage (95 % floor), mutation testing of the changed lines, 2-minute fuzz run per target, frontend (`web/`: lint, svelte-check/tsc, Vitest with 95 % coverage floor, production build, frozen lockfile), `cargo-deny`, CodeQL (`security-extended`, fails on any result), label-script tests, design PDF check |
 | `workflow-lint` | actionlint + zizmor over the workflows and `dependabot.yml` |
 | `gitleaks` | Secret scan over the PR range, using `.gitleaks.toml` |
 | `claude-review` | Optional Claude Code review; needs the `CLAUDE_CODE_OAUTH_TOKEN` secret and is **skipped (green)** without it |

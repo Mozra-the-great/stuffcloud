@@ -14,8 +14,9 @@ name: CodeQL
 # Do not also enable the default setup in the repo settings: with default setup
 # active, uploads from this workflow are rejected.
 #
-# Languages: rust, python (scripts/ci, docs/design/tools), actions (workflows).
-# javascript-typescript joins the matrix when web/ is scaffolded.
+# Languages: rust, python (scripts/ci, docs/design/tools), actions (workflows),
+# javascript-typescript (web/). Interpreted languages need no build, so every
+# entry runs with `build-mode: none`.
 
 on:
   workflow_call: {}
@@ -38,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [rust, python, actions]
+        language: [rust, python, actions, javascript-typescript]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- CI: job `web` in `ci.yml` runs `pnpm lint`, `typecheck`, `test` (95 % coverage floor
+  per package) and `build` for `web/` as four parallel checks (frozen lockfile, pnpm
+  from corepack, cached pnpm store, Node from `.nvmrc`) and is part of the `build`
+  gate, so `build` fails on any frontend lint, type or test error. CodeQL analyzes
+  `javascript-typescript` (`security-extended`, fails on any result) and Dependabot
+  opens grouped weekly npm PRs for `/web` (7-day cooldown). (#107)
 - `web/` frontend workspace (pnpm 12, Node 24): `apps/web` (Svelte 5 + Vite single-page
   app), `packages/tools` (validated tool ids and manifest) and `packages/api-client`
   (`openapi-fetch` wrapper and the schema generation script; the generated client

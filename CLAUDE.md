@@ -65,11 +65,13 @@ Tests are part of the security design; err on the side of too many (SPEC section
 
 ## CI
 `ci.yml` job `build` is the required check: an aggregate over fmt, clippy, test,
-docs, coverage, mutants, fuzz, supply-chain, codeql and repo-checks (add new jobs to its
-`needs`). `deep-tests.yml` runs nightly: long fuzzing (grows the cached corpus),
+docs, coverage, mutants, fuzz, web (lint, typecheck, test, build of `web/`), supply-chain,
+codeql and repo-checks (add new jobs to its `needs`; no job skips itself on changed
+paths, because the aggregate counts a skipped job as a failure). `deep-tests.yml` runs nightly: long fuzzing (grows the cached corpus),
 full mutants, Miri, 500k proptest cases, fresh advisories, beta toolchain.
 Toolchain bump: `rust-toolchain.toml` + `rust-version` in `Cargo.toml`; nightly
-bump: `NIGHTLY` in both workflows. Dependabot handles actions and cargo.
+bump: `NIGHTLY` in both workflows. Dependabot handles actions, cargo and npm (`/web`,
+minor/patch grouped).
 
 ## Changelog
 Every PR with a visible change (code, docs, design, CI) adds an entry under
@@ -97,8 +99,8 @@ Locally:
   (`codeql.yml`, called by `ci.yml` as job `codeql`, so `build` covers it); it fails
   on any result. Do not enable the default setup in the repo settings (it blocks the
   uploads). False positives: dismiss in code scanning and exclude the query in
-  `.github/codeql/codeql-config.yml` with a reason. Add `javascript-typescript` to
-  its matrix when `web/` exists.
+  `.github/codeql/codeql-config.yml` with a reason. Languages: rust, python, actions,
+  javascript-typescript.
 - Claude review needs the Actions secret `CLAUDE_CODE_OAUTH_TOKEN`; without it the job skips and stays green.
 
 ---

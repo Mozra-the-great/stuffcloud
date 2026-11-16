@@ -12,9 +12,15 @@ name: CI
 # PR gets lint, unit, property, regression and doc tests, a coverage floor,
 # mutation testing of the changed code, a short fuzz run per target and the
 # supply-chain gate. The long runs (fuzzing for an hour, full mutation run, Miri,
-# fresh advisories) are in deep-tests.yml. The Svelte frontend (web/) gets its
-# own jobs here (npm ci, typecheck, unit tests, Playwright + axe) when it is
-# scaffolded; add them to `needs` of `build`.
+# fresh advisories) are in deep-tests.yml. The Svelte frontend (web/) has the job
+# `web` (lint, typecheck, unit tests with the coverage floor, production build);
+# Playwright + axe join it with T-06 / T-05. Every new job goes into `needs` of
+# `build`.
+#
+# Jobs never skip themselves on changed paths: the aggregate treats a skipped job
+# as a failure, so a frontend job that is skipped on a Rust-only PR would turn
+# `build` red. Both stacks run on every PR; they are cheap compared to the Rust
+# jobs and run in parallel with them.
 
 on:
   push:
@@ -265,6 +271,62 @@ jobs:
           path: fuzz/artifacts
           retention-days: 30
 
+  # ── Frontend (web/): lint, types, tests with coverage floor, build ─────────
+  # One matrix entry per check, so a red check is named in the PR (`web (lint)`)
+  # and the four run in parallel. pnpm comes from corepack (the `packageManager`
+  # field in web/package.json is the single pin), the lockfile is frozen and the
+  # pnpm store is cached. Node follows web/.nvmrc.
+  web:
+    name: web (${{ matrix.check }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    env:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+    strategy:
+      fail-fast: false
+      matrix:
+        # lint: ESLint (type-aware, no `any`) + Prettier; typecheck: tsc +
+        # svelte-check; test: Vitest, 95 % coverage floor per package; build: Vite
+        # production build + package emit.
+        check: [lint, typecheck, test, build]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: web/.nvmrc
+          package-manager-cache: false
+      - name: Enable pnpm (corepack, version from packageManager)
+        run: corepack enable
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+      # --frozen-lockfile: a pnpm-lock.yaml that does not match package.json fails.
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+      - name: pnpm ${{ matrix.check }}
+        env:
+          CHECK: ${{ matrix.check }}
+        run: pnpm "$CHECK"
+      - name: Upload coverage reports
+        if: ${{ always() && matrix.check == 'test' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-coverage-lcov
+          path: web/**/coverage/lcov.info
+          if-no-files-found: ignore
+          retention-days: 14
+
   # ── Supply chain: advisories, licenses, sources, bans ──────────────────────
   supply-chain:
     runs-on: ubuntu-latest
@@ -299,7 +361,7 @@ jobs:
   # ── Required check: everything above passed ────────────────────────────────
   build:
     if: ${{ always() }}
-    needs: [repo-checks, fmt, clippy, test, docs, coverage, mutants, fuzz, supply-chain, codeql]
+    needs: [repo-checks, fmt, clippy, test, docs, coverage, mutants, fuzz, web, supply-chain, codeql]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

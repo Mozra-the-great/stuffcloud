@@ -128,6 +128,19 @@ Locally:
   javascript-typescript.
 - Claude review needs the Actions secret `CLAUDE_CODE_OAUTH_TOKEN`; without it the job skips and stays green.
 
+## Instance-neutral (open source)
+stuffcloud is open source and must work for any operator. Flag every violation in review.
+- No real domain, hostname, IP address, e-mail address or other operator-specific value
+  in code, tests, fixtures, default config, docs, ADRs or issue templates. Zones and the
+  app address come from admin settings or deployment configuration (SPEC §5), never
+  from code.
+- Examples and test data use the reserved names from RFC 2606 / RFC 6761
+  (`example.com`, `example.org`, `example.net`, `*.example`, `*.test`, `*.invalid`)
+  and the documentation IP ranges (`192.0.2.0/24`, `198.51.100.0/24`,
+  `203.0.113.0/24`, `2001:db8::/32`).
+- The only allowed project-specific URLs are the project's own links (repository,
+  issue tracker, licence, release/update source) — and only where they are needed.
+
 ---
 
 ## Working rules

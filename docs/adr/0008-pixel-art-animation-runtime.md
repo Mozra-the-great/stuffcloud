@@ -178,7 +178,8 @@ check on a real low-end device remains open (see below).
 - The indeterminate `Progress` bar from T-01 animates `background-position` with `steps(4)`
   and therefore repaints at every display frame (the same cause as `css-sprite` above; the
   verify run shows about 140 style recalculations per second on the gallery page because of
-  it). It is not part of this decision; a follow-up issue tracks switching it to a
+  it). It is not part of this decision; issue
+  [#114](https://github.com/Mozra-the-great/stuffcloud/issues/114) tracks switching it to a
   `transform` animation.
 
 ## Alternatives considered

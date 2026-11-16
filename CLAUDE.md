@@ -17,7 +17,8 @@ inherits `[workspace.lints]` (`[lints] workspace = true`).
 crates/core/    domain types + validation (SafeRelPath, Subdomain), no I/O
   tests/        properties.rs (proptest), regression.rs (attack corpus)
 web/            pnpm workspace (Node 24, own lockfile; the backend never depends on it)
-  apps/web/     Svelte + Vite SPA (static build)
+  apps/web/     Svelte + Vite SPA (static build): src/styles (generated tokens.css, fonts.css, theme.css),
+                src/ui (base components), src/gallery (component gallery), src/assets/fonts (self-hosted)
   packages/tools/       tool modules (manifest type, id rules)
   packages/api-client/  typed client + OpenAPI generation script (generated file comes with app)
   tests/        lint-config test (a deliberate `any` must fail lint)
@@ -52,6 +53,7 @@ Frontend, from `web/` (`corepack enable` once; Node per `.nvmrc`):
 ```sh
 pnpm install --frozen-lockfile
 pnpm lint && pnpm typecheck && pnpm test && pnpm build   # coverage floor 95 % per package
+pnpm tokens                                              # regenerate src/styles/tokens.css from docs/design (test fails when stale)
 ```
 
 ## Tests (non-negotiable)

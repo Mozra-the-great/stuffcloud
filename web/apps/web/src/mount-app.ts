@@ -1,4 +1,4 @@
-import { mount, unmount } from 'svelte';
+import { mount, unmount, type Component } from 'svelte';
 import App from './App.svelte';
 
 export interface MountedApp {
@@ -6,13 +6,16 @@ export interface MountedApp {
   readonly destroy: () => void;
 }
 
-/** Mounts the app into the element with `id`; throws when the element is missing. */
-export function mountApp(id: string, doc: Document = document): MountedApp {
+/**
+ * Mounts a root component (the app by default) into the element with `id`; throws when the
+ * element is missing.
+ */
+export function mountApp(id: string, doc: Document = document, root: Component = App): MountedApp {
   const target = doc.getElementById(id);
   if (target === null) {
     throw new Error(`mount target #${id} not found`);
   }
-  const instance = mount(App, { target });
+  const instance = mount(root, { target });
   return {
     destroy: (): void => {
       void unmount(instance);

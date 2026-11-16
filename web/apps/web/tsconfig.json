@@ -5,5 +5,12 @@
     "allowJs": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte", "tests", "vite.config.ts", "vitest.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.svelte",
+    "scripts",
+    "tests",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ]
 }

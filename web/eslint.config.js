@@ -54,11 +54,17 @@ export default tseslint.config(
     files: config.files ?? ['**/*.svelte'],
   })),
   {
-    files: ['**/*.svelte'],
+    files: ['**/*.svelte', '**/*.svelte.ts'],
     languageOptions: {
       globals: globals.browser,
       parserOptions: { parser: tseslint.parser },
     },
+  },
+  {
+    // Rune-aware: `let { a, b = $bindable() } = $props()` is not a reassignable `let`.
+    files: ['**/*.svelte', '**/*.svelte.ts'],
+    plugins: { svelte },
+    rules: { 'prefer-const': 'off', 'svelte/prefer-const': 'error' },
   },
   {
     files: ['apps/web/**/*.ts'],

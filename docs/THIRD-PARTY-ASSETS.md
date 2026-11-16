@@ -29,9 +29,25 @@ recorded here by hand, with the license checked at adoption (`docs/SPEC.md`, sec
 
 | Asset | Kind | Version | SHA-256 | License | Source | Used by |
 |---|---|---|---|---|---|---|
-| none yet | | | | | | |
+| `inter-latin-ext-wght-normal.woff2` (Inter variable (wght), Latin Extended) | font | 5.3.0 (Inter v20) | `34b9c504cab7a73e37b746343a449132e56cf7b5481af2cb81dc74dcff25c956` | OFL-1.1 (Copyright 2016 The Inter Project Authors; text in `web/apps/web/src/assets/fonts/OFL-*.txt`) | npm tarball of `@fontsource-variable/inter`, unmodified woff2 | UI text and long copy; `web/apps/web/src/styles/fonts.css` |
+| `inter-latin-wght-normal.woff2` (Inter variable (wght), Latin) | font | 5.3.0 (Inter v20) | `3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62` | OFL-1.1 (Copyright 2016 The Inter Project Authors; text in `web/apps/web/src/assets/fonts/OFL-*.txt`) | npm tarball of `@fontsource-variable/inter`, unmodified woff2 | UI text and long copy; `web/apps/web/src/styles/fonts.css` |
+| `jetbrains-mono-latin-ext-wght-normal.woff2` (JetBrains Mono variable (wght), Latin Extended) | font | 5.3.0 | `79bfdab9ba467e26eea4122e6f2567e188dd8a09a8c730d501fc487c4ab99c6e` | OFL-1.1 (Copyright 2020 The JetBrains Mono Project Authors; text in `web/apps/web/src/assets/fonts/OFL-*.txt`) | npm tarball of `@fontsource-variable/jetbrains-mono`, unmodified woff2 | labels and code; `web/apps/web/src/styles/fonts.css` |
+| `jetbrains-mono-latin-wght-normal.woff2` (JetBrains Mono variable (wght), Latin) | font | 5.3.0 | `18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e` | OFL-1.1 (Copyright 2020 The JetBrains Mono Project Authors; text in `web/apps/web/src/assets/fonts/OFL-*.txt`) | npm tarball of `@fontsource-variable/jetbrains-mono`, unmodified woff2 | labels and code; `web/apps/web/src/styles/fonts.css` |
+| `silkscreen-latin-400-normal.woff2` (Silkscreen Regular, Latin) | font | 5.3.0 | `e6c72ea4702249202bcdd79d3343057e4e25ef1f04e3fcffd8602ab53b40b4cc` | OFL-1.1 (Copyright 2001 The Silkscreen Project Authors; text in `web/apps/web/src/assets/fonts/OFL-*.txt`) | npm tarball of `@fontsource/silkscreen`, unmodified woff2 | wordmark and console headings; `web/apps/web/src/styles/fonts.css` |
+| `silkscreen-latin-700-normal.woff2` (Silkscreen Bold, Latin) | font | 5.3.0 | `5741b7f01a127f40ed70281fa2f686e8fc2cfe241930a120e4d1a1cebe78f995` | OFL-1.1 (Copyright 2001 The Silkscreen Project Authors; text in `web/apps/web/src/assets/fonts/OFL-*.txt`) | npm tarball of `@fontsource/silkscreen`, unmodified woff2 | wordmark and console headings; `web/apps/web/src/styles/fonts.css` |
 
-The register is empty because no tool that needs one exists yet.
+The fonts are the Google Fonts builds of the three families the design chose
+(`docs/design/README.md`), taken unmodified from the Fontsource npm tarballs (Latin and Latin
+Extended subsets, variable fonts for Inter and JetBrains Mono, Silkscreen in regular and
+bold). They sit in the repository, not in `package.json`, so the npm license gate does not see
+them: the OFL-1.1 check is this table plus the OFL texts next to the files. OFL-1.1 is not in the `deny.toml` list
+(that list is for code that is linked into the GPL-3.0-or-later program); it is accepted here
+because the fonts are separate data files the browser loads, an aggregate with the program and
+not a combined work, and issue #9 names OFL as the license of all three. The OFL allows
+bundling and redistribution with software; the fonts are not sold on their own and are not
+renamed, and none of the three declares a Reserved Font Name. A unit
+test (`web/apps/web/tests/fonts.test.ts`) fails when a file's SHA-256 differs from its row or
+a font file has no row.
 
 ## Candidates (not adopted, license not yet verified)
 
@@ -47,4 +63,3 @@ license check of the exact artifact before use.
 | BiRefNet-lite | model weights | MIT per SPEC; confirm for the exact weights file | background removal (opt-in) |
 | ONNX Runtime Web | WASM | MIT per SPEC; also covered by `THIRD-PARTY.md` as an npm package, check the shipped `.wasm` files | background removal |
 | IEEE OUI snapshot | data | terms of use of the IEEE registry data | MAC lookup |
-| Pixel font, monospace font, sans-serif font | fonts | font license (OFL or similar), self-hosted files | design system (the mockups still load Google Fonts) |

@@ -15,7 +15,7 @@ come from neither package manager are in
 
 | Name | Version | License | Source |
 |---|---|---|---|
-| tinyvec | 1.13.3 | Zlib OR Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/tinyvec/1.13.3) |
+| tinyvec | 1.13.2 | Zlib OR Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/tinyvec/1.13.3) |
 | unicode-normalization | 0.1.26 | (MIT OR Apache-2.0) AND Unicode-3.0 | [crates.io](https://crates.io/crates/unicode-normalization/0.1.26) |
 
 ## npm (22)

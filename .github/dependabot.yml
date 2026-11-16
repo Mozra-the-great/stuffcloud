@@ -1,7 +1,8 @@
 version: 2
 
-# Dependabot keeps the SHA-pinned actions in .github/workflows fresh (convention C5)
-# and, once you uncomment a block below, the dependencies of your stack.
+# Dependabot keeps the SHA-pinned actions in .github/workflows fresh (convention C5),
+# the Rust and npm dependencies, and, once you uncomment a block below, the rest of
+# your stack. The docker ecosystem joins with the first Dockerfile (#7 / #31).
 #
 # cooldown (zizmor audit dependabot-cooldown): a new release is proposed only after
 # 7 days. If a package is compromised that is usually noticed within that window;
@@ -39,18 +40,23 @@ updates:
       cargo-minor-patch:
         update-types: ["minor", "patch"]
 
-  # ── Stack placeholders: uncomment what the repo actually uses ────────────────
+  # Node: the Svelte frontend (web/), a pnpm workspace with one lockfile at its root;
+  # Dependabot reads pnpm-lock.yaml and updates every workspace package from there.
+  # Minor and patch updates arrive as one grouped PR; majors stay separate PRs.
+  # The frontend job `web` of `build` and the CodeQL run check every Dependabot PR.
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm-minor-patch:
+        update-types: ["minor", "patch"]
 
-  # Node: the Svelte frontend (web/) once it exists. Point `directory` at the
-  # folder that holds the lockfile.
-  # - package-ecosystem: "npm"
-  #   directory: "/"
-  #   schedule:
-  #     interval: "weekly"
-  #   cooldown:
-  #     default-days: 7
-  #   commit-message:
-  #     prefix: "chore(deps)"
+  # ── Stack placeholders: uncomment what the repo actually uses ────────────────
 
   # Dockerfile base images. No automatic major bumps for container images (C9):
   # a major jump (postgres 16 -> 17, redis 7 -> 8) usually needs a data or

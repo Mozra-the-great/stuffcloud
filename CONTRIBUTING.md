@@ -42,6 +42,30 @@ invariant with a property test; a new parser of untrusted input with a fuzz
 target; a fixed bug with an entry in `tests/regression.rs` and a seed in
 `fuzz/seeds/`. Never lower a threshold or skip a check to get green.
 
+### Frontend (`web/`)
+
+The frontend is a pnpm workspace that only needs Node and pnpm; the Rust workspace
+and its CI jobs do not depend on them. Use the Node version in `web/.nvmrc`
+(`engine-strict` is on) and run `corepack enable` once, so pnpm matches the
+`packageManager` field. From `web/`:
+
+```sh
+pnpm install --frozen-lockfile   # the lockfile is committed
+pnpm lint        # ESLint (type-aware, `any` is an error) + Prettier --check
+pnpm typecheck   # tsc / svelte-check
+pnpm test        # Vitest; coverage floor 95 % in every package, never lower it
+pnpm build       # Vite production build + package emit checks
+pnpm format      # Prettier --write
+```
+
+Layout: `apps/web` (Svelte + Vite single-page app), `packages/tools` (tool modules),
+`packages/api-client` (typed client; `pnpm --filter @stuffcloud/api-client generate
+-- --input <openapi.json>` writes `src/generated/schema.d.ts` once `app` exports its
+OpenAPI document). All settings come from `tsconfig.base.json` (`strict`,
+`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) and `eslint.config.js`.
+New npm dependencies need a GPL-3.0-compatible license. The frontend jobs are not
+yet part of `build`; run the commands above before opening a PR.
+
 Workflow rules: actions are pinned by full commit SHA with a `# vX.Y.Z` comment,
 event data (`github.event.*`, branch names, titles) goes through `env:` and
 never into `run:` via `${{ }}`, and `permissions:` stays minimal. Run

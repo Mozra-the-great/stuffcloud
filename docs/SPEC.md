@@ -91,8 +91,9 @@ Components
 
 Repository layout (Cargo workspace): `crates/core`, `crates/db`, `crates/app`,
 `crates/edge`, `crates/cli`; `fuzz/` (cargo-fuzz targets, own workspace);
-`web/` (Svelte). Only `crates/core` and `fuzz/` exist so far; the others are
-added in the phase that needs them (section 15).
+`web/` (pnpm workspace: `apps/web` Svelte + Vite SPA, `packages/tools`,
+`packages/api-client`). Only `crates/core`, `fuzz/` and the `web/` scaffold exist
+so far; the others are added in the phase that needs them (section 15).
 
 Stack rationale (decision 9 in section 16): the instance is exposed, so security
 and a small footprint outweigh "one language end to end". Rust gives memory

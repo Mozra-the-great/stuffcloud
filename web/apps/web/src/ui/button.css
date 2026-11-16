@@ -1,0 +1,90 @@
+/* Shared by Button.svelte and LinkButton.svelte (design: .btn, .btn-ghost, .btn-danger, .btn-wide, .btn-icon). */
+.sc-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-10);
+  min-height: var(--control-h);
+  padding: 0 var(--space-28);
+  background: var(--fg);
+  color: var(--bg);
+  border: 0;
+  border-radius: var(--radius);
+  font: 600 15px var(--sans);
+  text-align: center;
+  cursor: pointer;
+}
+
+.sc-btn:hover,
+.sc-btn:active {
+  background: var(--pink);
+  color: var(--bg);
+}
+
+.sc-btn--ghost {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--line2);
+  font-weight: 500;
+}
+
+.sc-btn--ghost:hover,
+.sc-btn--ghost:active {
+  background: transparent;
+  color: var(--fg);
+  border-color: var(--fg);
+}
+
+.sc-btn--danger {
+  background: var(--pink2);
+  color: var(--bg);
+}
+
+.sc-btn--wide {
+  justify-content: space-between;
+}
+
+/* In-panel actions (copy, download, choose files). */
+.sc-btn--compact {
+  min-height: var(--target-min);
+  padding: 0 var(--space-16);
+}
+
+.sc-btn--icon {
+  width: var(--target-icon);
+  height: var(--target-icon);
+  min-height: var(--target-icon);
+  padding: 0;
+}
+
+.sc-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+  .sc-btn {
+    min-height: var(--control-h-m);
+  }
+
+  .sc-btn--compact {
+    min-height: var(--target-min);
+  }
+
+  .sc-btn--icon {
+    min-height: var(--target-icon);
+  }
+}
+
+@media (forced-colors: active) {
+  /* Backgrounds are replaced by the system palette: keep the edge visible. */
+  .sc-btn {
+    border: 1px solid ButtonText;
+  }
+
+  .sc-btn:disabled {
+    opacity: 1;
+    border-color: GrayText;
+    color: GrayText;
+  }
+}

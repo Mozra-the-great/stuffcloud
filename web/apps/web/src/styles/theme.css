@@ -1,0 +1,95 @@
+/*
+ * Tokens that sit next to the generated design tokens (tokens.css): colours the mockups use
+ * as literals without a name, the spacing scale and control sizes. Every colour here appears
+ * verbatim in docs/design/prototypes (a unit test enforces it), so nothing is invented.
+ * Never write a colour literal in a component: add it here, after checking the design.
+ */
+:root {
+  color-scheme: dark;
+
+  /* surfaces */
+  --bg-raised: #17171a; /* hovered cell, current tab, current nav item */
+  --bg-selected: #1a1220; /* checked option, dragged-over dropzone */
+  --bg-code: #0c0c0e; /* code block */
+  --bg-error: #2a0f1a; /* error alert */
+  --bg-warn: #2a200a; /* warning alert */
+
+  /* text and lines */
+  --fg-soft: #d8d8de; /* long copy on the dark background */
+  --fg-code: #e8e8ee; /* code block text */
+  --fg-hint: #c7c7cf; /* dropzone hint */
+  --fg-disabled: #6a6a74; /* disabled option; disabled controls are exempt from contrast */
+  --line-drop: #6b5a8f; /* dropzone dashed border */
+
+  /* status */
+  --amber: #ffb000;
+  --gray: #5a5a64;
+  --shadow: rgba(0, 0, 0, 0.4); /* hard offset shadow of floating cards */
+
+  /* spacing scale: the gaps and paddings the mockups use, named by pixel value */
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-28: 28px;
+  --space-32: 32px;
+  --space-40: 40px;
+
+  /* the design is flat: no rounded corners anywhere */
+  --radius: 0;
+
+  /* control sizes (touch targets: at least 44 px, 48 px for icon buttons, 56 px on phones) */
+  --target-min: 44px;
+  --target-icon: 48px;
+  --control-h: 52px;
+  --control-h-m: 56px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--sans);
+}
+
+a {
+  color: var(--fg);
+  text-decoration: none;
+}
+
+img {
+  display: block;
+}
+
+/* Visible focus on every focusable element (WCAG 2.4.7, 2.4.11). */
+:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+/* Everything stops under prefers-reduced-motion (design README, WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}

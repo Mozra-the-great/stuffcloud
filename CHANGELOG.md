@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `web/`: design tokens as CSS custom properties, generated from the `:root` rule of
+  `docs/design/prototypes/stuff.css` (`pnpm tokens`; a unit test and `pnpm tokens:check` fail while
+  `src/styles/tokens.css` is stale), plus `theme.css` for the colours the mockups use without a
+  name, the spacing scale and the control sizes (a test checks that every literal exists in
+  `docs/design`). Dark only, visible focus, `prefers-reduced-motion` and forced-colors handled. (#112)
+- `web/`: self-hosted Silkscreen, Inter and JetBrains Mono (OFL-1.1, Latin and Latin Extended
+  woff2, recorded with SHA-256 in `docs/THIRD-PARTY-ASSETS.md`); the build never inlines assets
+  and a test builds the app and fails on any external or `data:` reference in CSS and HTML. (#112)
+- `web/`: base Svelte components `Button`, `LinkButton`, `Input`, `Select`, `Checkbox`, `Tabs`,
+  `TabLinks`, `Card`, `Tile`/`TileGrid`, `Dialog` (native modal `<dialog>`), toasts (`Toaster`,
+  `ToastRegion`), `Progress`, `CodeBlock` and `FileDropzone`, following the mockups, with
+  touch targets of at least 44 px (48 px icons), and a component gallery page (`gallery.html`).
+  Automatic WCAG 2.2 AA contrast checks over the token pairs and 247 unit and component tests
+  (coverage 99 % lines, 97 % branches). New dev dependencies: `@testing-library/svelte`,
+  `@testing-library/dom`, `@testing-library/user-event` (MIT). (#112)
 - `docs/adr/`: architecture decision records 0001 to 0007 (stack incl. the plain Vite SPA variant,
   static-only hosting and origin isolation, storage abstraction, client-side-first tools, auth
   model, the `edge` process and the shared `core` crate, test strategy), each with status,

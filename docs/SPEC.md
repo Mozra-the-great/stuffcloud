@@ -324,7 +324,7 @@ interface (`put/get/delete/list/usage`).
   **sans-serif for long text**; all fonts self-hosted (no external font requests).
 - **One main mascot** (Stuffy, a pink pixel axolotl) plus **one sticker per tool**,
   and a small cast of extra animals for easter eggs; original pixel art under
-  GPL-3.0-or-later, idle animations of a few frames. The mascot never speaks (no
+  GPL-3.0-or-later, idle animations of two poses (ADR 0008). The mascot never speaks (no
   speech bubbles), and pages carry no filler copy.
 - Palette: pink and violet for surfaces and accents; stickers keep their own bright
   colours so categories stay recognisable. Grid layout with thin cell lines.
@@ -343,8 +343,10 @@ interface (`put/get/delete/list/usage`).
 - Accessibility: WCAG 2.2 AA contrast, full keyboard use, visible focus,
   `prefers-reduced-motion` disables all animation, decorative mascots are
   `aria-hidden`, touch targets >= 44 px.
-- Performance: sprite-sheet or small canvas animations, paused when off-screen or
-  when the tab is hidden.
+- Performance: mascot animations are CSS `transform` keyframes with `steps()` on the
+  delivered SVG art (no canvas loop, no script per frame), drawn at integer scales
+  with `image-rendering: pixelated`, paused when off-screen or when the tab is hidden
+  (measurements and alternatives: [ADR 0008](adr/0008-pixel-art-animation-runtime.md)).
 - Responsive from phone to desktop.
 
 ## 13. Internationalisation and privacy
@@ -469,6 +471,10 @@ Hosting ships after auth and quotas on purpose: it is the security-critical part
     (password, burn-after-reading, report) runs in the separate `edge` process,
     not in `app`, so the code reachable from the internet stays small and
     separately testable.
+11. **Mascot animation runtime (2026-11-16):** CSS `transform` keyframes with `steps()` on
+    the SVG art, paused off-screen and in hidden tabs, still pose under
+    `prefers-reduced-motion`; canvas and background-position sprite sheets were measured
+    and rejected ([ADR 0008](adr/0008-pixel-art-animation-runtime.md)).
 
-Architecture decision records for decisions 9 and 10 and for the choices in sections 4 to 8
+Architecture decision records for decisions 9, 10 and 11 and for the choices in sections 4 to 8
 and 14 are in [`docs/adr/`](adr/README.md).

@@ -21,6 +21,7 @@ describe('component gallery', () => {
       .map((heading) => heading.textContent);
     expect(groups).toEqual([
       'Tokens',
+      'Mascot',
       'Button, link button',
       'Input, select, checkbox',
       'Tabs',
@@ -58,6 +59,23 @@ describe('component gallery', () => {
     expect(screen.getByRole('region', { name: 'Deploy command' })).toBeTruthy();
     // dropzone
     expect(screen.getByRole('group', { name: 'drop PDFs here' })).toBeTruthy();
+  });
+
+  it('shows the whole cast: the main mascot big, nine animals small and one still pose', () => {
+    render(Gallery);
+    const section = screen.getByRole('heading', { name: 'Mascot' }).closest('section');
+    if (section === null) {
+      throw new Error('no mascot section');
+    }
+    const hosts = [...section.querySelectorAll<HTMLElement>('[data-mascot]')];
+    expect(hosts).toHaveLength(11);
+    expect(new Set(hosts.map((host) => host.dataset['mascot'])).size).toBe(9);
+    expect(hosts.filter((host) => host.dataset['motion'] === 'still')).toHaveLength(1);
+    // Decorative: hidden from assistive tech, so they add no names and no text of their own.
+    for (const image of section.querySelectorAll('img')) {
+      expect(image.getAttribute('alt')).toBe('');
+      expect(image.getAttribute('aria-hidden')).toBe('true');
+    }
   });
 
   it('gives every control an accessible name (the automatic part of the a11y baseline)', () => {

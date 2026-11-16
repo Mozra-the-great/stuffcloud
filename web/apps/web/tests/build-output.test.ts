@@ -62,6 +62,47 @@ describe('production build output', () => {
     }
   });
 
+  it('emits the nine mascot svgs as files and never inlines them', () => {
+    const svgs = [...files.keys()].filter((name) => name.endsWith('.svg'));
+    expect(svgs).toHaveLength(9);
+    for (const name of svgs) {
+      expect(name.startsWith('assets/')).toBe(true);
+    }
+    const scripts = text(/\.js$/).join('\n');
+    expect(scripts).not.toContain('data:image/svg+xml');
+    for (const name of svgs) {
+      expect(scripts, `${name} is not referenced by the app`).toContain(
+        name.slice('assets/'.length),
+      );
+    }
+  });
+
+  it('ships the mascot motion as a transform-only, reduced-motion-aware stylesheet', () => {
+    const css = text(/\.css$/).join('\n');
+    const has = (pattern: RegExp): boolean => pattern.test(css);
+    // The minifier writes `steps(1)` as `step-end` and `100%` as `to`; same meaning.
+    expect(has(/animation:1\.2s step-end infinite [\w-]*bob\}/), 'two-step idle animation').toBe(
+      true,
+    );
+    expect(
+      has(
+        /@keyframes [\w-]*bob\{0%,49%\{transform:translateY\(0\)\}50%,to\{transform:translateY\(-4px\)\}\}/,
+      ),
+      'transform-only keyframes',
+    ).toBe(true);
+    expect(
+      has(
+        /@media \(prefers-reduced-motion:reduce\)\{\[data-motion\][\w.-]* img[^{]*\{animation:none\}\}/,
+      ),
+      'reduced motion shows the still pose',
+    ).toBe(true);
+    expect(has(/image-rendering:pixelated/), 'pixelated scaling').toBe(true);
+  });
+
+  it('keeps the benchmark out of the build', () => {
+    expect([...files.keys()].some((name) => name.includes('bench'))).toBe(false);
+  });
+
   it('has no external or data: reference in css or html', () => {
     for (const content of [...text(/\.css$/), ...text(/\.html$/)]) {
       expect(content).not.toMatch(/(?:src|href)=["']https?:/);

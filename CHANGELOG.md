@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `web/`: `Mascot` component and mascot catalogue for the nine animals of `docs/design` (SVG used
+  from the design folder, one copy): integer scales only with `image-rendering: pixelated`, a
+  reserved box (no layout shift), the design's two-pose bob as a `transform` keyframe animation
+  with `steps(1)` (no script per frame), paused off-screen and in hidden tabs, the still pose
+  under `prefers-reduced-motion`, decorative by default (`aria-hidden`), no text. Shown in the
+  component gallery. (#113)
+- `docs/adr/0008-pixel-art-animation-runtime.md`: the animation runtime decision of T-02 with
+  measurements (CSS transform keyframes chosen over canvas loops and `background-position`
+  sprite sheets: 1.5 % vs 18 to 22 % main-thread load for one mascot at a 6x CPU slowdown, no
+  layout shift, no dropped frame), recorded in the ADR index and SPEC 12 and 16. (#113)
+- `web/apps/web/bench/`: dependency-free animation benchmark (`node bench/run.ts bench`,
+  `verify`, `size`) that drives a headless Chrome over the DevTools protocol and compares CSS,
+  sprite-sheet and canvas variants (frame budget, main-thread time, layout and style
+  recalculation counts, layout shift, code size); never part of the build, its logic is unit
+  tested and counted in the coverage floor. (#113)
 - `web/`: design tokens as CSS custom properties, generated from the `:root` rule of
   `docs/design/prototypes/stuff.css` (`pnpm tokens`; a unit test and `pnpm tokens:check` fail while
   `src/styles/tokens.css` is stale), plus `theme.css` for the colours the mockups use without a

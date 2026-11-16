@@ -2,7 +2,8 @@
 
 Status: draft 0.3 (2026-11-14; draft 0.2 of 2026-11-05 planned a Node.js backend).
 Decisions below come from the requirements catalogue and the owner's answers; items still open are listed in
-[Decisions](#16-decisions-on-the-former-open-questions).
+[Decisions](#16-decisions-on-the-former-open-questions). The context, consequences and rejected
+alternatives of the core choices are recorded in the [architecture decision records](adr/README.md).
 
 ## 1. Vision
 
@@ -468,3 +469,6 @@ Hosting ships after auth and quotas on purpose: it is the security-critical part
     (password, burn-after-reading, report) runs in the separate `edge` process,
     not in `app`, so the code reachable from the internet stays small and
     separately testable.
+
+Architecture decision records for decisions 9 and 10 and for the choices in sections 4 to 8
+and 14 are in [`docs/adr/`](adr/README.md).

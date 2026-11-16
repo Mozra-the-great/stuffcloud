@@ -14,6 +14,9 @@ change:
    "Rebuild design PDF" workflow on your branch) and commit it with the PR; the
    `build` check fails while it is stale. See `docs/design/README.md`.
 5. Add an entry under `[Unreleased]` in `CHANGELOG.md` (English, with the PR number).
+   A decision that is expensive to reverse (stack, hosting model, storage, auth, public
+   surface, test strategy) also gets an architecture decision record, see
+   [Architecture decisions](#architecture-decisions).
 6. Open a pull request against `main`. CI (and, where configured, Claude Code
    review) must pass before merge.
 7. No `git push --force` on `main`.
@@ -100,6 +103,17 @@ never into `run:` via `${{ }}`, and `permissions:` stays minimal. Run
 `actionlint` and `zizmor` locally before pushing a workflow change; the setup
 steps, costs and the open runner/ruleset decisions are in
 [`docs/TEMPLATE-SETUP.md`](docs/TEMPLATE-SETUP.md).
+
+## Architecture decisions
+
+Decisions that are expensive to reverse are written down as ADRs in
+[`docs/adr/`](docs/adr/README.md): context, decision, consequences and alternatives
+considered. Read the index before changing the stack, the hosting or auth model, storage, the
+public surface or the test strategy. To add one, copy the template in
+[`docs/adr/README.md`](docs/adr/README.md), take the next free number, add it to the index and
+update `docs/SPEC.md` in the same PR if the decision changes what the SPEC says. Do not edit an
+accepted ADR to change its decision: write a new one that supersedes it (an addendum that
+only fills a gap, such as the SQLite driver in ADR 0001, is added to the original).
 
 ## Reporting bugs / requesting features
 

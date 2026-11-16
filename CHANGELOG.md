@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `docs/adr/`: architecture decision records 0001 to 0007 (stack incl. the plain Vite SPA variant,
+  static-only hosting and origin isolation, storage abstraction, client-side-first tools, auth
+  model, the `edge` process and the shared `core` crate, test strategy), each with status,
+  context, decision, consequences, open points and alternatives considered, plus an index with
+  the template and the numbering rule. Linked from README, CONTRIBUTING, CLAUDE.md and SPEC.
+  The SQLite driver (`sqlx` or `rusqlite`) stays open in ADR 0001 until A-01. (#110)
 - CI: job `licenses` (part of the `build` gate) fails when any npm package of `web/`, production
   or dev and including the native packages of other platforms, has a license outside
   `scripts/ci/license-policy.toml` (same allow list as `deny.toml`, kept identical by a unit

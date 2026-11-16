@@ -14,8 +14,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "svelte": "^5.57.3",
-    "ua-parser-js": "^2.0.10"
+    "svelte": "^5.57.3"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",

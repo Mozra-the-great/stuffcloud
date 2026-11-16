@@ -1,0 +1,27 @@
+{
+  "name": "@stuffcloud/web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "stuffcloud single-page app (Svelte + Vite, static build)",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
+    "test": "vitest run --coverage",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "svelte": "^5.57.3"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@vitest/coverage-v8": "^5.1.0",
+    "jsdom": "^31.0.1",
+    "svelte-check": "^4.7.8",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
+  }
+}

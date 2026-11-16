@@ -1,0 +1,22 @@
+{
+  "name": "@stuffcloud/tools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "stuffcloud tool modules: the manifest type and id rules every tool shares",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^5.1.0",
+    "vitest": "^5.1.0"
+  }
+}

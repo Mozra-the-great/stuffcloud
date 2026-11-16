@@ -1,0 +1,31 @@
+{
+  "name": "stuffcloud-web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "stuffcloud frontend workspace (Svelte + Vite, TypeScript strict)",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit && pnpm -r typecheck",
+    "test": "vitest run --config tests/vitest.config.ts && pnpm -r test",
+    "build": "pnpm -r build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "eslint": "^10.15.0",
+    "eslint-plugin-svelte": "^3.24.1",
+    "globals": "^17.14.0",
+    "prettier": "^3.10.1",
+    "prettier-plugin-svelte": "^4.1.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^5.1.0"
+  }
+}

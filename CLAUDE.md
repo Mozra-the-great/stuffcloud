@@ -8,14 +8,19 @@ Greenfield project (public, GPL-3.0).
 ## Stack
 Rust backend (Cargo workspace: `axum`, `tokio`, SQLite) + Svelte/Vite frontend
 (TypeScript strict), Caddy, Docker Compose. See `docs/SPEC.md` sections 4 and 14.
-Exists so far: `crates/core` (validation, no I/O) and `fuzz/`. `app`, `edge`, `db`,
-`cli` and `web/` are added in the phase that needs them; each new crate inherits
-`[workspace.lints]` (`[lints] workspace = true`).
+Exists so far: `crates/core` (validation, no I/O), `fuzz/` and the `web/` scaffold.
+`app`, `edge`, `db` and `cli` are added in the phase that needs them; each new crate
+inherits `[workspace.lints]` (`[lints] workspace = true`).
 
 ## Structure
 ```
 crates/core/    domain types + validation (SafeRelPath, Subdomain), no I/O
   tests/        properties.rs (proptest), regression.rs (attack corpus)
+web/            pnpm workspace (Node 24, own lockfile; the backend never depends on it)
+  apps/web/     Svelte + Vite SPA (static build)
+  packages/tools/       tool modules (manifest type, id rules)
+  packages/api-client/  typed client + OpenAPI generation script (generated file comes with app)
+  tests/        lint-config test (a deliberate `any` must fail lint)
 fuzz/           cargo-fuzz targets, seeds, dictionary (own workspace, nightly)
 Cargo.toml      workspace, lint set, release profile (overflow checks on)
 deny.toml       cargo-deny: advisories, GPL-compatible licenses, sources
@@ -38,6 +43,12 @@ python -m unittest discover -s scripts/ci -p "test_*.py"   # CI helper tests
 ```
 Tools: `cargo install --locked cargo-llvm-cov cargo-mutants cargo-deny cargo-fuzz`
 (CI pins their versions in the workflows).
+
+Frontend, from `web/` (`corepack enable` once; Node per `.nvmrc`):
+```sh
+pnpm install --frozen-lockfile
+pnpm lint && pnpm typecheck && pnpm test && pnpm build   # coverage floor 95 % per package
+```
 
 ## Tests (non-negotiable)
 Tests are part of the security design; err on the side of too many (SPEC section 14).

@@ -3,7 +3,8 @@
 Work in progress. Licensed under the GNU General Public License v3.0, see [`LICENSE`](LICENSE).
 
 Self-hosted toolbox (tools that run in the browser) plus one-click static hosting.
-Backend in Rust, frontend in Svelte; the plan is in [`docs/SPEC.md`](docs/SPEC.md).
+Backend in Rust, frontend in Svelte; the plan is in [`docs/SPEC.md`](docs/SPEC.md) and the
+reasons behind the core choices are in the [architecture decision records](docs/adr/README.md).
 So far the repository holds the design system (`docs/design/`), the first Rust
 crate, `crates/core` (path and subdomain validation), with its full test pipeline,
 and the frontend workspace scaffold in `web/` (Svelte + Vite, TypeScript strict).

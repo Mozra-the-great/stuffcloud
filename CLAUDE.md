@@ -28,7 +28,8 @@ rust-toolchain.toml  pinned stable (same as rust-version in Cargo.toml)
 .github/        workflows (ci, deep-tests, claude review, workflow-lint, secret-scan), rulesets, templates
 scripts/ci/     label script (opt-in via LABELS_ENABLED), npm license gate (license_gate.py,
                 license-policy.toml), THIRD-PARTY.md generator (third_party.py), tests
-docs/           SPEC.md, THIRD-PARTY.md (generated), THIRD-PARTY-ASSETS.md, design/, TEMPLATE-SETUP.md
+docs/           SPEC.md, adr/ (architecture decision records), THIRD-PARTY.md (generated),
+                THIRD-PARTY-ASSETS.md, design/, TEMPLATE-SETUP.md
 ```
 
 ## Commands
@@ -86,6 +87,12 @@ Dev-tooling-only licenses go into `[dev_only]`, odd license fields into `[[excep
 each with a reason. After a lockfile change regenerate `docs/THIRD-PARTY.md` with
 `python scripts/ci/third_party.py --write` (CI fails on a stale file). WASM, models, fonts
 and data files go into `docs/THIRD-PARTY-ASSETS.md`. Details: CONTRIBUTING.md.
+
+## Architecture decisions
+Decisions that are expensive to reverse go into `docs/adr/` (index, status values, template
+and numbering rule in `docs/adr/README.md`). Do not change an accepted ADR's decision: write a
+new one that supersedes it; a gap-filling addendum (SQLite driver, A-01) is appended to the
+original. Update the index and `docs/SPEC.md` in the same PR.
 
 ## Changelog
 Every PR with a visible change (code, docs, design, CI) adds an entry under

@@ -105,6 +105,32 @@ export function parseMetrics(result: unknown): Metrics {
   return metrics;
 }
 
+/**
+ * The debugging port from the `DevToolsActivePort` file Chrome writes into its profile (port on
+ * the first line, browser path on the second); throws unless the first line is a whole number
+ * from 1 to 65535. Only the number is used, so the file content never reaches a request as text.
+ */
+export function parseDevToolsPort(content: string): number {
+  const first = content.split('\n')[0]?.trim() ?? '';
+  const port = /^\d{1,5}$/.test(first) ? Number(first) : 0;
+  if (port < 1 || port > 65535) {
+    throw new Error(`DevToolsActivePort does not start with a port number: "${first}"`);
+  }
+  return port;
+}
+
+/**
+ * The browser WebSocket address from the answer of `GET /json/version`; throws when it is not a
+ * `ws://127.0.0.1:<port>/devtools/browser/...` address of the expected port.
+ */
+export function browserSocketUrl(version: unknown, port: number): string {
+  const url = stringField(version, 'webSocketDebuggerUrl');
+  if (!url.startsWith(`ws://127.0.0.1:${String(port)}/devtools/browser/`)) {
+    throw new Error(`unexpected DevTools address "${url}"`);
+  }
+  return url;
+}
+
 /** The value of `result.<field>` when it is a string; throws otherwise. */
 export function stringField(result: unknown, field: string): string {
   const value = isRecord(result) ? result[field] : undefined;

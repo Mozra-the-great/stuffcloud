@@ -18,7 +18,15 @@ import { join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { gzipSync } from 'node:zlib';
 import { build, createServer, type ViteDevServer } from 'vite';
-import { CdpClient, evaluated, parseMetrics, stringField, type SocketLike } from './cdp.ts';
+import {
+  browserSocketUrl,
+  CdpClient,
+  evaluated,
+  parseDevToolsPort,
+  parseMetrics,
+  stringField,
+  type SocketLike,
+} from './cdp.ts';
 import {
   chromeCandidates,
   countersOf,
@@ -82,8 +90,12 @@ class Browser {
       child.kill();
       throw new Error('Chrome did not open a DevTools port');
     }
-    const [port, path] = readFileSync(portFile, 'utf8').trim().split('\n');
-    const socket = new WebSocket(`ws://127.0.0.1:${port ?? ''}${path ?? ''}`);
+    // Only the validated port number leaves the file; the socket address comes from the browser.
+    const port = parseDevToolsPort(readFileSync(portFile, 'utf8'));
+    const version: unknown = await (
+      await fetch(`http://127.0.0.1:${String(port)}/json/version`)
+    ).json();
+    const socket = new WebSocket(browserSocketUrl(version, port));
     await new Promise<void>((done, fail) => {
       socket.onopen = (): void => {
         done();

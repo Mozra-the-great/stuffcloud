@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { CdpClient, evaluated, parseMetrics, stringField, type SocketLike } from '../bench/cdp.ts';
+import {
+  browserSocketUrl,
+  CdpClient,
+  evaluated,
+  parseDevToolsPort,
+  parseMetrics,
+  stringField,
+  type SocketLike,
+} from '../bench/cdp.ts';
 
 class FakeSocket implements SocketLike {
   sent: string[] = [];
@@ -171,5 +179,56 @@ describe('evaluated', () => {
   it('throws when there is no result object', () => {
     expect(() => evaluated(undefined)).toThrow('Runtime.evaluate returned nothing');
     expect(() => evaluated('x')).toThrow('Runtime.evaluate returned nothing');
+  });
+});
+
+describe('parseDevToolsPort', () => {
+  it('reads the port from the first line, whatever follows', () => {
+    expect(parseDevToolsPort('9222\n/devtools/browser/abc')).toBe(9222);
+    expect(parseDevToolsPort('  41234  \r\n/x')).toBe(41234);
+    expect(parseDevToolsPort('1')).toBe(1);
+    expect(parseDevToolsPort('65535\n')).toBe(65535);
+  });
+
+  it('rejects anything that is not a port number, with the offending text in the message', () => {
+    for (const bad of [
+      '',
+      '0',
+      '65536',
+      '123456',
+      '-1',
+      '12a',
+      '1.5',
+      'localhost:9222',
+      '\n9222',
+    ]) {
+      expect(() => parseDevToolsPort(bad), JSON.stringify(bad)).toThrow(
+        'DevToolsActivePort does not start with a port number',
+      );
+    }
+    expect(() => parseDevToolsPort('abc\n9222')).toThrow('number: "abc"');
+  });
+});
+
+describe('browserSocketUrl', () => {
+  const url = 'ws://127.0.0.1:9222/devtools/browser/0a1b2c3d-0000-4000-8000-123456789abc';
+
+  it('returns the address of the expected port', () => {
+    expect(browserSocketUrl({ webSocketDebuggerUrl: url }, 9222)).toBe(url);
+  });
+
+  it('rejects another host, port, scheme or path, and a missing field', () => {
+    for (const bad of [
+      'ws://evil.example:9222/devtools/browser/x',
+      'ws://127.0.0.1:9223/devtools/browser/x',
+      'wss://127.0.0.1:9222/devtools/browser/x',
+      'ws://127.0.0.1:9222/devtools/page/x',
+      'ws://127.0.0.1:92222/devtools/browser/x',
+    ]) {
+      expect(() => browserSocketUrl({ webSocketDebuggerUrl: bad }, 9222), bad).toThrow(
+        `unexpected DevTools address "${bad}"`,
+      );
+    }
+    expect(() => browserSocketUrl({}, 9222)).toThrow('no string field "webSocketDebuggerUrl"');
   });
 });

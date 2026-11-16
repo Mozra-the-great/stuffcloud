@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>stuffcloud animation benchmark</title>
+    <style>
+      body {
+        margin: 0;
+        background: #101012;
+        color: #f4f4f0;
+        font: 12px monospace;
+      }
+
+      #stage {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 16px;
+      }
+
+      .bench-cell {
+        display: inline-block;
+        line-height: 0;
+        padding-top: 4px;
+      }
+
+      .bench-art,
+      .bench-sprite,
+      .bench-canvas {
+        display: block;
+        image-rendering: pixelated;
+      }
+
+      .bench-sprite {
+        background-repeat: no-repeat;
+      }
+
+      .bench-clip {
+        display: block;
+        overflow: hidden;
+      }
+
+      /* The same two poses and timing as src/ui/Mascot.svelte. */
+      .bench-bob {
+        animation: bench-bob 1.2s steps(1) infinite;
+      }
+
+      .bench-sprite {
+        animation: bench-sprite 1.2s steps(1) infinite;
+      }
+
+      .bench-strip {
+        animation: bench-strip 1.2s steps(1) infinite;
+      }
+
+      @keyframes bench-bob {
+        0%,
+        49% {
+          transform: translateY(0);
+        }
+
+        50%,
+        100% {
+          transform: translateY(-4px);
+        }
+      }
+
+      @keyframes bench-sprite {
+        0%,
+        49% {
+          background-position: 0 0;
+        }
+
+        50%,
+        100% {
+          background-position: 0 calc(var(--frame-h) * -1);
+        }
+      }
+
+      @keyframes bench-strip {
+        0%,
+        49% {
+          transform: translateY(0);
+        }
+
+        50%,
+        100% {
+          transform: translateY(calc(var(--frame-h) * -1));
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .bench-bob,
+        .bench-strip,
+        .bench-sprite {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <pre id="out"></pre>
+    <script type="module" src="./page.ts"></script>
+  </body>
+</html>

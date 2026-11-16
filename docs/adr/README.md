@@ -16,6 +16,7 @@ stuffcloud is, an ADR says *why* a core choice was made and what it costs.
 | [0005](0005-auth-model.md) | Auth model: local accounts, passkeys, TOTP and OIDC | Accepted | 2026-11-05 |
 | [0006](0006-edge-and-core.md) | Public surface: the minimal `edge` process and the shared `core` crate | Accepted | 2026-11-14 |
 | [0007](0007-test-strategy.md) | Test strategy: err on the side of too many tests | Accepted | 2026-11-14 |
+| [0008](0008-pixel-art-animation-runtime.md) | Pixel-art animation runtime: CSS transform keyframes with `steps()` | Accepted | 2026-11-16 |
 
 ADRs 0001 to 0007 were written together (2026-11-16, issue
 [#8](https://github.com/Mozra-the-great/stuffcloud/issues/8)) from decisions that had already
@@ -38,7 +39,8 @@ ADR 0001). They are listed under "Open points" with the issue that closes them.
 - Numbers are four digits, assigned in the order records are written. Never reuse or renumber
   one; links depend on it.
 - Spike and decision records of later issues continue from `0008`: the animation runtime
-  (T-02, [#10](https://github.com/Mozra-the-great/stuffcloud/issues/10)), the PDF compression
+  (T-02, [#10](https://github.com/Mozra-the-great/stuffcloud/issues/10), written as ADR 0008),
+  the PDF compression
   spike (T-13, [#18](https://github.com/Mozra-the-great/stuffcloud/issues/18)), background
   removal (T-16, [#21](https://github.com/Mozra-the-great/stuffcloud/issues/21)), the GrapesJS
   spike (B-01, [#63](https://github.com/Mozra-the-great/stuffcloud/issues/63)) and any other

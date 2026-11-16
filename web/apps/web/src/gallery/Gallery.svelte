@@ -8,6 +8,8 @@
   import FileDropzone from '../ui/FileDropzone.svelte';
   import Input from '../ui/Input.svelte';
   import LinkButton from '../ui/LinkButton.svelte';
+  import Mascot from '../ui/Mascot.svelte';
+  import { MASCOT_NAMES } from '../ui/mascots.ts';
   import Progress from '../ui/Progress.svelte';
   import Select from '../ui/Select.svelte';
   import TabLinks from '../ui/TabLinks.svelte';
@@ -61,6 +63,25 @@
       {#each GALLERY_FONTS as font (font.token)}
         <li style:font-family={`var(${font.token})`}>{font.sample}<code>{font.token}</code></li>
       {/each}
+    </ul>
+  </section>
+
+  <section aria-labelledby="g-mascot">
+    <h2 class="label" id="g-mascot">Mascot</h2>
+    <div class="stage">
+      <Mascot name="stuffy" scale={16} compactScale={9} />
+    </div>
+    <ul class="cast">
+      {#each MASCOT_NAMES as name (name)}
+        <li>
+          <Mascot {name} scale={6} />
+          <code>{name}</code>
+        </li>
+      {/each}
+      <li>
+        <Mascot name="stuffy" scale={6} animated={false} />
+        <code>still</code>
+      </li>
     </ul>
   </section>
 
@@ -299,6 +320,35 @@
     width: 96px;
     height: 48px;
     border: 1px solid var(--line2);
+  }
+
+  .stage {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    min-height: 220px;
+    padding-top: var(--space-16);
+    overflow: hidden;
+    background: var(--violet);
+  }
+
+  .cast {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-24);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .cast li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-8);
+    font: 12px var(--mono);
+    color: var(--mut);
   }
 
   .fonts {

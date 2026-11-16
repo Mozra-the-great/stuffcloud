@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `web/` frontend workspace (pnpm 12, Node 24): `apps/web` (Svelte 5 + Vite single-page
+  app), `packages/tools` (validated tool ids and manifest) and `packages/api-client`
+  (`openapi-fetch` wrapper and the schema generation script; the generated client
+  follows with `app`). TypeScript strict (`noUncheckedIndexedAccess`,
+  `exactOptionalPropertyTypes`), type-aware ESLint with `no-explicit-any` as an error
+  (proved by a test), Prettier, Vitest with a 95 % coverage floor in every package,
+  committed lockfile; all dependencies are GPL-3.0-compatible. (#106)
 - Rust workspace with `crates/core`: `SafeRelPath` (upload path hardening: NFC,
   no traversal, no hidden, control, invisible or Windows-reserved names, length
   and depth limits) and `Subdomain` (label rules, reserved names, no Punycode,

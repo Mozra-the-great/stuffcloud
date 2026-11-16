@@ -25,7 +25,7 @@ docs-only PRs too):
 
 | Check | What it does |
 |---|---|
-| `build` | Aggregate of every job in `.github/workflows/ci.yml`: rustfmt, clippy (warnings are errors), unit/property/regression/doc tests, rustdoc, coverage (95 % floor), mutation testing of the changed lines, 2-minute fuzz run per target, frontend (`web/`: lint, svelte-check/tsc, Vitest with 95 % coverage floor, production build, frozen lockfile), `cargo-deny`, CodeQL (`security-extended`, fails on any result), label-script tests, design PDF check |
+| `build` | Aggregate of every job in `.github/workflows/ci.yml`: rustfmt, clippy (warnings are errors), unit/property/regression/doc tests, rustdoc, coverage (95 % floor), mutation testing of the changed lines, 2-minute fuzz run per target, frontend (`web/`: lint, svelte-check/tsc, Vitest with 95 % coverage floor, production build, frozen lockfile), npm license gate and `THIRD-PARTY.md` freshness, `cargo-deny`, CodeQL (`security-extended`, fails on any result), label-script tests, design PDF check |
 | `workflow-lint` | actionlint + zizmor over the workflows and `dependabot.yml` |
 | `gitleaks` | Secret scan over the PR range, using `.gitleaks.toml` |
 | `claude-review` | Optional Claude Code review; needs the `CLAUDE_CODE_OAUTH_TOKEN` secret and is **skipped (green)** without it |
@@ -63,8 +63,36 @@ Layout: `apps/web` (Svelte + Vite single-page app), `packages/tools` (tool modul
 -- --input <openapi.json>` writes `src/generated/schema.d.ts` once `app` exports its
 OpenAPI document). All settings come from `tsconfig.base.json` (`strict`,
 `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) and `eslint.config.js`.
-New npm dependencies need a GPL-3.0-compatible license. The frontend jobs are not
-yet part of `build`; run the commands above before opening a PR.
+The frontend jobs are part of `build`; run the commands above before opening a PR.
+
+### Adding a dependency (license rules)
+
+Every dependency needs a GPL-3.0-compatible license (`docs/SPEC.md`, section 3); two
+CI gates enforce it and both run on every PR as part of `build`:
+
+- **Rust:** `cargo deny check` (job `supply-chain`, `deny.toml`). A license that is not
+  in `[licenses].allow` fails; exceptions are per crate, with a reason.
+- **npm (`web/`):** `python3 scripts/ci/license_gate.py` (job `licenses`). It checks
+  every package of the pnpm workspace, production and dev, including the native packages
+  of other platforms, against `scripts/ci/license-policy.toml`. An unknown, missing or
+  unlisted license fails.
+  - The allow list there is the same list as in `deny.toml`; a unit test fails when they
+    differ. Allowing a new license means: check that it is GPLv3-compatible, then add it
+    to **both** files in the PR and say why in the PR description.
+  - A license that is fine for tooling but not for shipped code (it is not in a
+    production dependency tree) goes into `[dev_only]` with a reason.
+  - A package with a missing or non-SPDX license field gets an `[[exception]]` (name and
+    exact license text, with a reason) after you read its license file. It stops matching
+    when the text changes.
+- **`docs/THIRD-PARTY.md`** lists every runtime dependency with version, license and
+  source. It is generated; after changing a lockfile run
+  `python3 scripts/ci/third_party.py --write` (needs `cargo` and `pnpm`) and commit the
+  result, or the `licenses` job fails with the diff.
+- WASM modules, ML models, fonts and data files are in neither tree: add a row to
+  `docs/THIRD-PARTY-ASSETS.md` in the same PR.
+
+Run the tooling tests with `python3 -m unittest discover -s scripts/ci -p "test_*.py"`
+(Python 3.11 or newer).
 
 Workflow rules: actions are pinned by full commit SHA with a `# vX.Y.Z` comment,
 event data (`github.event.*`, branch names, titles) goes through `env:` and

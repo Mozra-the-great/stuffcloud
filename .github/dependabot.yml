@@ -55,6 +55,13 @@ updates:
     groups:
       npm-minor-patch:
         update-types: ["minor", "patch"]
+    # @types/node describes the Node API of the runtime we pin (engines ">=24 <25" in
+    # web/package.json, .nvmrc). A new major describes an API this code never runs
+    # on, so keep it in line with the Node major in .nvmrc: bump it by hand together
+    # with the Node version. Minor and patch updates still arrive.
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   # ── Stack placeholders: uncomment what the repo actually uses ────────────────
 

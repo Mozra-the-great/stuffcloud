@@ -327,6 +327,50 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  # ── Licenses: npm gate and the THIRD-PARTY.md report ───────────────────────
+  # The npm counterpart of `supply-chain` (cargo-deny): every package of the web/
+  # workspace, production and dev, including the native packages of other
+  # platforms, must have a license from scripts/ci/license-policy.toml (the same
+  # list as deny.toml, docs/SPEC.md section 3). docs/THIRD-PARTY.md must match the
+  # lockfiles (regenerate with `python3 scripts/ci/third_party.py --write`). The
+  # inventory installs into a scratch directory with --ignore-scripts, so no
+  # dependency code runs here. The tool tests also run in `repo-checks`; they are
+  # repeated here because this job needs them to mean anything.
+  licenses:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: web/.nvmrc
+          package-manager-cache: false
+      - name: Enable pnpm (corepack, version from packageManager)
+        run: corepack enable
+      # cargo metadata (THIRD-PARTY.md, Rust part) needs the pinned toolchain.
+      - name: Install toolchain (rust-toolchain.toml)
+        run: rustup toolchain install && rustup show active-toolchain
+      - name: Locate the pnpm store
+        id: pnpm-store
+        working-directory: web
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-licenses-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-licenses-${{ runner.os }}-
+      - name: Tests of the license tooling
+        run: python3 -m unittest discover -s scripts/ci -p "test_*.py"
+      - name: npm license gate
+        run: python3 scripts/ci/license_gate.py
+      - name: THIRD-PARTY.md is current
+        run: python3 scripts/ci/third_party.py --check
+
   # ── Supply chain: advisories, licenses, sources, bans ──────────────────────
   supply-chain:
     runs-on: ubuntu-latest
@@ -361,7 +405,7 @@ jobs:
   # ── Required check: everything above passed ────────────────────────────────
   build:
     if: ${{ always() }}
-    needs: [repo-checks, fmt, clippy, test, docs, coverage, mutants, fuzz, web, supply-chain, codeql]
+    needs: [repo-checks, fmt, clippy, test, docs, coverage, mutants, fuzz, web, licenses, supply-chain, codeql]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

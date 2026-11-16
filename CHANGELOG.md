@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- CI: job `licenses` (part of the `build` gate) fails when any npm package of `web/`, production
+  or dev and including the native packages of other platforms, has a license outside
+  `scripts/ci/license-policy.toml` (same allow list as `deny.toml`, kept identical by a unit
+  test; unknown or missing licenses fail; dev/build-only licenses and odd license fields need a
+  documented entry). The inventory installs the locked packages with `--ignore-scripts` into a
+  scratch directory and fails if a locked package would go unchecked. (#109)
+- `docs/THIRD-PARTY.md`: generated list of every runtime dependency (Rust and npm) with version,
+  license and source, from `Cargo.lock` and `web/pnpm-lock.yaml`; the `licenses` job fails when it
+  is stale (`python3 scripts/ci/third_party.py --write`). `docs/THIRD-PARTY-ASSETS.md` records
+  WASM modules, model weights, fonts and data files that are in neither package tree. (#109)
+- Tests for the license tooling (SPDX parser, policy, inventory, report). (#109)
+- CONTRIBUTING.md and CLAUDE.md: how to add a dependency and which license rules apply. (#109)
 - CI: job `web` in `ci.yml` runs `pnpm lint`, `typecheck`, `test` (95 % coverage floor
   per package) and `build` for `web/` as four parallel checks (frozen lockfile, pnpm
   from corepack, cached pnpm store, Node from `.nvmrc`) and is part of the `build`
@@ -66,6 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `docs/TEMPLATE-SETUP.md`: secrets, runner choice, rulesets and costs of a new repo.
 
 ### Changed
+- Dependabot ignores semver-major `@types/node` updates in `/web`; the types follow the Node major
+  in `web/.nvmrc` and are bumped by hand with it. (#109)
 - `docs/SPEC.md` draft 0.3: backend in Rust (`axum`, SQLite) instead of
   Node.js/Fastify; new minimal `edge` process as the only stuffcloud code the
   internet reaches (site password, burn-after-reading, reports); shared `core`

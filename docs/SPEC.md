@@ -39,13 +39,19 @@ Non-goals (v1)
 - A dependency is allowed if its license is GPLv3-compatible (MIT, BSD, Apache-2.0,
   LGPL, MPL-2.0 for linked use, GPL-3.0, AGPL-3.0 with the caveats below).
 - Each new dependency gets its license checked at adoption time and is listed in
-  `docs/THIRD-PARTY.md` (generated in CI later). Candidates in section 7 are
+  `docs/THIRD-PARTY.md` (generated from the lockfiles; CI fails when it is stale).
+  Assets in neither package tree (WASM builds, model weights, fonts, data files) are
+  recorded by hand in `docs/THIRD-PARTY-ASSETS.md`. Candidates in section 7 are
   **not yet verified**; check the exact version before use. Watch for licenses
   that changed between major versions (e.g. `ua-parser-js` v2 is AGPL-3.0, v1 is
   MIT) and for copyleft WASM builds (e.g. Ghostscript is AGPL).
 - Rust dependencies are checked by `cargo-deny` on every PR (`deny.toml`): only
   the licenses on its allow list pass, so a new license is a deliberate edit of
-  that list. The frontend gets the same gate when it is scaffolded.
+  that list. The frontend has the same gate (`scripts/ci/license_gate.py`, job
+  `licenses`): all npm packages, production and dev, must match
+  `scripts/ci/license-policy.toml`, whose allow list equals `deny.toml`'s (a unit test
+  keeps them identical). Licenses that are acceptable only for dev/build tooling are
+  listed separately with a reason; an unknown or missing license fails.
 - Pixel-art mascots, stickers and easter eggs are original work and are licensed
   under **GPL-3.0-or-later** like the code; no third-party brand art (see section 12).
 

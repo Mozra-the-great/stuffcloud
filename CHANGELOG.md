@@ -114,7 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `docs/TEMPLATE-SETUP.md`: secrets, runner choice, rulesets and costs of a new repo.
 
 ### Changed
-- `CLAUDE.md`: new section "Instance-neutral (open source)": no operator-specific domains, hosts, IPs or addresses anywhere in the repo, examples only with RFC 2606/6761 names and documentation IP ranges; the Claude review flags violations. (#PR)
+- `CLAUDE.md`: new section "Instance-neutral (open source)": no operator-specific domains, hosts, IPs or addresses anywhere in the repo, examples only with RFC 2606/6761 names and documentation IP ranges; the Claude review flags violations. (#115)
 - Dependabot ignores semver-major `@types/node` updates in `/web`; the types follow the Node major
   in `web/.nvmrc` and are bumped by hand with it. (#109)
 - `docs/SPEC.md` draft 0.3: backend in Rust (`axum`, SQLite) instead of

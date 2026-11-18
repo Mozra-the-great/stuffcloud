@@ -141,6 +141,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   available; D6: workflows are copied per repo, no central reusable workflows).
 
 ### Fixed
+- `web/`: the indeterminate `Progress` bar animates `transform` only (stripes on a child one
+  stripe period wider than the bar, moved by `translateX` in four steps) instead of
+  `background-position`, so it no longer restyles and repaints at every display frame; style recalculations on
+  the gallery page drop from about 350 to 2 to 4 per 2 s. Reduced motion and forced colours are
+  unchanged; tests assert the transform-only keyframes. `bench/run.ts verify` now also reports style
+  recalculation time and main-thread task time. (#124)
 - Field borders (input, select, textarea, search and code cells) now reach 3:1 against the page
   background (WCAG 2.2 AA 1.4.11): new design token `--field-border` (`#6c6c76`, 3.7:1 on `--bg`,
   was `--line2` `#3a3a42` at 1.7:1) in `docs/design/prototypes/stuff.css`, the mockups, the token table

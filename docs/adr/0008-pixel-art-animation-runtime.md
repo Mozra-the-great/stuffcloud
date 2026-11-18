@@ -179,8 +179,10 @@ check on a real low-end device remains open (see below).
   and therefore repaints at every display frame (the same cause as `css-sprite` above; the
   verify run shows about 140 style recalculations per second on the gallery page because of
   it). It is not part of this decision; issue
-  [#114](https://github.com/Mozra-the-great/stuffcloud/issues/114) tracks switching it to a
-  `transform` animation.
+  [#114](https://github.com/Mozra-the-great/stuffcloud/issues/114) tracked switching it to a
+  `transform` animation, done in #124 (the stripes sit on a child one period wider than the bar
+  and `translateX` moves it by one period with `steps(4)`; `verify` then shows 2 to 4 style
+  recalculations per 2 s on the gallery page instead of about 350).
 
 ## Alternatives considered
 

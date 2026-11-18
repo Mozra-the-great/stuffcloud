@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import CodeBlock from '../src/ui/CodeBlock.svelte';
 import Progress from '../src/ui/Progress.svelte';
 import { normaliseMax, progressPercent } from '../src/ui/progress.ts';
+import { readAppFile } from './helpers.ts';
 
 describe('normaliseMax', () => {
   it('keeps a positive finite maximum', () => {
@@ -101,6 +102,54 @@ describe('Progress', () => {
     unmount();
     render(Progress, { label: 'Storage', value: 100 });
     expect(screen.getByRole('progressbar').classList.contains('warn')).toBe(false);
+  });
+});
+
+describe('Progress stylesheet (indeterminate bar, issue 114)', () => {
+  const source = readAppFile('src/ui/Progress.svelte');
+  const style = source.slice(source.indexOf('<style>'));
+  const keyframes = /@keyframes slide \{[\s\S]*?\n {2}\}/.exec(style)?.[0] ?? '';
+  const stripes = /\.indeterminate i \{[^}]*\}/.exec(style)?.[0] ?? '';
+
+  it('animates only transform, never a layout or paint property', () => {
+    expect(keyframes).not.toBe('');
+    const properties = [...keyframes.matchAll(/^\s+([a-z-]+):/gm)].map((match) => match[1]);
+    expect(new Set(properties)).toEqual(new Set(['transform']));
+    expect(style).not.toContain('background-position');
+  });
+
+  it('moves the stripes by exactly one 32px period in four steps, so the loop is seamless', () => {
+    expect(keyframes).toContain('transform: translateX(0);');
+    expect(keyframes).toContain('transform: translateX(32px);');
+    expect(stripes).toContain('animation: slide 0.8s steps(4) infinite;');
+    expect(stripes).toContain('left: -32px;');
+    expect(stripes).toContain('width: calc(100% + 32px);');
+    expect(stripes).toContain('0 16px, transparent 16px 32px');
+  });
+
+  it('keeps the amber stripes for the warning tone', () => {
+    expect(style).toMatch(
+      /\.indeterminate\.warn i \{\s*background-image: repeating-linear-gradient\(90deg, var\(--amber\)/,
+    );
+  });
+
+  it('is still under prefers-reduced-motion', () => {
+    expect(style).toMatch(
+      /@media \(prefers-reduced-motion: reduce\) \{\s*\.indeterminate i \{\s*animation: none;\s*\}\s*\}/,
+    );
+  });
+
+  it('draws the stripes in the system highlight colour under forced colours', () => {
+    const forced = style.slice(style.indexOf('@media (forced-colors: active)'));
+    expect(forced).toMatch(
+      /\.indeterminate i,\s*\.indeterminate\.warn i \{\s*background-image: repeating-linear-gradient\(90deg, Highlight 0 16px/,
+    );
+    expect(forced).toContain('border: 1px solid CanvasText;');
+  });
+
+  it('has no animation outside the indeterminate bar and its reduced-motion override', () => {
+    const rules = style.replace(/@keyframes[\s\S]*?\n {2}\}/, '');
+    expect([...rules.matchAll(/animation:/g)]).toHaveLength(2);
   });
 });
 

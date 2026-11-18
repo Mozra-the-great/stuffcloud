@@ -59,13 +59,21 @@ Non-goals (v1)
 ## 4. Architecture overview
 
 ```
- LAN client ──► app.<internal-domain>  ──► Caddy ──► app  (Rust/axum, SQLite; LAN only)
-                                                  └► static frontend (Svelte/Vite)
- LAN client ──► <random>.<internal-zone> ─────────► Caddy file_server (sites)
- Internet   ──► <random>.<public-zone> ── cloudflared ─► Caddy file_server (public sites only)
-                                                          │ forward_auth / few routes
-                                                          └► edge (Rust/axum, minimal)
+ LAN DNS:    app address and *.<site base>  ─► Caddy LAN listener
+ public DNS: *.<site base> (public zones)   ─► tunnel ─► Caddy tunnel listener (own port)
+
+ LAN client ──► <app address>      ──► LAN listener ──► app (Rust/axum, SQLite; LAN only)
+                                                     └► static frontend (Svelte/Vite)
+ LAN client ──► <name>.<site base> ──► LAN listener ──► file_server (internal + public sites)
+ Internet   ──► <name>.<site base> ── cloudflared ──► tunnel listener
+                                                     ├► file_server (public sites only)
+                                                     └► edge (Rust/axum, minimal;
+                                                          forward_auth / few routes)
 ```
+
+A *site base* is a zone or a zone's sub-level (section 5). The app address is not configured
+on the tunnel listener at all; `edge` serves its routes on both listeners for the sites each
+listener answers.
 
 Components
 - **Frontend**: Svelte + Vite single-page app, static build, tools lazy-loaded.
@@ -88,10 +96,12 @@ Components
   types that can only be built by their parser ("parse, don't validate"): code
   that holds a `SafeRelPath` or a `Subdomain` cannot have skipped the check.
 - **Reverse proxy**: Caddy serves the app and all hosted sites directly from disk,
-  routing by `Host` header. Wildcard certificates per zone via DNS-01. Caddy, not
-  stuffcloud, is the hot path for site traffic.
-- **cloudflared**: exposes **only** the public zone(s). The app zone is never
-  routed through the tunnel.
+  routing by `Host` header, on two listeners: the LAN listener (app address and every
+  site) and the tunnel listener (public sites and their `edge` routes only). Wildcard
+  certificates per site base via DNS-01. Caddy, not stuffcloud, is the hot path for
+  site traffic.
+- **cloudflared**: connects **only** to the tunnel listener, so only public sites are
+  reachable through it. The app address is never routed through the tunnel.
 - **Jobs**: in-process scheduler in `app` for expiry cleanup, reminders, reports.
 - **Deployment**: Docker Compose (app, edge, Caddy, cloudflared) in an LXC/VM on
   Proxmox; images published to GHCR; Ansible role in `homelab-infra` later.
@@ -115,39 +125,112 @@ handling, headers); those are what the test strategy in section 14 targets.
 
 ## 5. Network zones, domains and addressing
 
-- **App zone**: LAN only (for example `stuff.<internal-domain>`). Contains tools,
-  login, editor, admin. Not reachable from the internet.
-- **Site zones**: an admin-managed list of root domains. No domain is hard-coded:
-  every operator enters their own, any number of zones, each with its own visibility
-  and DNS provider settings, in the admin UI (**Admin > Zones**). Only the app zone's
-  address is deployment configuration (environment variable), because the proxy needs
-  it at boot. Each zone has a
-  *visibility*: `internal` or `public`. A hosted site chooses a zone, so
-  visibility follows the zone.
+Decided in [ADR 0009](adr/0009-zone-model-and-shared-domain-isolation.md) (owner answer to
+SF5, issue #117), which replaces the zone parts of ADR 0002. No domain, service name or
+address is hard-coded anywhere: zones are admin data, the app address is deployment
+configuration, and every example uses the RFC 2606 names (`example.com`, `example.org`,
+`example.net`).
+
+### 5.1 App address
+- The app (tools, login, editor, admin) has its own address, set in deployment
+  configuration (environment variable) because the proxy needs it at boot, for example
+  `example.org` or `stuff.example.org`.
+- It is served only on the LAN listener and never through the tunnel (section 5.4).
+- It may share a registrable domain with site zones and may even be the apex of a zone.
+  It can never be a site: if it lies inside a site base, its label is reserved in that
+  zone automatically (derived from the configuration at runtime).
+- Because sites can then be same-site with the app, the app is hardened instead of relying
+  on a domain boundary (section 5.5).
+
+### 5.2 Zones
+- **Site zones** are an admin-managed list (**Admin > Zones**), any number per instance. A
+  zone is a DNS zone the operator controls, for example `example.com`.
+- Optional **sub-level** per zone: one label (for example `web`), so sites are
+  `<name>.web.example.com` while the rest of the domain stays untouched. The *site base* is
+  `<zone>` or `<sub-level>.<zone>`; the site base itself is never a site.
+- Per-zone settings (each has a default; none is a special case in code):
+
+  | Setting | Default | Meaning |
+  |---|---|---|
+  | Enabled | on | a disabled zone serves nothing and accepts no new sites |
+  | Who may host | roles `user` and above | roles allowed to create sites; an optional allow-list of accounts replaces the role rule ("trusted accounts only") |
+  | Anonymous hosting | off | anonymous clients may create (internal) sites here |
+  | Public sites | off | sites in this zone may be `public`; needs public DNS and the tunnel |
+  | Reserved names | empty | extra names for this zone, on top of the built-in and instance-wide lists |
+  | Sub-level | none | see above |
+  | Interstitial | on | warning page before public sites of this zone (section 16.7) |
+  | DNS provider | none | reference to the DNS-01 credentials; the secret stays in deployment configuration |
+
+- Recommendation (documentation, not code): on a zone that already carries other services
+  with a login, allow only trusted accounts, no anonymous hosting, and reserve the names of
+  those services (cookies those services set for the whole domain reach every site there;
+  see section 8.5).
+- The first-run setup asks for the first zone.
+
+### 5.3 Sites, names and visibility
+- **Visibility is per site:** `internal` (served only to the LAN) or `public` (served to the
+  LAN and through the tunnel). The owner chooses it when creating the site and can change
+  it later, within the zone's settings. Public needs an account and a zone with public
+  sites enabled; **anonymous sites are always internal** (section 6; open owner question
+  SF10).
 - Subdomain: randomly generated (10 symbols from a 32-symbol lowercase alphabet
   without `l`, `o`, `0`, `1`: 50 bits of entropy, above the 40-bit minimum) or, for
-  accounts, a chosen name subject to a reserved-names list (`www`, `app`, `admin`,
-  `api`, `mail`, `wpad`, `autoconfig`, `mta-sts`, ...). Rules, implemented in
+  accounts, a chosen name subject to the reserved names. Rules, implemented in
   `crates/core/src/subdomain.rs`: 3 to 63 characters of `a-z`, `0-9`, `-`; no
   hyphen at either end; no `--` at positions 3 and 4, so no Punycode (`xn--`)
   labels and no homograph look-alikes; ASCII only. User input is trimmed and
-  lowercased before the check, nothing else is transliterated. Admins can extend
-  the reserved list in the settings.
-- Hosted sites live on **different registrable domains than the app** so that
-  cookies and same-origin access can never leak between them (like
-  `githubusercontent.com`). Each site is its own origin.
-- Wildcard certificates per zone via DNS-01; the DNS provider is a Caddy plugin,
+  lowercased before the check, nothing else is transliterated.
+- Reserved names, all applied together: the built-in list in `core` (`www`, `app`,
+  `admin`, `api`, `mail`, `wpad`, `autoconfig`, `mta-sts`, ...), the instance-wide list
+  (admin settings), the zone's own list, and the app address's label when the app lies
+  inside that site base.
+- A name is unique per site base. Each site is its own origin.
+
+### 5.4 Listeners, split-horizon DNS and the tunnel
+- Caddy has two listeners. The **LAN listener** answers the app address and every enabled
+  site. The **tunnel listener** is a separate port reachable only by the tunnel connector
+  (an internal network, not published on the host); it answers only `public` sites and
+  their `edge` routes.
+- Whether a request came from the internet is decided by the listener it arrived on,
+  **never by a header** (`Host`, `X-Forwarded-*`, `Forwarded`, tunnel headers). On the
+  tunnel listener an internal site, the app address and an unknown name get the same
+  response, so the tunnel reveals no internal names.
+- Deployment pattern (documented, configured outside stuffcloud): LAN DNS resolves the app
+  address and `*.<site base>` to the LAN listener; public DNS resolves `*.<site base>` to
+  the tunnel, only for zones with public sites. The app address has no public record that
+  points to the tunnel, and the tunnel ingress does not route it.
+- Certificates: a wildcard per site base via DNS-01 (a sub-level needs its own
+  `*.<sub-level>.<zone>`), plus one for the app address. The DNS provider is a Caddy plugin,
   configured per zone (Cloudflare first).
-- Public-zone requests arrive through cloudflared; internal zones resolve through
-  internal DNS (wildcard record).
+
+### 5.5 Isolation when the app shares a domain with sites
+- Every cookie stuffcloud sets uses the `__Host-` prefix (`Secure`, `Path=/`, host-only):
+  app sessions, CSRF, OIDC state and the `edge` site-password cookie. **No cookie carries a
+  `Domain=` attribute**; a CI check enforces it (section 14).
+- The app reads only its own `__Host-` cookie names and ignores all others, so cookies a
+  hosted site sets for the parent domain ("cookie tossing") have no effect.
+- Every state-changing request (methods other than `GET`, `HEAD`, `OPTIONS`) with cookie
+  authentication needs an `Origin` header equal to the app origin and a valid CSRF token; a
+  missing or foreign `Origin`, or a `Sec-Fetch-Site` other than `same-origin` when present,
+  is refused. `SameSite=Lax` stays but is not a defence against same-site hosted sites.
+- The app sends no CORS headers that allow a site origin.
+- A **Public Suffix List** entry for a zone is optional, the operator's choice, and nothing
+  depends on it; the project does not file one. The threat model (H-01) describes its
+  effect.
+- Accepted residual risk: a hosted site with scripts can fill a visitor's cookie jar for
+  the parent domain so that their requests to the app fail until the cookies are cleared
+  (denial of service, no data leak). Operators who host untrusted scripts on the app's
+  domain can restrict that zone to trusted accounts, use a sub-level or another zone, or
+  request a PSL entry.
 
 ## 6. Users, roles and authentication
 
 Roles
-- **Anonymous**: all tools; hosting to **internal zones only**; temporary only;
-  smallest quota; no JavaScript in hosted content.
-- **User**: everything anonymous can, plus public zones, permanent hosting,
-  JavaScript in sites, site management, builder projects, API tokens.
+- **Anonymous**: all tools; **internal sites only**, on zones that allow anonymous
+  hosting; temporary only; smallest quota; no JavaScript in hosted content.
+- **User**: everything anonymous can, plus public sites (where the zone allows them and
+  its "who may host" setting includes the account), permanent hosting, JavaScript in
+  sites, site management, builder projects, API tokens.
 - **Moderator**: handles abuse reports, takedowns, blocklist entries.
 - **Admin**: all of the above plus users, quotas, zones, tool toggles, settings.
 
@@ -159,8 +242,10 @@ Authentication
   (configurable mapping, e.g. `stuffcloud-admins` -> admin). Local accounts stay
   available; one local break-glass admin is required.
 - Sign-up mode (setting): `open`, `invite-only`, or `oidc-only`.
-- Sessions: HttpOnly, Secure, SameSite=Lax cookies scoped to the app zone only.
-  API tokens for the CLI (hashed at rest, scoped, revocable).
+- Sessions: `__Host-` prefixed, HttpOnly, Secure, SameSite=Lax cookies, host-only on the
+  app address (no `Domain=` attribute); `Origin` check and CSRF token on every
+  state-changing request (section 5.5). API tokens for the CLI (hashed at rest, scoped,
+  revocable).
 - E-mail is **optional** infrastructure (SMTP configurable). Without SMTP:
   no reminders, no self-service reset; an admin resets instead.
 
@@ -234,7 +319,9 @@ Rules
 - Expired sites are unpublished immediately and deleted after a short grace period.
 
 ### 8.3 Access options per site
-- Zone choice (internal vs public); public needs an account.
+- Zone choice (within the zone's "who may host" setting) and visibility per site
+  (`internal` or `public`); public needs an account and a zone with public sites enabled
+  (section 5.3).
 - Optional password (server-checked by `edge`, hashed; short-lived per-site
   cookie).
 - Unlisted by default: unguessable name, `X-Robots-Tag: noindex`.
@@ -253,7 +340,11 @@ Rate limits per IP (in memory, not persisted) and per account.
 
 ### 8.5 Sandbox and isolation (static-only)
 - No server-side execution of user content. Files are served as static by Caddy.
-- Each site has its own origin on a registrable domain separate from the app.
+- Each site has its own origin. Sites may share a registrable domain with the app and
+  with each other; the app is protected by the cookie, `Origin` and CSRF rules of
+  section 5.5, not by a domain boundary. Cookies that other services set for a whole
+  zone (`Domain=.<zone>`) reach every site on it, which is why zones with such services
+  should allow only trusted accounts (section 5.2).
 - Response headers on sites: strict `Content-Security-Policy` (anonymous: no
   scripts; accounts: scripts allowed, with `form-action` and `frame-ancestors`
   restricted by default), `X-Content-Type-Options: nosniff`, `Referrer-Policy`,
@@ -262,8 +353,8 @@ Rate limits per IP (in memory, not persisted) and per account.
 - User-provided HTML is never rendered inside the app origin; previews use a
   sandboxed iframe from the site origin.
 - Executables and dangerous types are refused or served as download only.
-- Phishing mitigation: optional interstitial on public zones, a report button on
-  every site, fast takedown.
+- Phishing mitigation: interstitial before public sites (per zone, on by default), a
+  report button on every site, fast takedown.
 
 ### 8.6 Abuse handling
 - Report button on every hosted site (rate-limited, no login needed); the report
@@ -278,7 +369,9 @@ Rate limits per IP (in memory, not persisted) and per account.
 `users`, `credentials` (password/passkey/TOTP), `oidc_identities`, `sessions`,
 `api_tokens`, `sites` (id, owner?, zone, name, kind, expires_at, visibility,
 password_hash?, burn_after_read, size_bytes, status), `site_files`, `pastes`
-(edit mode, token hash), `builder_projects`, `reports`, `blocklist`, `zones`,
+(edit mode, token hash), `builder_projects`, `reports`, `blocklist`, `zones` (domain,
+sub-level?, enabled, hosting roles, anonymous allowed, public allowed, interstitial,
+DNS provider reference), `zone_reserved_names`, `zone_hosters` (allow-list of accounts),
 `settings`, `audit_log`. Versioned migrations; SQLite WAL; a `StorageBackend`
 interface (`put/get/delete/list/usage`).
 
@@ -292,8 +385,9 @@ interface (`put/get/delete/list/usage`).
 - Token auth for the CLI: `stuffcloud deploy`, `list`, `rm`, `extend`. The CLI is
   the `cli` crate: one static binary per platform, using the same `core` types
   (and the same path checks) as the server.
-- From the internet only site delivery (Caddy) and the `edge` routes (section 4)
-  are reachable; everything else is on the app zone (LAN).
+- From the internet only the tunnel listener is reachable: delivery of public sites
+  (Caddy) and their `edge` routes (section 4). The API lives on the app address (LAN
+  listener only).
 
 ## 11. Operations
 
@@ -406,9 +500,17 @@ Test layers and what each must cover:
   execute lines.
 - **API integration tests** (from phase 2): every route against every role,
   including the negative cases (a user may not touch another user's site, an
-  anonymous upload may not reach a public zone, a moderator may not change
-  settings); authentication flows (password, passkey, TOTP, OIDC, recovery);
-  rate limits; session and CSRF rules.
+  anonymous upload may not create a public site, an account outside a zone's
+  "who may host" setting may not host there, a moderator may not change settings);
+  authentication flows (password, passkey, TOTP, OIDC, recovery); rate limits; session
+  and CSRF rules: every `Set-Cookie` of every route has the `__Host-` prefix and no
+  `Domain=` attribute, every state-changing route refuses a missing or foreign `Origin`
+  and a missing CSRF token, and cookies tossed for the parent domain are ignored.
+- **Cookie check** (with the first cookie code, A-02): a CI check fails on any cookie
+  with a `Domain=` attribute in `app` and `edge`, in addition to the per-route tests.
+- **Listener tests** (hosting): on the tunnel listener the app address, internal sites
+  and unknown names give the same response; forged `Host`, `X-Forwarded-*` and tunnel
+  headers on the LAN listener never make a request count as coming from the internet.
 - **Edge tests**: the public routes in isolation, with hostile `Host`, cookie and
   header combinations; the response headers (CSP, `nosniff`, COOP, `noindex`)
   asserted for every kind of hosted content.
@@ -451,6 +553,8 @@ Hosting ships after auth and quotas on purpose: it is the security-critical part
 2. **Root domains per zone:** entered by the operator in the admin settings (Admin >
    Zones, issue H-02), any number of zones per instance, nothing hard-coded; the DNS
    provider is Cloudflare first. The first-run setup asks for the first zone.
+   Changed 2026-11-16 (SF5, ADR 0009): visibility is per site, zones carry their own
+   hosting policy, and the app may share a domain with zones (section 5).
 3. **PDF compression:** light method first, Ghostscript only as optional extra
    (section 7).
 4. **Background removal:** U²-Netp by default, BiRefNet-lite opt-in (section 7).
@@ -458,7 +562,8 @@ Hosting ships after auth and quotas on purpose: it is the security-critical part
    releases; no npm package (changed in draft 0.3, the CLI is Rust now).
 6. **Retention:** audit log 12 months; handled reports 6 months after handling;
    unhandled reports until handled; no IP addresses in either.
-7. **Public-zone interstitial warning:** on by default, admin can switch it off.
+7. **Public-site interstitial warning:** on by default, the admin can switch it off per
+   zone (ADR 0009).
 8. **Reference screenshots:** stay local and git-ignored (third-party material).
 9. **Backend language (draft 0.3, 2026-11-14):** Rust (`axum`, `tokio`, SQLite)
    instead of Node.js/Fastify, because the instance is exposed and security and
@@ -475,6 +580,13 @@ Hosting ships after auth and quotas on purpose: it is the security-critical part
     the SVG art, paused off-screen and in hidden tabs, still pose under
     `prefers-reduced-motion`; canvas and background-position sprite sheets were measured
     and rejected ([ADR 0008](adr/0008-pixel-art-animation-runtime.md)).
+12. **Zone model (2026-11-16, SF5):** any number of zones, each usable on the LAN and from
+    the internet; visibility per site; per-zone hosting policy (who may host, anonymous,
+    public sites, reserved names, sub-level, interstitial); the app on its own address,
+    possibly on a domain shared with sites, protected by `__Host-` cookies without
+    `Domain=`, an `Origin` check and CSRF tokens; internet origin decided by a separate
+    tunnel listener, never by a header; a PSL entry optional
+    ([ADR 0009](adr/0009-zone-model-and-shared-domain-isolation.md)).
 
-Architecture decision records for decisions 9, 10 and 11 and for the choices in sections 4 to 8
+Architecture decision records for decisions 9, 10, 11 and 12 and for the choices in sections 4 to 8
 and 14 are in [`docs/adr/`](adr/README.md).

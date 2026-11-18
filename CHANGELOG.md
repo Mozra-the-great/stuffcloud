@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `docs/adr/0009-zone-model-and-shared-domain-isolation.md`: the zone model of SF5. Any number of
+  admin-managed zones, each usable on the LAN and from the internet; visibility per site
+  (`internal`/`public`); per-zone policy (who may host, trusted-accounts allow-list, anonymous
+  hosting, public sites, extra reserved names, optional sub-level, interstitial); the app on its
+  own address that may share a registrable domain with sites, isolated by `__Host-` cookies
+  without `Domain=`, an `Origin` check and CSRF tokens; the internet origin decided by a separate
+  tunnel listener, never by a header; a PSL entry optional. (#125)
 - `web/`: `Mascot` component and mascot catalogue for the nine animals of `docs/design` (SVG used
   from the design folder, one copy): integer scales only with `image-rendering: pixelated`, a
   reserved box (no layout shift), the design's two-pose bob as a `transform` keyframe animation
@@ -114,6 +121,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `docs/TEMPLATE-SETUP.md`: secrets, runner choice, rulesets and costs of a new repo.
 
 ### Changed
+- `docs/SPEC.md`: section 5 rewritten for the zone model of ADR 0009 (app address, zones with
+  per-zone settings, per-site visibility, listeners and split-horizon DNS, shared-domain
+  isolation); sections 4, 6, 8.3, 8.5, 9, 10, 14 and 16 follow it. ADR 0002 and ADR 0005 are
+  partly superseded by ADR 0009; the ADR index gains the status `Partly superseded`. (#125)
 - `CLAUDE.md`: new section "Instance-neutral (open source)": no operator-specific domains, hosts, IPs or addresses anywhere in the repo, examples only with RFC 2606/6761 names and documentation IP ranges; the Claude review flags violations. (#115)
 - Dependabot ignores semver-major `@types/node` updates in `/web`; the types follow the Node major
   in `web/.nvmrc` and are bumped by hand with it. (#109)

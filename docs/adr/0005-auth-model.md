@@ -1,6 +1,9 @@
 # ADR 0005: Auth model: local accounts, passkeys, TOTP and OIDC
 
-- Status: Accepted
+- Status: Partly superseded by [ADR 0009](0009-zone-model-and-shared-domain-isolation.md)
+  (the zone wording of decisions 1 and 6 and the second consequence: anonymous hosting is
+  per site and per zone, session cookies are `__Host-` cookies with `Origin` and CSRF checks
+  because sites may share the app's registrable domain; the other decisions stay accepted)
 - Date: 2026-11-05 (SPEC draft 0.2; carried into draft 0.3 on 2026-11-14)
 - Decided in: [SPEC 6](../SPEC.md#6-users-roles-and-authentication)
 

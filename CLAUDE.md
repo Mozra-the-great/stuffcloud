@@ -98,6 +98,23 @@ and numbering rule in `docs/adr/README.md`). Do not change an accepted ADR's dec
 new one that supersedes it; a gap-filling addendum (SQLite driver, A-01) is appended to the
 original. Update the index and `docs/SPEC.md` in the same PR.
 
+## API-first (no UI-only features)
+stuffcloud must be fully operable without the web UI (SPEC §10, ADR 0010). Flag every
+violation in review.
+- The web UI talks to the server only through the generated API client; no hand-built API
+  calls, no server logic reachable only from the UI.
+- A PR that adds or changes a UI action on the instance (user or admin) adds or changes, in
+  the same PR, the API endpoint, the CLI command and their tests (API integration test, CLI
+  test, UI test). The CLI/OpenAPI parity test must stay green; an exception (only steps that
+  need a browser by nature, such as the WebAuthn ceremony or the OIDC redirect) is listed
+  in that test with a reason.
+- Configurable objects are resources with a natural key: idempotent `PUT` with the full
+  writable shape, `GET` returning that shape plus `meta`, `ETag`/`If-Match`, `?dry_run=true`,
+  RFC 9457 errors. They also appear in the declarative config (`stuffcloud plan/apply -f`)
+  and its JSON Schema.
+- Secrets are references to deployment configuration, never values in the API or the
+  declarative file.
+
 ## Changelog
 Every PR with a visible change (code, docs, design, CI) adds an entry under
 `[Unreleased]` in `CHANGELOG.md` (Keep a Changelog: Added / Changed / Fixed /

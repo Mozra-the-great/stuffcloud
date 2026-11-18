@@ -5,6 +5,7 @@ export const GALLERY_COLOURS: readonly string[] = [
   '--mut',
   '--line',
   '--line2',
+  '--field-border',
   '--pink',
   '--pink2',
   '--lilac',

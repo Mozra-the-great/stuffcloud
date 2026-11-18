@@ -32,7 +32,8 @@ variants) are intentionally not part of this folder.
 | Background | `#101012` |
 | Text | `#f4f4f0` |
 | Muted text | `#a2a2ab` |
-| Lines | `#26262b`, `#3a3a42` |
+| Lines | `#26262b` (dividers), `#3a3a42` (card, panel and ghost-button borders) |
+| Field border | `#6c6c76` (`--field-border`: input, select, textarea and code-cell borders, at least 3:1 on every surface they sit on, WCAG 1.4.11) |
 | Pink accent | `#ff79b0` (hover, active), `#ff4f8b` (danger) |
 | Lilac | `#c78bff` (links, addresses) |
 | Violet panel | `#8b5cf6` |

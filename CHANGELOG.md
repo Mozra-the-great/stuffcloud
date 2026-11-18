@@ -141,6 +141,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   available; D6: workflows are copied per repo, no central reusable workflows).
 
 ### Fixed
+- Field borders (input, select, textarea, search and code cells) now reach 3:1 against the page
+  background (WCAG 2.2 AA 1.4.11): new design token `--field-border` (`#6c6c76`, 3.7:1 on `--bg`,
+  was `--line2` `#3a3a42` at 1.7:1) in `docs/design/prototypes/stuff.css`, the mockups, the token table
+  and the design PDF; `web/` takes it through the generated `tokens.css`. The contrast test now
+  covers field borders and fails when a field or a mockup control falls back to the hairline. 
+  (#118, SF8)
 - `SECURITY.md`: personal e-mail address removed. (#74)
 - Mockups: Mochi redrawn as a cream cat, Ember's ears made symmetric, Waddle
   redrawn with friendlier eyes. (#77, #79)

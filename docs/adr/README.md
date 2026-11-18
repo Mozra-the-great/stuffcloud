@@ -10,13 +10,14 @@ stuffcloud is, an ADR says *why* a core choice was made and what it costs.
 | ADR | Title | Status | Date |
 |---|---|---|---|
 | [0001](0001-stack.md) | Stack: Rust backend, Svelte/Vite SPA frontend | Accepted (SQLite driver open) | 2026-11-14 |
-| [0002](0002-static-hosting-and-origin-isolation.md) | Static-only hosting and origin isolation | Accepted | 2026-11-05 |
+| [0002](0002-static-hosting-and-origin-isolation.md) | Static-only hosting and origin isolation | Partly superseded by ADR 0009 | 2026-11-05 |
 | [0003](0003-storage-abstraction.md) | Storage abstraction with a filesystem default | Accepted | 2026-11-05 |
 | [0004](0004-client-side-tools.md) | Client-side-first tool execution and asset loading | Accepted | 2026-11-05 |
-| [0005](0005-auth-model.md) | Auth model: local accounts, passkeys, TOTP and OIDC | Accepted | 2026-11-05 |
+| [0005](0005-auth-model.md) | Auth model: local accounts, passkeys, TOTP and OIDC | Partly superseded by ADR 0009 | 2026-11-05 |
 | [0006](0006-edge-and-core.md) | Public surface: the minimal `edge` process and the shared `core` crate | Accepted | 2026-11-14 |
 | [0007](0007-test-strategy.md) | Test strategy: err on the side of too many tests | Accepted | 2026-11-14 |
 | [0008](0008-pixel-art-animation-runtime.md) | Pixel-art animation runtime: CSS transform keyframes with `steps()` | Accepted | 2026-11-16 |
+| [0009](0009-zone-model-and-shared-domain-isolation.md) | Zone model: per-site visibility, per-zone policy, app on a shared domain | Accepted | 2026-11-16 |
 
 ADRs 0001 to 0007 were written together (2026-11-16, issue
 [#8](https://github.com/Mozra-the-great/stuffcloud/issues/8)) from decisions that had already
@@ -29,6 +30,8 @@ alternative that the SPEC does not name, the record says so.
 - **Proposed**: written down, not decided yet. The record names who decides and where.
 - **Accepted**: decided; the code and the SPEC follow it.
 - **Superseded by ADR NNNN**: replaced by a later record. The old record stays, with a link.
+- **Partly superseded by ADR NNNN**: a later record replaces some of the decisions, named in
+  the status line; the others stay accepted. The old record's text stays as it was.
 - **Deprecated**: no longer applies and has no replacement.
 
 A record can carry open points inside an accepted decision (for example the SQLite driver in
@@ -49,8 +52,10 @@ ADR 0001). They are listed under "Open points" with the issue that closes them.
   driver, A-01 [#31](https://github.com/Mozra-the-great/stuffcloud/issues/31)) is an
   **Addendum** section at the end of that record, with its own date and PR, instead of a new
   record. The original text stays as it was.
-- To change a decision, write a new record, set the old one to `Superseded by ADR NNNN` and
-  add the same note to the index.
+- To change a decision, write a new record, set the old one to `Superseded by ADR NNNN` (or
+  `Partly superseded by ADR NNNN`, naming the replaced decisions, when the rest still holds)
+  and add the same note to the index. The new record lists what it supersedes under the
+  status line.
 
 How to add one:
 

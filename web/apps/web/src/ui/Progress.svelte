@@ -53,12 +53,18 @@
     background: var(--amber);
   }
 
-  /* Unknown length: pixel stripes that step along (static under reduced motion). */
+  /*
+   * Unknown length: pixel stripes that step along (static under reduced motion). The stripes
+   * are painted once on a child that is one stripe period (32px) wider than the bar and
+   * starts one period to the left; the keyframes move that child by exactly one period with
+   * `transform`, so the loop is seamless and the browser animates a cached layer on the
+   * compositor instead of restyling and repainting at every frame (issue 114, ADR 0008).
+   */
   .indeterminate i {
-    width: 100%;
+    left: -32px;
+    width: calc(100% + 32px);
     background-color: transparent;
     background-image: repeating-linear-gradient(90deg, var(--pink) 0 16px, transparent 16px 32px);
-    background-size: 32px 100%;
     animation: slide 0.8s steps(4) infinite;
   }
 
@@ -67,8 +73,12 @@
   }
 
   @keyframes slide {
+    from {
+      transform: translateX(0);
+    }
+
     to {
-      background-position: 32px 0;
+      transform: translateX(32px);
     }
   }
 

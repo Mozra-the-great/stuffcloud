@@ -43,6 +43,11 @@ import { metricsDelta } from './stats.ts';
 
 const appRoot = resolve(import.meta.dirname, '..');
 
+/** A DevTools duration counter (seconds) as milliseconds with one decimal. */
+function seconds(value: number | undefined): string {
+  return value === undefined ? 'n/a' : (value * 1000).toFixed(1);
+}
+
 function write(text: string): void {
   process.stdout.write(`${text}\n`);
 }
@@ -268,6 +273,9 @@ async function runVerify(browser: Browser, base: string): Promise<void> {
   const delta = metricsDelta(layoutBefore, layoutAfter);
   write(
     `| 2 s of idle animation: layouts / style recalcs / scripts (s) | ${String(delta['LayoutCount'])} / ${String(delta['RecalcStyleCount'])} / ${String(delta['ScriptDuration'])} |`,
+  );
+  write(
+    `| 2 s of idle animation: style recalc time / main-thread task time (ms) | ${seconds(delta['RecalcStyleDuration'])} / ${seconds(delta['TaskDuration'])} |`,
   );
 
   await browser.evaluate('window.scrollTo(0, document.body.scrollHeight)');

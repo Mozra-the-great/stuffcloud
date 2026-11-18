@@ -146,7 +146,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   was `--line2` `#3a3a42` at 1.7:1) in `docs/design/prototypes/stuff.css`, the mockups, the token table
   and the design PDF; `web/` takes it through the generated `tokens.css`. The contrast test now
   covers field borders and fails when a field or a mockup control falls back to the hairline. 
-  (#118, SF8)
+  (#123, SF8)
 - `SECURITY.md`: personal e-mail address removed. (#74)
 - Mockups: Mochi redrawn as a cream cat, Ember's ears made symmetric, Waddle
   redrawn with friendlier eyes. (#77, #79)

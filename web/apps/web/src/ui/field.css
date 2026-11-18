@@ -16,7 +16,7 @@
   width: 100%;
   min-height: var(--control-h);
   background: transparent;
-  border: 1px solid var(--line2);
+  border: 1px solid var(--field-border);
   border-radius: var(--radius);
   color: var(--fg);
   padding: 0 var(--space-14);

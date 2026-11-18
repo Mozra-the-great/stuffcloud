@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `docs/adr/0010-api-first-and-configuration-as-code.md`: API-first and configuration as code
+  (#116, SF9). No UI-only features; resources with natural keys, idempotent `PUT`,
+  `ETag`/`If-Match`, dry-run and RFC 9457 errors; secrets only as references to deployment
+  configuration; scoped tokens with admin scopes and service accounts; full CLI parity with
+  `validate`/`plan`/`apply -f`; bootstrap from environment and files; the zones and settings of
+  ADR 0009 as declarative resources; own Ansible collection and OpenTofu provider later, their
+  repository location decided when each is built. (#PR)
+- `CLAUDE.md`: rule "API-first (no UI-only features)": a PR that adds a UI action adds the API
+  endpoint, the CLI command and their tests. (#PR)
 - `docs/adr/0009-zone-model-and-shared-domain-isolation.md`: the zone model of SF5. Any number of
   admin-managed zones, each usable on the LAN and from the internet; visibility per site
   (`internal`/`public`); per-zone policy (who may host, trusted-accounts allow-list, anonymous
@@ -121,6 +130,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `docs/TEMPLATE-SETUP.md`: secrets, runner choice, rulesets and costs of a new repo.
 
 ### Changed
+- `docs/SPEC.md`: section 10 rewritten for ADR 0010 (API-first, resources and write
+  semantics, zones and settings as resources, tokens and service accounts, CLI parity and exit
+  codes, declarative configuration, bootstrap, Ansible and OpenTofu); sections 5.2, 6, 9, 11
+  and 16 follow it. (#PR)
 - `docs/SPEC.md`: section 5 rewritten for the zone model of ADR 0009 (app address, zones with
   per-zone settings, per-site visibility, listeners and split-horizon DNS, shared-domain
   isolation); sections 4, 6, 8.3, 8.5, 9, 10, 14 and 16 follow it. ADR 0002 and ADR 0005 are

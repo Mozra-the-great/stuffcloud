@@ -165,7 +165,8 @@ configuration, and every example uses the RFC 2606 names (`example.com`, `exampl
   with a login, allow only trusted accounts, no anonymous hosting, and reserve the names of
   those services (cookies those services set for the whole domain reach every site there;
   see section 8.5).
-- The first-run setup asks for the first zone.
+- The first-run setup asks for the first zone, unless the bootstrap configuration
+  (section 10.7) already defines one.
 
 ### 5.3 Sites, names and visibility
 - **Visibility is per site:** `internal` (served only to the LAN) or `public` (served to the
@@ -244,8 +245,9 @@ Authentication
 - Sign-up mode (setting): `open`, `invite-only`, or `oidc-only`.
 - Sessions: `__Host-` prefixed, HttpOnly, Secure, SameSite=Lax cookies, host-only on the
   app address (no `Domain=` attribute); `Origin` check and CSRF token on every
-  state-changing request (section 5.5). API tokens for the CLI (hashed at rest, scoped,
-  revocable).
+  state-changing request (section 5.5). API tokens for the CLI and automation (hashed at
+  rest, scoped incl. admin scopes, revocable) and service accounts without interactive login
+  (section 10.4).
 - E-mail is **optional** infrastructure (SMTP configurable). Without SMTP:
   no reminders, no self-service reset; an admin resets instead.
 
@@ -366,33 +368,149 @@ Rate limits per IP (in memory, not persisted) and per account.
 
 ## 9. Data model (sketch)
 
-`users`, `credentials` (password/passkey/TOTP), `oidc_identities`, `sessions`,
-`api_tokens`, `sites` (id, owner?, zone, name, kind, expires_at, visibility,
+`users` (login name, kind `person`/`service`), `credentials` (password/passkey/TOTP), `oidc_identities`, `sessions`,
+`api_tokens` (owner, name, scopes, expiry), `sites` (id, owner?, zone, name, kind, expires_at, visibility,
 password_hash?, burn_after_read, size_bytes, status), `site_files`, `pastes`
 (edit mode, token hash), `builder_projects`, `reports`, `blocklist`, `zones` (domain,
 sub-level?, enabled, hosting roles, anonymous allowed, public allowed, interstitial,
 DNS provider reference), `zone_reserved_names`, `zone_hosters` (allow-list of accounts),
-`settings`, `audit_log`. Versioned migrations; SQLite WAL; a `StorageBackend`
+`settings`, `audit_log`. Every configurable row has a natural key and an ETag (section
+10.2). Versioned migrations; SQLite WAL; a `StorageBackend`
 interface (`put/get/delete/list/usage`).
 
 ## 10. API and CLI
 
-- REST + JSON. The OpenAPI document is generated from the Rust handlers
+Decided in [ADR 0010](adr/0010-api-first-and-configuration-as-code.md) (issue #116, owner
+answer to SF9): stuffcloud is fully operable without the web UI, and the whole instance
+configuration can be managed as code.
+
+### 10.1 API-first
+- REST + JSON under `/api/v1`. The OpenAPI document is generated from the Rust handlers
   (`utoipa`); the frontend's typed client is generated from it
   (`openapi-typescript` + `openapi-fetch`), and CI regenerates both and fails on a
   diff. Request bodies are deserialised into strict types
   (`deny_unknown_fields`) and then parsed into `core` types at the boundary.
-- Token auth for the CLI: `stuffcloud deploy`, `list`, `rm`, `extend`. The CLI is
-  the `cli` crate: one static binary per platform, using the same `core` types
-  (and the same path checks) as the server.
+- **No UI-only features.** The web UI uses only the generated client. Every action the UI
+  offers on the instance has an API endpoint and a CLI command, added in the same pull
+  request with tests (CLAUDE.md, "API-first"). Exceptions are only steps that need a browser
+  by nature (WebAuthn ceremony, OIDC redirect); the CLI covers the actions around them.
+  Client-side tools are not instance operations; their admin toggles are settings.
+- `/api/v1` changes only additively; a breaking change needs `/api/v2`. Once a release
+  contains the API, CI fails on a breaking change against the last release's OpenAPI
+  document.
 - From the internet only the tunnel listener is reachable: delivery of public sites
   (Caddy) and their `edge` routes (section 4). The API lives on the app address (LAN
-  listener only).
+  listener only), so automation runs from the LAN.
+
+### 10.2 Resources and write semantics
+- Every configurable object is a resource with a stable natural key: zone by domain, site by
+  zone and name, user by login name, role by name (the four roles are read-only), OIDC group
+  mapping by group, token by owner and name, blocklist entry by hash or pattern, settings
+  groups by name (`signup`, `oidc`, `smtp`, `quotas`, `tools`, `reserved-names`, `legal`).
+  Keys are immutable (a rename is an explicit action); internal IDs are returned but never
+  needed.
+- `PUT /api/v1/<collection>/<key>` creates or replaces with the full writable shape and is
+  idempotent; the response says `created`, `updated` or `unchanged`, and an unchanged write
+  changes nothing, not even a timestamp.
+- `GET` returns exactly the writable shape plus a read-only `meta` object (ID, ETag,
+  timestamps, derived values); `PUT` ignores `meta` and refuses any other unknown field.
+- Actions that are not state (invite, reset, extend, rotate, take down, handle a report) are
+  `POST` actions on the resource. `DELETE` of a missing resource is `404`.
+- Every resource has a strong `ETag`; `PUT` and `DELETE` accept `If-Match` (`412` on a
+  mismatch) and `If-None-Match: *` (create only). The web UI always sends `If-Match`.
+- Every write accepts `?dry_run=true`: authentication, authorisation and validation run, the
+  response carries a field-level diff, nothing changes.
+- Errors are RFC 9457 problem details with a stable `type` and every invalid field at once
+  (JSON Pointer per field).
+- Secrets are never values in the API: settings that need one (OIDC client secret, SMTP
+  password, DNS-01 credentials) hold a reference to deployment configuration (an environment
+  variable or secret file name). Token secrets are the only secrets the API returns, once.
+  Whether write-only secret values are added later is owner question SF12.
+
+### 10.3 Zones and settings as resources
+- A zone resource carries the policy of section 5.2: `domain` (key), `sub_level`, `enabled`,
+  `hosting_roles`, `hosting_accounts`, `anonymous_hosting`, `public_sites`, `reserved_names`,
+  `interstitial`, `dns_provider` (a reference). The app address's label inside a site base is
+  derived and shown in `meta`.
+- A write that would strand sites is refused with a problem detail listing them, so a plan
+  shows it first: changing `sub_level` of a zone with sites, switching `public_sites` off
+  while public sites exist, reserving a name in use. Disabling a zone is allowed.
+- A site's visibility is a field of the site resource and passes the same `core` policy as
+  in the UI; anonymous sites stay internal (section 5.3).
+- Instance-wide settings (sign-up mode, OIDC, SMTP, quota defaults, tool toggles, reserved
+  names, legal and abuse contact) are the settings groups of section 10.2.
+
+### 10.4 Tokens and service accounts
+- Token scopes are `<area>:<read|write>`: `sites`, `account`, `tokens`, and the admin areas
+  `admin:zones`, `admin:users`, `admin:settings`, `admin:blocklist`, `admin:tokens`,
+  `moderation`.
+- What a token may do is the intersection of its scopes and its owner's role; it never
+  exceeds the owner, and admin scopes stop working when the owner loses the admin role. A
+  token can create tokens only with a subset of its own scopes. Admin-scoped tokens have an
+  expiry (maximum set by the admin).
+- **Service accounts** (user kind `service`) have no password, passkey or interactive login,
+  only tokens; automation uses them. No automation path needs a browser login.
+
+### 10.5 CLI
+- The `cli` crate: one static binary per platform, using the same `core` types (and the same
+  path checks) as the server. It covers every API operation: `deploy`, `site
+  list|get|put|rm|extend`, `token`, `account`, and `admin
+  zone|user|role|token|settings|blocklist ...`. A test fails for an OpenAPI operation without
+  a CLI command (listed exceptions with a reason).
+- `--output json|yaml|table`, `--dry-run` for writes; reads `STUFFCLOUD_URL`,
+  `STUFFCLOUD_TOKEN` or `STUFFCLOUD_TOKEN_FILE`, and an optional CA file.
+- Exit codes: `0` success, `1` error, `2` changes present (with `--detailed-exitcode`), `3`
+  precondition failed (changed since read), `4` usage error.
+
+### 10.6 Declarative configuration
+- A configuration file (`stuffcloud.yaml`, YAML or JSON, with a `version` field) lists the
+  desired resources in the API's writable shape; its JSON Schema is generated from the same
+  types and published with each release. It never contains secrets or passwords.
+- `stuffcloud validate -f` checks it offline; `stuffcloud plan -f` prints the diff from
+  server-side dry runs and changes nothing; `stuffcloud apply -f` writes in dependency order,
+  each `PUT` with the `If-Match` of its own read (a concurrent change stops the run with exit
+  code `3`). A second `apply` reports nothing changed. A failed run stops at the first error
+  and is safe to re-run. Resources not in the file are left alone unless `--prune` is given;
+  the plan shows every deletion.
+
+```yaml
+version: 1
+settings:
+  signup: { mode: invite-only }
+zones:
+  - domain: example.com
+    sub_level: web
+    hosting_roles: [user, moderator, admin]
+    anonymous_hosting: false
+    public_sites: true
+    reserved_names: [auth, vault]
+    dns_provider: example-dns
+```
+
+### 10.7 Bootstrap
+- The app address and all secrets come from environment variables, each also as a `_FILE`
+  variant (section 11).
+- On the first start with an empty database the app creates the first admin (the local
+  break-glass admin, section 6) from `STUFFCLOUD_BOOTSTRAP_ADMIN_*`, optionally a service
+  account with an admin-scoped token whose secret the operator supplies in a file (stored
+  hashed), and applies an optional bootstrap configuration file once. Later starts ignore
+  these inputs with a log line.
+- The first-run setup in the UI uses the same API and is never the only path.
+
+### 10.8 Ansible and OpenTofu
+- An own Ansible collection (#119, when the API is stable) and an own OpenTofu provider (#120,
+  only once the rest of the stack and the API are finished and stable), both on the public
+  API only. Their repository location is decided when each is built; a separate repository
+  is not assumed upfront.
+- Until then Ansible uses the CLI (`apply`, `plan` for check mode) or plain HTTP against the
+  idempotent `PUT`s; OpenTofu can use a generic REST provider.
+- The operator's own deployment code stays in the operator's infrastructure repository.
 
 ## 11. Operations
 
 - Docker Compose; configuration through environment variables; secrets from env or
-  files, never in the repo.
+  files (`_FILE` variants), never in the repo and never through the API; bootstrap without
+  clicks (section 10.7).
 - Containers: one static binary per service on a `distroless` (or `scratch`)
   base, no shell, non-root user, read-only root filesystem, all capabilities
   dropped, `no-new-privileges`; only the data directory is writable, and `edge`
@@ -587,6 +705,12 @@ Hosting ships after auth and quotas on purpose: it is the security-critical part
     `Domain=`, an `Origin` check and CSRF tokens; internet origin decided by a separate
     tunnel listener, never by a header; a PSL entry optional
     ([ADR 0009](adr/0009-zone-model-and-shared-domain-isolation.md)).
+13. **API-first and configuration as code (2026-11-16, #116, SF9):** no UI-only features;
+    resources with natural keys, idempotent `PUT`, `ETag`/`If-Match`, dry-run; secrets only as
+    references; scoped tokens incl. admin scopes and service accounts; full CLI parity with
+    `validate`/`plan`/`apply -f`; bootstrap from environment and files; own Ansible collection
+    and OpenTofu provider later, location decided when built (section 10,
+    [ADR 0010](adr/0010-api-first-and-configuration-as-code.md)).
 
-Architecture decision records for decisions 9, 10, 11 and 12 and for the choices in sections 4 to 8
+Architecture decision records for decisions 9, 10, 11, 12 and 13 and for the choices in sections 4 to 8
 and 14 are in [`docs/adr/`](adr/README.md).

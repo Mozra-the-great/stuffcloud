@@ -333,7 +333,7 @@ Library candidates (license must be verified per version before adoption):
 
 | Area | Tool | Candidate libraries |
 |---|---|---|
-| PDF | merge, split, rotate/delete/reorder pages | pdf-lib, pdf.js |
+| PDF | merge, split, rotate/delete/reorder pages | pdf-lib, pdf.js (ADR 0013) |
 | PDF | images to PDF, PDF to images | pdf-lib, pdf.js |
 | PDF | set/remove password, edit metadata | qpdf (WASM), pdf-lib |
 | PDF | compress | **light method first**: re-encode embedded images via pdf.js + pdf-lib, object-stream optimisation via qpdf. Ghostscript WASM (AGPL, very large) only as an optional, lazily loaded extra if the light method falls short; measured in spike T-13 |
@@ -345,8 +345,8 @@ Library candidates (license must be verified per version before adoption):
 | Convert | Base64 encode/decode | native |
 | Convert | colour picker + formats, contrast, palette from an image | own small functions (no dependency; T-18) |
 | Convert | unit converter | own unit tables (no dependency; T-18) |
-| Parse | CRON expression | cron-parser, cronstrue |
-| Parse | user-agent | ua-parser-js v1 (MIT) or uap-core |
+| Parse | CRON expression | own parser, explainer (de/en) and next-run search; time zones through `Intl` (no dependency; T-19) |
+| Parse | user-agent | own rules, tested on a corpus of real strings (no dependency; T-19; `ua-parser-js` v2 is AGPL) |
 | Network | subnet calculator | ipaddr.js / ip-address |
 | Network | MAC lookup | bundled IEEE OUI snapshot, updated by a CI job, offline |
 | Text | lorem ipsum, UUID (v4/v7), QR code | native / qrcode |
@@ -363,6 +363,9 @@ Rules
   cancelling stops the worker. New tools start from `pnpm new-tool <id>`.
 - Files never leave the browser for client-side tools. The UI says so.
 - Tools may work offline once loaded (service-worker caching is optional).
+- PDF page tools (merge, split, edit pages) write a new document from the chosen pages: a deleted
+  page is gone from the file, bookmarks, form fields and document metadata are not carried over, and
+  one operation takes at most 400 MiB of files and 10 000 pages (memory guard, ADR 0013).
 
 ## 8. Hosting engine
 

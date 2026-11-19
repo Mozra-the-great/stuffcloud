@@ -46,9 +46,12 @@ web/            pnpm workspace (Node 24, own lockfile; the backend never depends
   apps/web/     Svelte + Vite SPA (static build): src/styles (generated tokens.css, fonts.css, theme.css),
                 src/ui (base components, `Mascot` + mascot catalogue), src/app (app shell, router, pages,
                 tool registry + `ToolFrame`), src/tools/<id>/ (one directory per tool: manifest.ts + Tool.svelte),
+                src/pdf (what the PDF tools share: engine on pdf-lib, workers + pools, pictures on pdf.js,
+                page grid, ZIP writer; ADR 0013; the network scan covers it like src/tools),
                 tools.config.json (disabled tools), scripts/ (tokens, check-tools, new-tool),
                 src/i18n (catalogues de/en, typed keys, CI check), src/gallery (component gallery),
                 src/assets/fonts (self-hosted), bench/ (animation benchmark: `node bench/run.ts bench|verify|size`),
+                perf/ (large-PDF measurement: `pnpm e2e:build && node perf/pdf-large.ts`),
                 e2e/ (Playwright: specs/, support/ privacy check + axe gate + keyboard helpers, app/ test-only tools; README.md)
   packages/tools/       manifest schema + `defineTool`, capabilities, stickers, worker pool (`createWorkerPool`, `serveWorker`)
   packages/api-client/  typed client + OpenAPI generation script (generated file comes with app)

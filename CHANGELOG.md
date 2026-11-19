@@ -30,6 +30,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   problem types `invalid-credentials`, `signup-closed`, `limit-reached`, `too-many-requests`,
   field error code `taken`, fuzz targets `account` and `forwarded_for`, migration
   `0003_accounts`; the `argon2` crate (MIT OR Apache-2.0) is the only new dependency. (#142)
+- PDF merge, split and page tools (T-10, #15): three client-side tools (`pdf-merge`, `pdf-split`,
+  `pdf-pages`) on pdf-lib 1.17.1 (MIT) for editing and pdf.js 6.5.438 (Apache-2.0) for page
+  pictures, both in workers (two pools of two). Merge orders any number of files with
+  buttons and keyboard; split cuts by page ranges (`1-3, 5, 8-`), every N pages or a selection
+  and offers the results as single files or one ZIP (own stored-only ZIP writer); the page editor
+  rotates, deletes and reorders pages in a keyboard-operable grid with undo and redo. The result is
+  a new document (`copyPages`): bookmarks, form fields and metadata are not carried over, and the
+  tool descriptions say so. Limits: 400 MiB, 10 000 pages, 1000 files (200 for merge); encrypted,
+  broken, empty, too large and out-of-memory files each get their own message. Shared code lives in
+  `src/pdf/` (ADR 0013). Measured in Chromium with 100 MB / 500 pages: merge 0.87 s, worst frame
+  28 ms, no long task; page pictures for all 500 pages after 2.4 s, save 1.1 s. Licence policy:
+  `0BSD` (tslib, a runtime dependency of pdf-lib) joins the allow list of `deny.toml` and
+  `scripts/ci/license-policy.toml` and leaves `[dev_only]`; the unused `@napi-rs/canvas` binding
+  of pdf.js is overridden out of the dependency graph. Tests: table-driven and property tests
+  (all 31 page subsets of a five-page file), component tests and a Playwright spec per tool (axe
+  gate in both browsers, keyboard routes, live regions, German, 320 px). (#144)
+- CRON expression and user-agent parser (T-19, #24): two client-side tools, no new dependency
+  (own code instead of cron-parser, cronstrue and ua-parser-js; v2 of that library is AGPL). The CRON
+  tool reads the 5-field, 6-field (seconds first) and 7-field (year last) forms, the macros
+  (`@daily` and friends) and the Quartz extras (`?`, `L`, `L-n`, `LW`, `nW`, `nL`, `n#k`), reports every
+  wrong field with its range, explains the schedule in plain German and English, and lists the next
+  1 to 50 runs in any time zone the browser knows (through `Intl`, no tz database): a time the clock
+  skips is not run, a time that happens twice runs once unless the schedule runs in every hour, and
+  the day-of-month and day-of-week fields combine as in Vixie cron (either, or both when one starts
+  with `*`). The user-agent tool names browser, engine, operating system, device (type, maker,
+  model) and CPU architecture, tells crawlers and HTTP tools apart, notes what browsers hide
+  (Windows 10 and 11, macOS 10.15.7, reduced Android strings), reads the visitor's own string only
+  when a button is pressed and copies the result as JSON. Tests: a corpus of 69 real user-agent
+  strings and 108 CRON expressions with German and English text, seeded random inputs for both
+  parsers, DST and half-hour zones, component tests and a Playwright spec per tool (axe gate in both
+  browsers, keyboard routes, live regions, German, 320 px). (#143)
 - Colour picker and unit converter (T-18, #23): two client-side tools, no new dependency. The
   colour picker reads and writes HEX, RGB, HSL, OKLCH and CMYK (an OKLCH colour outside sRGB loses
   chroma until it fits, and says so), copies each format, checks the WCAG 2.2 contrast of two

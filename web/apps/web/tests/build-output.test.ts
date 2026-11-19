@@ -76,13 +76,34 @@ describe('production build output', () => {
     for (const name of svgs) {
       expect(name.startsWith('assets/')).toBe(true);
     }
-    const scripts = text(/\.js$/).join('\n');
+    // The app's own code: the PDF workers carry pdf.js and pdf-lib, libraries with strings of their
+    // own (the workers are checked in the next test).
+    const scripts = text(/^(?!assets\/(?:ops-worker|thumbs-worker|pdf\.worker\.min)-).*\.js$/).join(
+      '\n',
+    );
     expect(scripts).not.toContain('data:image/svg+xml');
     for (const name of svgs) {
       expect(scripts, `${name} is not referenced by the app`).toContain(
         name.slice('assets/'.length),
       );
     }
+  });
+
+  it('emits the PDF workers as files of /assets, and the thumbnail worker starts pdf.js from there', () => {
+    const names = [...files.keys()];
+    const pick = (prefix: string): string[] =>
+      names.filter((name) => name.startsWith(`assets/${prefix}-`) && name.endsWith('.js'));
+    expect(pick('ops-worker')).toHaveLength(1);
+    const [thumbs] = pick('thumbs-worker');
+    const [parser] = pick('pdf.worker.min');
+    expect(pick('thumbs-worker')).toHaveLength(1);
+    expect(pick('pdf.worker.min')).toHaveLength(1);
+    const source = readFileSync(files.get(thumbs ?? '') ?? '', 'utf8');
+    // The parser worker is a file of the build, found by a path under /assets (no CDN, no URL).
+    expect(source).toContain((parser ?? '').slice('assets/'.length));
+    expect(source).not.toMatch(
+      /https?:\/\/(?!www\.w3\.org|mozilla\.github\.io|github\.com|www\.mozilla\.org|developer\.mozilla\.org|bugzilla\.mozilla\.org)[\w.-]+\.\w+\/[^\s`'"]*\.(?:js|mjs|wasm|ttf|pfb|bcmap)/,
+    );
   });
 
   it('ships the mascot motion as a transform-only, reduced-motion-aware stylesheet', () => {

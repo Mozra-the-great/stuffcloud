@@ -132,7 +132,7 @@ come from neither package manager are in
 | zeroize | 1.9.2 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/zeroize/1.9.2) |
 | zmij | 1.0.23 | MIT | [crates.io](https://crates.io/crates/zmij/1.0.23) |
 
-## npm (22)
+## npm (28)
 
 | Name | Version | License | Source |
 |---|---|---|---|
@@ -141,6 +141,8 @@ come from neither package manager are in
 | @jridgewell/resolve-uri | 3.1.3 | MIT | [npm](https://www.npmjs.com/package/@jridgewell/resolve-uri/v/3.1.3) |
 | @jridgewell/sourcemap-codec | 1.6.0 | MIT | [npm](https://www.npmjs.com/package/@jridgewell/sourcemap-codec/v/1.6.0) |
 | @jridgewell/trace-mapping | 0.3.31 | MIT | [npm](https://www.npmjs.com/package/@jridgewell/trace-mapping/v/0.3.31) |
+| @pdf-lib/standard-fonts | 1.0.0 | MIT | [npm](https://www.npmjs.com/package/@pdf-lib/standard-fonts/v/1.0.0) |
+| @pdf-lib/upng | 1.0.1 | MIT | [npm](https://www.npmjs.com/package/@pdf-lib/upng/v/1.0.1) |
 | @sveltejs/acorn-typescript | 1.0.13 | MIT | [npm](https://www.npmjs.com/package/@sveltejs/acorn-typescript/v/1.0.13) |
 | @types/estree | 1.0.10 | MIT | [npm](https://www.npmjs.com/package/@types/estree/v/1.0.10) |
 | @typescript-eslint/types | 8.72.2 | MIT | [npm](https://www.npmjs.com/package/@typescript-eslint/types/v/8.72.2) |
@@ -156,5 +158,9 @@ come from neither package manager are in
 | magic-string | 0.30.21 | MIT | [npm](https://www.npmjs.com/package/magic-string/v/0.30.21) |
 | openapi-fetch | 0.17.0 | MIT | [npm](https://www.npmjs.com/package/openapi-fetch/v/0.17.0) |
 | openapi-typescript-helpers | 0.1.0 | MIT | [npm](https://www.npmjs.com/package/openapi-typescript-helpers/v/0.1.0) |
+| pako | 1.0.11 | (MIT AND Zlib) | [npm](https://www.npmjs.com/package/pako/v/1.0.11) |
+| pdf-lib | 1.17.1 | MIT | [npm](https://www.npmjs.com/package/pdf-lib/v/1.17.1) |
+| pdfjs-dist | 6.5.438 | Apache-2.0 | [npm](https://www.npmjs.com/package/pdfjs-dist/v/6.5.438) |
 | svelte | 5.57.3 | MIT | [npm](https://www.npmjs.com/package/svelte/v/5.57.3) |
+| tslib | 1.14.1 | 0BSD | [npm](https://www.npmjs.com/package/tslib/v/1.14.1) |
 | zimmerframe | 1.1.5 | MIT | [npm](https://www.npmjs.com/package/zimmerframe/v/1.1.5) |

@@ -10,6 +10,7 @@
     "src/**/*.svelte",
     "scripts",
     "bench",
+    "perf",
     "e2e",
     "tests",
     "vite.config.ts",

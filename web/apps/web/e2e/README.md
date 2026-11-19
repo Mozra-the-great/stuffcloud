@@ -51,7 +51,10 @@ Their texts are in `e2e/app/messages.ts`.
 - No fixed sleeps: wait for something the user can see (`expect(...)`, `expect.poll`). No retries
   (`retries: 0`): a test that passes on the second try is a flaky test.
 - Screenshots are attached to the report (`attachScreenshot`), never compared with a stored image.
-- Files for uploads are generated (`support/files.ts`, deterministic noise), not committed.
+- Files for uploads are generated (`support/files.ts`, deterministic noise), not committed. PDFs for
+  the PDF tools come from `support/pdf.ts` (built with pdf-lib: page `n` is `100 + n` points wide, so
+  the order of a saved file can be read from its page widths; `drawnPages` checks that a picture was
+  really drawn). The measurement with a 100 MB PDF is not a test but a script: `node perf/pdf-large.ts`.
 
 ## A machine that injects traffic
 

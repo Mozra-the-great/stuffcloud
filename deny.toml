@@ -19,6 +19,8 @@ ignore = []
 # with it, and only those in use or expected for the planned stack. A new one is
 # added here deliberately, after the check the spec asks for.
 allow = [
+    # 0BSD: Zero-Clause BSD, permissive, GPL-3.0-compatible; runtime via tslib (pdf-lib)
+    "0BSD",
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
     "BSD-2-Clause",

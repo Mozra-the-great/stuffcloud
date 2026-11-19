@@ -21,6 +21,8 @@
   },
   "dependencies": {
     "@stuffcloud/tools": "workspace:*",
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "6.5.438",
     "svelte": "^5.57.3"
   },
   "devDependencies": {

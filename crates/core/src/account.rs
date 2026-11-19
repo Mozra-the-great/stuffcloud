@@ -847,6 +847,19 @@ mod tests {
             policy.check(&"x".repeat(MAX_PASSWORD_BYTES + 1), &context(), false),
             vec![PasswordProblem::TooLong]
         );
+        // Over the byte limit the other rules are skipped; at the limit they still run.
+        assert_eq!(
+            policy.check(&"x".repeat(MAX_PASSWORD_BYTES + 1), &context(), true),
+            vec![PasswordProblem::TooLong]
+        );
+        assert_eq!(
+            policy.check(&"x".repeat(MAX_PASSWORD_BYTES), &context(), true),
+            vec![
+                PasswordProblem::TooLong,
+                PasswordProblem::OneCharacter,
+                PasswordProblem::Breached
+            ]
+        );
     }
 
     #[test]

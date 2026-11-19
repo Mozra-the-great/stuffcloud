@@ -296,15 +296,20 @@ fn invitations_can_be_revoked_and_are_capped() {
     else {
         panic!("not created");
     };
+    let revoked = |db: &Database| -> Vec<(i64, String)> {
+        db.audit_log()
+            .unwrap()
+            .into_iter()
+            .filter(|entry| entry.action == "invitation.revoked")
+            .map(|entry| (entry.at, entry.key))
+            .collect()
+    };
     assert!(db.revoke_invitation(first.id, admin.id, 20).unwrap());
+    assert_eq!(revoked(&db), vec![(20, first.id.to_string())]);
+    // Revoking it again changes nothing and leaves no second entry.
     assert!(!db.revoke_invitation(first.id, admin.id, 21).unwrap());
+    assert_eq!(revoked(&db), vec![(20, first.id.to_string())]);
     let rows: Vec<String> = actions(&db).into_iter().map(|row| row.1).collect();
-    assert_eq!(
-        rows.iter()
-            .filter(|action| *action == "invitation.revoked")
-            .count(),
-        1
-    );
     assert!(rows.contains(&"invitation.created".to_owned()));
     for index in 0..MAX_PENDING_INVITATIONS {
         let mut bytes = [0_u8; 32];

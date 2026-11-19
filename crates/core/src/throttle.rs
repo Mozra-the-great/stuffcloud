@@ -123,6 +123,14 @@ mod tests {
     }
 
     #[test]
+    fn free_failures_do_not_wait_even_when_the_clock_steps_back() {
+        // At the free count the delay is 0, so only the comparison with `free` keeps a clock that
+        // stepped back from turning the last failure into a wait.
+        assert_eq!(RULE.wait(after(3, 100), 50), None);
+        assert_eq!(RULE.wait(after(4, 100), 50), Some(1050));
+    }
+
+    #[test]
     fn the_wait_doubles_up_to_the_maximum() {
         assert_eq!(RULE.delay_ms(0), 0);
         assert_eq!(RULE.delay_ms(3), 0);

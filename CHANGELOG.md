@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   but a `GET` of an own asset or a piece of an uploaded file appears in any request (raw, hex, base64,
   base64url, percent-escaped; workers included); a test-only tool that leaks four ways proves the check
   can fail. `e2e/support/a11y.ts` is the seam for the axe gate of T-05 (off). New dev dependency
-  `@playwright/test` (Apache-2.0). `docs/SPEC.md` 14. (#129)
+  `@playwright/test` (Apache-2.0). `docs/SPEC.md` 14. (#130)
 - Dev environment (F-04, #7): `compose.dev.yml` starts Caddy and Mailpit with one command. Caddy
   serves the real web build on the app address with the index fallback for deep links (a missing
   asset stays a 404), a placeholder site on every name below the site base, the Mailpit UI, and a

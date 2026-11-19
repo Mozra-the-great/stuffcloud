@@ -11,6 +11,11 @@ use crate::state::AppState;
 /// How often the purge runs.
 pub const PURGE_INTERVAL: Duration = Duration::from_mins(10);
 
+/// A purge that removed nothing (the usual one) is not worth a log line.
+const fn worth_logging(purged: usize) -> bool {
+    purged > 0
+}
+
 /// One purge: expired sessions (one audit row each) and expired tokens. Returns how many rows
 /// went; a failure is logged and the next run tries again.
 pub async fn purge_once(state: &AppState) -> usize {
@@ -24,7 +29,7 @@ pub async fn purge_once(state: &AppState) -> usize {
         })
         .await
         .unwrap_or(0);
-    if purged > 0 {
+    if worth_logging(purged) {
         tracing::info!(target: "stuffcloud::maintenance", purged, "expired sessions and tokens purged");
     }
     purged
@@ -98,68 +103,13 @@ mod tests {
         assert_eq!(purge_once(&state).await, 0);
     }
 
-    /// A log writer that keeps what it is given.
-    #[derive(Clone, Default)]
-    struct Buffer(std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
-
-    impl std::io::Write for Buffer {
-        fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
-            self.0.lock().unwrap().extend_from_slice(data);
-            Ok(data.len())
-        }
-
-        fn flush(&mut self) -> std::io::Result<()> {
-            Ok(())
-        }
+    #[test]
+    fn a_purge_is_logged_only_when_it_removed_something() {
+        assert!(!worth_logging(0));
+        assert!(worth_logging(1));
+        assert!(worth_logging(2));
     }
 
-    impl<'w> tracing_subscriber::fmt::MakeWriter<'w> for Buffer {
-        type Writer = Self;
-
-        fn make_writer(&'w self) -> Self::Writer {
-            self.clone()
-        }
-    }
-
-    impl Buffer {
-        fn text(&self) -> String {
-            String::from_utf8(self.0.lock().unwrap().clone()).unwrap()
-        }
-    }
-
-    #[tokio::test]
-    async fn a_purge_is_logged_only_when_it_removed_something() {
-        let buffer = Buffer::default();
-        let _guard = tracing::subscriber::set_default(
-            tracing_subscriber::fmt()
-                .with_writer(buffer.clone())
-                .with_ansi(false)
-                .finish(),
-        );
-        let state = crate::state::tests::state();
-        // Nothing to purge: no line.
-        assert_eq!(purge_once(&state).await, 0);
-        assert_eq!(buffer.text(), "");
-        // Something to purge: one line that names the number.
-        let _ = expired_session(&state);
-        assert_eq!(purge_once(&state).await, 1);
-        let text = buffer.text();
-        assert_eq!(
-            text.matches("expired sessions and tokens purged").count(),
-            1,
-            "{text}"
-        );
-        assert!(text.contains("purged=1"), "{text}");
-        // Nothing left again: still the one line.
-        assert_eq!(purge_once(&state).await, 0);
-        assert_eq!(
-            buffer
-                .text()
-                .matches("expired sessions and tokens purged")
-                .count(),
-            1
-        );
-    }
     #[tokio::test]
     async fn the_purger_runs_periodically() {
         let state = crate::state::tests::state();

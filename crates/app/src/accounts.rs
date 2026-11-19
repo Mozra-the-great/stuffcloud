@@ -817,7 +817,9 @@ mod tests {
             1,
         )
         .unwrap()
-        .with_queue(0, Duration::from_secs(30));
+        // No queue at all; a mutant that lets it wait anyway waits only briefly (the bound itself
+        // is tested in `password`).
+        .with_queue(0, Duration::from_millis(100));
         let state = crate::state::tests::state_with_accounts(Accounts::new(
             passwords,
             ProxyList::default(),

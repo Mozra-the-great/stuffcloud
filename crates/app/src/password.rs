@@ -731,7 +731,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn the_queue_for_a_slot_is_bounded() {
-        let passwords = std::sync::Arc::new(cheap().with_queue(1, Duration::from_secs(30)));
+        let passwords = std::sync::Arc::new(cheap().with_queue(1, Duration::from_secs(5)));
         assert_eq!(passwords.queue(), 1);
         assert_eq!(cheap().queue(), 2 * QUEUE_PER_SLOT);
         let first = passwords.permits.try_acquire().unwrap();
@@ -785,7 +785,7 @@ mod tests {
 
     #[tokio::test]
     async fn closed_slots_are_an_internal_error_also_while_waiting() {
-        let passwords = std::sync::Arc::new(cheap().with_queue(4, Duration::from_secs(30)));
+        let passwords = std::sync::Arc::new(cheap().with_queue(4, Duration::from_secs(5)));
         let first = passwords.permits.try_acquire().unwrap();
         let _second = passwords.permits.try_acquire().unwrap();
         let waiter = {

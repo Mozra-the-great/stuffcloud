@@ -84,3 +84,10 @@ path = "fuzz_targets/authorization.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "scope"
+path = "fuzz_targets/scope.rs"
+test = false
+doc = false
+bench = false

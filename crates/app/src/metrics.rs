@@ -117,7 +117,7 @@ impl Metrics {
         let rejections = Family::<ReasonLabels, Counter>::default();
         registry.register(
             "auth_rejections",
-            "Requests refused by the CSRF checks or an invalid Authorization header, by rule",
+            "Requests refused by the CSRF checks, an invalid Authorization header or the access policy, by rule",
             rejections.clone(),
         );
         registry.register(

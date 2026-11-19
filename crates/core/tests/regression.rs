@@ -361,3 +361,114 @@ fn only_a_well_formed_bearer_header_is_a_bearer() {
         Authorization::Malformed
     );
 }
+
+/// Scope texts that must never be accepted: a scope is exactly `<area>:<read|write>`, in lower
+/// case, with a known area. Wildcards, padding, other cases and extra segments would let a
+/// client name a scope the policy does not know and still be taken for a valid one.
+const NOT_A_SCOPE: &[&str] = &[
+    "",
+    "*",
+    "*:*",
+    "*:write",
+    "admin:*:write",
+    "admin:write",
+    "admin:*",
+    "admin",
+    "admin:",
+    "admin::write",
+    "sites",
+    "sites:",
+    ":read",
+    ":",
+    "::",
+    "sites:read:write",
+    "sites:read:",
+    "sites:admin",
+    "sites:delete",
+    "sites:READ",
+    "Sites:read",
+    "ADMIN:ZONES:WRITE",
+    " sites:read",
+    "sites:read ",
+    "sites: read",
+    "sites:read\n",
+    "sites:read\0",
+    "sites:read,tokens:read",
+    "sites:read tokens:read",
+    "sites\u{ff1a}read",
+    "s\u{131}tes:read",
+    "admin:zones:write:extra",
+    "admin:zone:write",
+    "admin:users:write/../zones",
+    "moderation",
+    "moderator:write",
+];
+
+#[test]
+fn only_exactly_area_and_level_is_a_scope() {
+    use stuffcloud_core::scope::{Permission, Scopes};
+    for text in NOT_A_SCOPE {
+        assert!(
+            Permission::parse(text).is_err(),
+            "{text:?} counted as a scope"
+        );
+        assert!(
+            Scopes::parse([*text]).is_err(),
+            "{text:?} counted as a scope"
+        );
+        // One bad scope spoils the whole list, wherever it stands.
+        assert!(Scopes::parse(["sites:read", text]).is_err());
+        assert!(Scopes::parse([text, "sites:read"]).is_err());
+    }
+}
+
+/// A token created by a token holds at most what its creator holds, however the scopes are
+/// spelled: a `write` scope covers the `read` of its own area and nothing of another area.
+#[test]
+fn a_token_cannot_mint_more_than_it_holds() {
+    use stuffcloud_core::scope::Scopes;
+    let parent = Scopes::parse(["sites:read", "admin:zones:write"]).unwrap();
+    for wider in [
+        &["sites:write"][..],
+        &["admin:users:read"],
+        &["admin:zones:write", "admin:settings:read"],
+        &["tokens:read"],
+        &["admin:tokens:write"],
+    ] {
+        assert!(
+            !parent.may_grant(&Scopes::parse(wider.iter().copied()).unwrap()),
+            "{wider:?}"
+        );
+    }
+    assert!(parent.may_grant(&Scopes::parse(["admin:zones:read", "sites:read"]).unwrap()));
+}
+
+/// An admin scope on a token whose owner is no admin (any more) grants nothing: the role is
+/// read at every request, never copied into the token.
+#[test]
+fn an_admin_scope_without_an_admin_owner_grants_nothing() {
+    use stuffcloud_core::policy::{Account, Subject, effective};
+    use stuffcloud_core::scope::{Permission, Scopes};
+    use stuffcloud_core::session::{Role, UserKind};
+    let scopes = Scopes::of(Permission::all());
+    for role in [Role::User, Role::Moderator] {
+        let owner = Account {
+            login: "former-admin",
+            kind: UserKind::Person,
+            role,
+        };
+        let granted = effective(&Subject::Token {
+            owner,
+            scopes: &scopes,
+        });
+        for permission in granted {
+            assert!(
+                !permission.to_string().starts_with("admin:zones")
+                    && !permission.to_string().starts_with("admin:users")
+                    && !permission.to_string().starts_with("admin:settings")
+                    && !permission.to_string().starts_with("admin:tokens"),
+                "{role:?} holds {permission}"
+            );
+        }
+    }
+}

@@ -37,19 +37,22 @@ The request body is not JSON. `detail` carries the parser's message.
 <a id="unauthenticated"></a>
 ## unauthenticated (401)
 
-The request needs authentication: there is no valid session (the session cookie is missing,
-unknown, expired or ended), or the operation needs an account. Until accounts can log in (A-03,
-#33) every write answers this; configure the instance with the bootstrap file
-(`STUFFCLOUD_BOOTSTRAP_CONFIG`, SPEC 10.7). It is also the answer to an `Authorization` header
-that is not exactly one well-formed `Bearer` token (a `Bearer` without a credential, a bad
-character, a credential over 512 bytes, or several `Authorization` headers): such a request is
-never treated as anonymous. Other schemes (`Basic`, ...) are ignored.
+The request needs authentication: the client is anonymous (the session cookie is missing,
+unknown, expired or ended) and the operation needs an account. The `detail` names the
+permission the operation needs. It is also the answer to an `Authorization` header that is not
+exactly one well-formed `Bearer` token (a `Bearer` without a credential, a bad character, a
+credential over 512 bytes, or several `Authorization` headers): such a request is never
+treated as anonymous. Other schemes (`Basic`, ...) are ignored.
 
 <a id="forbidden"></a>
 ## forbidden (403)
 
-The client is authenticated but its role may not do this (for example a write to a settings
-group by an account that is not an admin). The permission matrix is A-07 (#37).
+The client is authenticated but the access policy refuses the operation (A-07, SPEC 6;
+`docs/api/permissions.md` lists every operation with its requirement). The `detail` says why:
+the role of the account does not have the permission, the API token has no scope that grants it
+(a token never has more than its owner), the caller is a service account's session (service
+accounts use tokens only), or the operation needs a browser session and a token was used. The
+refusal of an authenticated account is written to the audit log.
 
 <a id="csrf-rejected"></a>
 ## csrf-rejected (403)

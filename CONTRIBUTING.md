@@ -50,7 +50,7 @@ target; a fixed bug with an entry in `tests/regression.rs` and a seed in
 stuffcloud is instance-neutral (CLAUDE.md): no real domain of any operator may appear in a
 tracked file. `scripts/ci/check_operator_domains.py` (step "No operator domain in tracked
 files" of `repo-checks`, part of `build`) searches every tracked file and file name for the
-domains of a list that is **not in the repository**. The list is read from the environment
+domains and e-mail addresses of a list that is **not in the repository**. The list is read from the environment
 variable `STUFFCLOUD_FORBIDDEN_DOMAINS`, which the workflow fills from the repository's Actions
 secret of the same name (preferred) or, if there is no secret, from the Actions variable of
 the same name.
@@ -62,22 +62,39 @@ Setting it (repository admin, once; **Settings > Secrets and variables > Actions
    Alternatively tab **Variables**, **New repository variable**, same name; note that a
    variable is plain text and may be readable by workflows of fork pull requests, so use it
    only for names that may become known.
-2. Value: the registrable domains to keep out, one per line or separated by commas, in
-   the format `one.example, two.example` (placeholders: reserved names are ignored, so enter
-   the real ones). `#` starts a comment, a leading `*.` is ignored, subdomains are
-   covered automatically, matching is case-insensitive, an internationalised name is matched
-   in its Unicode and its Punycode form. Names reserved for documentation (`example.com`,
-   `example.org`, `example.net`, `*.example`, `*.test`, `*.invalid`, `*.localhost`) are always
-   allowed and ignored if listed.
-3. A malformed entry fails the check (exit code 2) with the number of the entry, never its
-   text. A finding prints `path:line: forbidden domain (entry N)`: the listed domain and the
-   offending line are never printed, because the logs of a public repository are public.
+2. Value: the registrable domains and e-mail addresses to keep out, one per line or separated
+   by commas, in the format `one.example, two.example, someone@mail.example` (placeholders:
+   reserved names are ignored, so enter the real ones). `#` starts a comment.
+   - **Domain entry** (no `@`): a leading `*.` is ignored, subdomains are covered
+     automatically, matching is case-insensitive, an internationalised name is matched in its
+     Unicode and its Punycode form.
+   - **E-mail entry** (contains `@`): exactly one address, `local@domain`, with a dot in the
+     domain. It protects that one mailbox without forbidding its provider: `someone@mail.example`
+     does not make `mail.example`, `other@mail.example` or `www.mail.example` a violation.
+     Matching is case-insensitive and on whole addresses only: `xsomeone@mail.example`,
+     `first.someone@mail.example` and `someone@mail.example.org` are not hits. Also found: the `@`
+     written as `%40`, `&#64;`, `&#x40;`, `&commat;` or `\u0040`, an address after a `%XX` escape
+     (`a%20someone@mail.example`), and an address in a file name. Not found: `someone [at]
+     mail.example`, split or reversed text, base64 or quoted-printable, a double-encoded `%2540`,
+     and an address directly followed by a file extension in a file name
+     (`someone@mail.example.json`, which looks like a longer domain). The local part is ASCII
+     (letters, digits and ``! $ % & ' + / = ? ^ _ ` { | } ~ . -``, at most 64 characters, no
+     leading, trailing or doubled dot; `#`, `*`, `,` and `;` are not allowed), the domain part
+     may be internationalised. Enter the bare address, without a display name or `<...>`.
+   - Names reserved for documentation (`example.com`, `example.org`, `example.net`,
+     `*.example`, `*.test`, `*.invalid`, `*.localhost`) are always allowed and ignored if
+     listed, as a domain or as the domain part of an address.
+3. A malformed entry (neither a valid domain nor a valid address) fails the check (exit code 2)
+   with the number of the entry, never its text. A finding prints `path:line: forbidden domain
+   (entry N)`, for an e-mail entry `path:line: forbidden e-mail address (entry N)`: the listed
+   domain or address and the offending line are never printed, because the logs of a public
+   repository are public.
 
 Without the secret or variable, or for pull requests that do not receive it (forks,
 Dependabot), the step prints a notice and passes: a **reduced check**, nothing was searched
 for. Own pull requests get the full check. Run it locally with the same variable:
 `STUFFCLOUD_FORBIDDEN_DOMAINS=... python scripts/ci/check_operator_domains.py`. Its tests use
-only reserved names (`python -m unittest discover -s scripts/ci -p "test_*.py"`).
+only reserved names (`*.example` placeholders, also for the addresses) (`python -m unittest discover -s scripts/ci -p "test_*.py"`).
 
 ### Frontend (`web/`)
 

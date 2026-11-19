@@ -404,9 +404,10 @@ impl Database {
         marker(&*self.lock()?)
     }
 
-    /// Applies the bootstrap writes `(kind, key, body)` exactly once: on the first start
-    /// with an empty database, all in one transaction, together with the record that the
-    /// bootstrap ran. Every later call changes nothing.
+    /// Applies the bootstrap writes `(kind, key, body)` and creates the first admin (the local
+    /// break-glass admin, SPEC 10.7) exactly once: on the first start with an empty database,
+    /// all in one transaction, together with the record that the bootstrap ran. Every later
+    /// call changes nothing.
     ///
     /// # Errors
     ///
@@ -414,6 +415,7 @@ impl Database {
     pub fn bootstrap(
         &self,
         writes: &[(&str, &str, String)],
+        admin: Option<&crate::accounts::NewAccount<'_>>,
         now: i64,
     ) -> Result<BootstrapOutcome, DbError> {
         let mut conn = self.lock()?;
@@ -441,6 +443,10 @@ impl Database {
                 {
                     changes.push(written.change);
                 }
+            }
+            if let Some(admin) = admin {
+                let _admin =
+                    crate::accounts::insert_account(&tx, admin, Some(BOOTSTRAP_ACTOR), now)?;
             }
             audit(&tx, &ctx, "bootstrap", "instance", "bootstrap")?;
             BootstrapOutcome::Applied { changes }
@@ -827,7 +833,7 @@ mod tests {
             (KIND, "other", "{}".to_owned()),
         ];
         assert_eq!(
-            db.bootstrap(&writes, 100).unwrap(),
+            db.bootstrap(&writes, None, 100).unwrap(),
             BootstrapOutcome::Applied {
                 changes: vec![Change::Created, Change::Created]
             }
@@ -858,7 +864,7 @@ mod tests {
         assert_eq!(db.bootstrapped_at().unwrap(), Some(100));
         let later = [(KIND, KEY, "{\"a\":2}".to_owned())];
         assert_eq!(
-            db.bootstrap(&later, 200).unwrap(),
+            db.bootstrap(&later, None, 200).unwrap(),
             BootstrapOutcome::AlreadyDone { at: 100 }
         );
         assert_eq!(db.get(KIND, KEY).unwrap(), Some(stored));
@@ -869,11 +875,12 @@ mod tests {
     fn bootstrap_without_writes_still_counts() {
         let (_dir, db) = db();
         assert_eq!(
-            db.bootstrap(&[], 7).unwrap(),
+            db.bootstrap(&[], None, 7).unwrap(),
             BootstrapOutcome::Applied { changes: vec![] }
         );
         assert_eq!(
-            db.bootstrap(&[(KIND, KEY, "{}".to_owned())], 8).unwrap(),
+            db.bootstrap(&[(KIND, KEY, "{}".to_owned())], None, 8)
+                .unwrap(),
             BootstrapOutcome::AlreadyDone { at: 7 }
         );
         assert_eq!(db.get(KIND, KEY).unwrap(), None);
@@ -903,12 +910,13 @@ mod tests {
                     .unwrap();
             }
             assert_eq!(
-                db.bootstrap(&[(KIND, KEY, "{}".to_owned())], 5).unwrap(),
+                db.bootstrap(&[(KIND, KEY, "{}".to_owned())], None, 5)
+                    .unwrap(),
                 BootstrapOutcome::NotEmpty
             );
             assert_eq!(db.get(KIND, KEY).unwrap(), None);
             assert_eq!(
-                db.bootstrap(&[], 6).unwrap(),
+                db.bootstrap(&[], None, 6).unwrap(),
                 BootstrapOutcome::AlreadyDone { at: 5 }
             );
         }
@@ -926,11 +934,15 @@ mod tests {
             .unwrap();
         }
         let writes = [(KIND, KEY, "{}".to_owned()), (KIND, "bad", "{}".to_owned())];
-        assert!(matches!(db.bootstrap(&writes, 1), Err(DbError::Sqlite(_))));
+        assert!(matches!(
+            db.bootstrap(&writes, None, 1),
+            Err(DbError::Sqlite(_))
+        ));
         assert_eq!(db.get(KIND, KEY).unwrap(), None);
         assert!(db.audit_log().unwrap().is_empty());
         assert_eq!(
-            db.bootstrap(&[(KIND, KEY, "{}".to_owned())], 2).unwrap(),
+            db.bootstrap(&[(KIND, KEY, "{}".to_owned())], None, 2)
+                .unwrap(),
             BootstrapOutcome::Applied {
                 changes: vec![Change::Created]
             }

@@ -44,6 +44,14 @@ exactly one well-formed `Bearer` token (a `Bearer` without a credential, a bad c
 credential over 512 bytes, or several `Authorization` headers): such a request is never
 treated as anonymous. Other schemes (`Basic`, ...) are ignored.
 
+<a id="invalid-credentials"></a>
+## invalid-credentials (401)
+
+`POST /api/v1/auth/login` failed. The answer is the same, byte for byte and after the same work
+(one Argon2id check), whether the login name or address is unknown, the account is a service
+account or has no password, or the password is wrong, so it does not tell which accounts exist.
+Repeated failures are throttled ([too-many-requests](#too-many-requests)).
+
 <a id="forbidden"></a>
 ## forbidden (403)
 
@@ -74,11 +82,24 @@ when the detail says the token is missing, malformed or does not match. API clie
 authenticate with a `Bearer` token in the `Authorization` header (A-08, #38) are not subject to
 these checks. Every refusal is counted in `stuffcloud_auth_rejections_total{reason}`.
 
+<a id="signup-closed"></a>
+## signup-closed (403)
+
+`POST /api/v1/auth/register` is not allowed in the instance's sign-up mode (settings group
+`signup`): `invite-only` needs an `invitation`, `oidc-only` takes no local registration at all.
+The `detail` says which.
+
 <a id="not-found"></a>
 ## not-found (404)
 
 No such resource or route. A settings group that was never written does not exist; its defaults
 apply. `DELETE` of a missing resource is a 404 too (`apply` counts it as unchanged).
+
+<a id="limit-reached"></a>
+## limit-reached (409)
+
+A limit of the instance is reached, for example 1000 pending invitations. Revoke or wait for
+some to expire, then retry.
 
 <a id="method-not-allowed"></a>
 ## method-not-allowed (405)
@@ -116,6 +137,15 @@ Pointer (RFC 6901) into the request body and a stable `code`:
 | `invalid_value` | the value breaks a rule of the field |
 | `duplicate` | the value repeats an earlier list entry |
 | `too_many` | the list has more entries than allowed |
+| `taken` | another account already has this login name or e-mail address |
+
+<a id="too-many-requests"></a>
+## too-many-requests (429)
+
+Too many failed attempts: logins per client address and per login name, wrong reset tokens,
+registrations per client address (SPEC 6). The attempt was not checked. The `Retry-After` header
+gives the seconds until the next attempt is checked; the wait doubles with every further
+failure, up to 15 minutes (registrations: one hour). It is a backoff, never a lockout.
 
 <a id="internal"></a>
 ## internal (500)

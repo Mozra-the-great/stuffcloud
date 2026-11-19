@@ -38,6 +38,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "auth",
         sql: include_str!("../migrations/0002_auth.sql"),
     },
+    Migration {
+        version: 3,
+        name: "accounts",
+        sql: include_str!("../migrations/0003_accounts.sql"),
+    },
 ];
 
 /// What [`migrate`] did.
@@ -372,7 +377,9 @@ mod tests {
                 "audit_log",
                 "credentials",
                 "instance_state",
+                "invitations",
                 "oidc_identities",
+                "password_resets",
                 "recovery_codes",
                 "resources",
                 "schema_migrations",

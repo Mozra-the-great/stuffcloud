@@ -9,12 +9,17 @@ use axum::Json;
 use utoipa::OpenApi;
 use utoipa::openapi::OpenApi as Document;
 
+use crate::accounts::{self, AccountProfile};
 use crate::health::{self, HealthStatus};
+use crate::invitations::{self, InvitationCreated, InvitationList, InvitationView, ResetLink};
 use crate::metrics;
 use crate::problem::ProblemBody;
 use crate::resource::{FieldChange, ResourceMeta, WriteChange};
 use crate::sessions::{self, EndedSessions, SessionState, SessionTimes, SessionUser};
 use crate::settings;
+use stuffcloud_core::account::{
+    InvitationRequest, LoginRequest, PasswordChangeRequest, PasswordResetRequest, RegisterRequest,
+};
 
 /// The API description.
 #[derive(Debug, OpenApi)]
@@ -32,9 +37,21 @@ use crate::settings;
         sessions::get_session,
         sessions::delete_session,
         sessions::delete_sessions,
+        accounts::login,
+        accounts::register,
+        accounts::reset_password,
+        accounts::get_account,
+        accounts::change_password,
+        invitations::create_invitation,
+        invitations::list_invitations,
+        invitations::revoke_invitation,
+        invitations::create_reset_link,
         settings::get_reserved_names,
         settings::put_reserved_names,
         settings::delete_reserved_names,
+        settings::get_signup,
+        settings::put_signup,
+        settings::delete_signup,
     ),
     components(schemas(
         HealthStatus,
@@ -46,10 +63,22 @@ use crate::settings;
         SessionUser,
         SessionTimes,
         EndedSessions,
+        LoginRequest,
+        RegisterRequest,
+        PasswordResetRequest,
+        PasswordChangeRequest,
+        AccountProfile,
+        InvitationRequest,
+        InvitationCreated,
+        InvitationView,
+        InvitationList,
+        ResetLink,
     )),
     tags(
         (name = "operations", description = "Probes, metrics and the API description"),
-        (name = "auth", description = "Sessions and the CSRF token (SPEC 5.5 and 6)"),
+        (name = "auth", description = "Sessions, the CSRF token, login, registration and password reset (SPEC 5.5 and 6)"),
+        (name = "account", description = "The caller's own account (SPEC 6)"),
+        (name = "admin", description = "Administration: invitations and reset links (SPEC 6)"),
         (name = "settings", description = "Instance-wide settings groups (SPEC 10.3)"),
     ),
 )]

@@ -7,3 +7,22 @@
 #         id: rust/some-query   # why this cannot happen here, link to the dismissal
 # Never exclude whole paths of product code.
 name: stuffcloud CodeQL config
+
+# Query filters apply to every language of the matrix; the ids below are Rust only.
+# CodeQL cannot scope a query filter to paths (`paths-ignore` would switch off ALL queries for
+# those paths, which is why it is not used), so each exclude is limited by its reason: it
+# is the whole set of hits of that query when it was added (A-03, PR #142, SF14 a, 2026-11-19),
+# and a new hit in product code has to be reviewed by hand in the PR instead.
+query-filters:
+  # Test data only. All 49 hits are fixed passwords in unit tests (`#[cfg(test)]` in
+  # crates/app/src/password.rs, crates/core/src/account.rs) and in crates/app/tests/ that
+  # feed the password policy and the Argon2id hashing. Product code takes the password from
+  # the request body and draws a fresh salt from the OS random generator for every hash.
+  - exclude:
+      id: rust/hard-coded-cryptographic-value
+  # SHA-256 is not used to store a password. It only derives the lookup key into the public,
+  # offline list of breached passwords held in memory (crates/app/src/password.rs, the
+  # breached-password check), a key anyone can compute from the public list. What is
+  # stored for an account is an Argon2id hash with a per-hash salt.
+  - exclude:
+      id: rust/weak-sensitive-data-hashing

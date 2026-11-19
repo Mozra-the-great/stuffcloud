@@ -266,6 +266,23 @@ fn the_requirements_of_the_routes_are_the_documented_ones() {
         })
         .collect();
     let expected = [
+        ("/api/v1/account", "GET", "account:read"),
+        ("/api/v1/account/password", "POST", "account:write"),
+        ("/api/v1/admin/invitations", "GET", "admin:users:read"),
+        ("/api/v1/admin/invitations", "POST", "admin:users:write"),
+        (
+            "/api/v1/admin/invitations/{id}",
+            "DELETE",
+            "admin:users:write",
+        ),
+        (
+            "/api/v1/admin/users/{login}/password-reset",
+            "POST",
+            "admin:users:write",
+        ),
+        ("/api/v1/auth/login", "POST", "public"),
+        ("/api/v1/auth/password-reset", "POST", "public"),
+        ("/api/v1/auth/register", "POST", "public"),
         ("/api/v1/auth/session", "DELETE", "session"),
         ("/api/v1/auth/session", "GET", "public"),
         ("/api/v1/auth/sessions", "DELETE", "session"),
@@ -273,6 +290,9 @@ fn the_requirements_of_the_routes_are_the_documented_ones() {
         (SETTINGS, "DELETE", "admin:settings:write"),
         (SETTINGS, "GET", "public"),
         (SETTINGS, "PUT", "admin:settings:write"),
+        ("/api/v1/settings/signup", "DELETE", "admin:settings:write"),
+        ("/api/v1/settings/signup", "GET", "public"),
+        ("/api/v1/settings/signup", "PUT", "admin:settings:write"),
         ("/healthz", "GET", "public"),
         ("/metrics", "GET", "public"),
         ("/readyz", "GET", "public"),

@@ -21,9 +21,15 @@
 //! Authorisation (A-07) is pure too: permission names and token scopes ([`scope`]), the
 //! permission matrix and the one decision function ([`policy`]) and the zone-level rules for
 //! who may host where ([`hosting`]).
+//!
+//! Local accounts (A-03) add login names, e-mail addresses, the password policy and the
+//! account request documents ([`account`]), the login throttle ([`throttle`]) and the client
+//! address behind trusted proxies ([`client_ip`]).
 
+pub mod account;
 pub mod authorization;
 pub mod body;
+pub mod client_ip;
 pub mod cookie;
 pub mod csrf;
 pub mod etag;
@@ -36,6 +42,7 @@ pub mod scope;
 pub mod session;
 pub mod settings;
 pub mod subdomain;
+pub mod throttle;
 pub mod token;
 
 pub use path::{PathError, SafeRelPath};

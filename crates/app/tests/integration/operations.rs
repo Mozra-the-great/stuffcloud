@@ -19,6 +19,7 @@ fn auth_settings() -> AuthSettings {
     AuthSettings {
         app_origin: stuffcloud_core::csrf::Origin::parse(APP_ORIGIN.as_bytes()).unwrap(),
         timeouts: TIMEOUTS,
+        max_sessions: 10,
     }
 }
 
@@ -44,6 +45,7 @@ async fn readiness_fails_on_an_unmigrated_database() {
         Arc::new(SystemClock),
         Limits::default(),
         auth_settings(),
+        crate::common::cheap_accounts(),
     );
     let app = router(state);
     let response =
@@ -178,6 +180,7 @@ async fn slow_requests_hit_the_time_limit() {
         Arc::new(SystemClock),
         limits,
         auth_settings(),
+        crate::common::cheap_accounts(),
     );
     // The middleware of the real router around a handler that is too slow and one that is not.
     let app = axum::Router::new()

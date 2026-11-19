@@ -12,12 +12,12 @@
 //! { "version": 1, "settings": { "reserved-names": { "names": ["intranet", "wiki"] } } }
 //! ```
 //!
-//! Only the resources that exist so far are accepted (the settings group
-//! `reserved-names`); every problem in the file is reported at once with a JSON Pointer, and
+//! Only the resources that exist so far are accepted (the settings groups `reserved-names` and
+//! `signup`); every problem in the file is reported at once with a JSON Pointer, and
 //! the app refuses to start. The file never holds secrets (ADR 0010 decision 4). YAML
 //! arrives with the CLI's `validate`/`plan`/`apply` (H-13, #57), which shares this format.
-//! The first admin and the bootstrap token are refused in `config` until accounts and
-//! tokens exist.
+//! The first admin (`STUFFCLOUD_BOOTSTRAP_ADMIN_*`, the local break-glass admin) is created in
+//! the same transaction; the bootstrap token is refused in `config` until tokens exist (A-08).
 
 use std::fmt;
 use std::path::Path;
@@ -25,8 +25,8 @@ use std::path::Path;
 use serde_json::Value;
 use stuffcloud_core::body::{Writable, canonical, parse_writable_value};
 use stuffcloud_core::field::{FieldError, FieldErrorCode, JsonPointer};
-use stuffcloud_core::settings::ReservedNames;
-use stuffcloud_db::{BootstrapOutcome, Change, Database, DbError};
+use stuffcloud_core::settings::{ReservedNames, Signup};
+use stuffcloud_db::{BootstrapOutcome, Change, Database, DbError, NewAccount};
 
 use crate::settings::KIND;
 
@@ -157,9 +157,19 @@ pub fn parse_file(bytes: &[u8]) -> Result<Vec<BootstrapWrite>, BootstrapError> {
                 };
                 for (group, document) in groups {
                     let group_at = at.key(&group);
-                    if group == ReservedNames::GROUP {
-                        match parse_resource::<ReservedNames>(document, &group_at) {
-                            Ok(body) => writes.push((KIND, ReservedNames::GROUP, body)),
+                    let parsed = if group == ReservedNames::GROUP {
+                        Some((
+                            ReservedNames::GROUP,
+                            parse_resource::<ReservedNames>(document, &group_at),
+                        ))
+                    } else if group == Signup::GROUP {
+                        Some((Signup::GROUP, parse_resource::<Signup>(document, &group_at)))
+                    } else {
+                        None
+                    };
+                    if let Some((name, result)) = parsed {
+                        match result {
+                            Ok(body) => writes.push((KIND, name, body)),
                             Err(found) => errors.extend(found),
                         }
                     } else {
@@ -193,9 +203,17 @@ pub fn parse_file(bytes: &[u8]) -> Result<Vec<BootstrapWrite>, BootstrapError> {
 pub fn run(
     db: &Database,
     file: Option<&Path>,
+    admin: Option<&NewAccount<'_>>,
     now: i64,
 ) -> Result<BootstrapReport, BootstrapError> {
     if let Some(at) = db.bootstrapped_at().map_err(BootstrapError::Database)? {
+        if admin.is_some() {
+            tracing::info!(
+                target: "stuffcloud::bootstrap",
+                bootstrapped_at = at,
+                "the instance is already bootstrapped; STUFFCLOUD_BOOTSTRAP_ADMIN_* is ignored (the first admin exists)"
+            );
+        }
         if file.is_some() {
             tracing::info!(
                 target: "stuffcloud::bootstrap",
@@ -223,6 +241,7 @@ pub fn run(
                 .iter()
                 .map(|(kind, key, body)| (*kind, *key, body.clone()))
                 .collect::<Vec<_>>(),
+            admin,
             now,
         )
         .map_err(BootstrapError::Database)?;
@@ -398,7 +417,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            run(&db, Some(&file), 1000).unwrap(),
+            run(&db, Some(&file), None, 1000).unwrap(),
             BootstrapReport::Applied(vec![Change::Created])
         );
         let stored = db.get(KIND, "reserved-names").unwrap().unwrap();
@@ -407,13 +426,13 @@ mod tests {
         // A later start: the file may even be gone or broken now.
         std::fs::write(&file, "not json").unwrap();
         assert_eq!(
-            run(&db, Some(&file), 2000).unwrap(),
+            run(&db, Some(&file), None, 2000).unwrap(),
             BootstrapReport::Ignored {
                 bootstrapped_at: 1000
             }
         );
         assert_eq!(
-            run(&db, None, 3000).unwrap(),
+            run(&db, None, None, 3000).unwrap(),
             BootstrapReport::Ignored {
                 bootstrapped_at: 1000
             }
@@ -424,7 +443,10 @@ mod tests {
     #[test]
     fn first_start_without_a_file_still_counts() {
         let (dir, db) = database();
-        assert_eq!(run(&db, None, 5).unwrap(), BootstrapReport::Applied(vec![]));
+        assert_eq!(
+            run(&db, None, None, 5).unwrap(),
+            BootstrapReport::Applied(vec![])
+        );
         let file = dir.path().join("late.json");
         std::fs::write(
             &file,
@@ -432,7 +454,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            run(&db, Some(&file), 6).unwrap(),
+            run(&db, Some(&file), None, 6).unwrap(),
             BootstrapReport::Ignored { bootstrapped_at: 5 }
         );
         assert_eq!(db.get(KIND, "reserved-names").unwrap(), None);
@@ -443,7 +465,7 @@ mod tests {
         let (dir, db) = database();
         let missing = dir.path().join("missing.json");
         assert!(matches!(
-            run(&db, Some(&missing), 1),
+            run(&db, Some(&missing), None, 1),
             Err(BootstrapError::Read { .. })
         ));
         let broken = dir.path().join("broken.json");
@@ -453,7 +475,7 @@ mod tests {
         )
         .unwrap();
         assert!(matches!(
-            run(&db, Some(&broken), 1),
+            run(&db, Some(&broken), None, 1),
             Err(BootstrapError::Invalid(_))
         ));
         assert_eq!(db.bootstrapped_at().unwrap(), None, "nothing was recorded");
@@ -476,6 +498,9 @@ mod tests {
                 &ctx,
             )
             .unwrap();
-        assert_eq!(run(&db, None, 2).unwrap(), BootstrapReport::SkippedNotEmpty);
+        assert_eq!(
+            run(&db, None, None, 2).unwrap(),
+            BootstrapReport::SkippedNotEmpty
+        );
     }
 }

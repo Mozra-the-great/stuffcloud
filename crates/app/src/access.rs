@@ -75,7 +75,7 @@ pub struct Declared {
 
 /// The routes of the application and their requirements. Build it, add routes with
 /// [`Endpoints::get`], [`Endpoints::put`] and [`Endpoints::delete`], then take the router and
-/// the declarations with [`Endpoints::into_parts`].
+/// the declarations with [`Endpoints::into_parts`] (actions use [`Endpoints::post`]).
 #[derive(Debug)]
 pub struct Endpoints {
     state: Option<AppState>,
@@ -130,6 +130,16 @@ impl Endpoints {
         T: 'static,
     {
         self.add(Method::PUT, MethodFilter::PUT, path, requirement, handler)
+    }
+
+    /// Adds a `POST` route (actions, SPEC 10.2).
+    #[must_use]
+    pub fn post<H, T>(self, path: &str, requirement: Requirement, handler: H) -> Self
+    where
+        H: Handler<T, AppState>,
+        T: 'static,
+    {
+        self.add(Method::POST, MethodFilter::POST, path, requirement, handler)
     }
 
     /// Adds a `DELETE` route.

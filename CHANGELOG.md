@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Local accounts (A-03, #33; ADR 0005 addendum "local accounts"): login with login name or
+  e-mail address (`POST /api/v1/auth/login`), registration in the sign-up modes `open`,
+  `invite-only` (the default; single-use admin invitations, optionally bound to an address) and
+  `oidc-only` (settings group `signup`), password change (`POST /api/v1/account/password`, ends
+  the other sessions), the own profile (`GET /api/v1/account`), and password reset without SMTP:
+  an admin issues a single-use link valid for 60 minutes
+  (`POST /api/v1/admin/users/{login}/password-reset`) or the operator runs
+  `stuffcloud-app reset-link <login>`; redeeming it (`POST /api/v1/auth/password-reset`) ends
+  every session. Passwords are hashed with Argon2id (OWASP defaults, `STUFFCLOUD_ARGON2_*`, the
+  start-up log reports one hash's time for calibration; at most one hash per core at once) in
+  NFKC form; the policy is length based (12 characters by default) with an optional offline
+  breached-password list (`STUFFCLOUD_PASSWORD_BLOCKLIST_FILE`, no outside requests). An unknown
+  account, a service account and a wrong password get byte-identical answers after exactly one
+  Argon2id check (dummy hash), proven by the enumeration test. Failed logins are throttled in
+  memory per client address (behind `STUFFCLOUD_TRUSTED_PROXIES`) and per typed login name, as a
+  doubling backoff up to 15 minutes instead of a lockout, with an exemption for addresses that
+  logged in before; registrations per address. Sessions per account are capped
+  (`STUFFCLOUD_SESSION_MAX_PER_USER`, default 10, the oldest ends) and expired sessions and tokens
+  are purged every 10 minutes. `STUFFCLOUD_BOOTSTRAP_ADMIN_*` now creates the first admin. New
+  problem types `invalid-credentials`, `signup-closed`, `limit-reached`, `too-many-requests`,
+  field error code `taken`, fuzz targets `account` and `forwarded_for`, migration
+  `0003_accounts`; the `argon2` crate (MIT OR Apache-2.0) is the only new dependency. CodeQL: two query excludes with their reasons in `.github/codeql/codeql-config.yml` (`rust/hard-coded-cryptographic-value`: all hits are fixed test passwords; `rust/weak-sensitive-data-hashing`: SHA-256 is only the lookup key into the public offline breached-password list). `Writable` gets an associated `RULES` list (default: none) and a default `validate`, so a resource without rules (`signup`) needs no empty override. (#142)
 - PDF merge, split and page tools (T-10, #15): three client-side tools (`pdf-merge`, `pdf-split`,
   `pdf-pages`) on pdf-lib 1.17.1 (MIT) for editing and pdf.js 6.5.438 (Apache-2.0) for page
   pictures, both in workers (two pools of two). Merge orders any number of files with

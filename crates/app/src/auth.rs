@@ -83,6 +83,8 @@ pub struct AuthSettings {
     pub app_origin: Origin,
     /// Session lifetimes.
     pub timeouts: Timeouts,
+    /// The most sessions an account may hold; a login beyond it ends the oldest (A-03).
+    pub max_sessions: usize,
 }
 
 /// An API token that was accepted: its owner (as stored now, so a role change takes effect at
@@ -419,6 +421,7 @@ pub async fn start_session(
         replaces: Authentication::of(parts)
             .session()
             .map(|session| session.id),
+        max_per_user: Some(state.auth().max_sessions),
     };
     let timeouts = state.auth().timeouts;
     let now = state.now_millis();

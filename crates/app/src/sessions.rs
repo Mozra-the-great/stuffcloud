@@ -8,8 +8,9 @@
 //! - `DELETE /auth/session` ends the current session (logout).
 //! - `DELETE /auth/sessions` ends every session of the account (logout everywhere).
 //!
-//! Logging in is not here: it is part of the login flows (A-03 to A-06), which call
-//! [`crate::auth::start_session`].
+//! Logging in is not here: it is part of the login flows (`crate::accounts` for passwords,
+//! A-04 to A-06 for the others), which call [`crate::auth::start_session`] and answer with
+//! [`describe`].
 
 use axum::Json;
 use axum::body::Body;
@@ -17,9 +18,10 @@ use axum::extract::State;
 use axum::http::{Request, StatusCode};
 use axum::response::{IntoResponse, Response};
 use serde::Serialize;
-use stuffcloud_core::session::{Role, UserKind};
+use stuffcloud_core::session::{Role, Timeouts, UserKind};
+use stuffcloud_core::token::Token;
 use stuffcloud_db::auth::actor;
-use stuffcloud_db::token_hash;
+use stuffcloud_db::{Session, token_hash};
 use utoipa::ToSchema;
 
 use crate::auth::{
@@ -88,6 +90,33 @@ fn clear_cookies(response: &mut Response) {
     append_cookie(response.headers_mut(), &CSRF_COOKIE.clear());
 }
 
+/// The session state of an existing session with its CSRF token (after a login, also by
+/// `crate::accounts`).
+///
+/// # Errors
+///
+/// An internal problem for a corrupt timestamp.
+pub fn describe(
+    session: &Session,
+    csrf: &Token,
+    timeouts: Timeouts,
+) -> Result<SessionState, Problem> {
+    Ok(SessionState {
+        authenticated: true,
+        csrf_token: csrf.to_hex(),
+        user: Some(SessionUser {
+            login: session.user.login.clone(),
+            role: session.user.role,
+            kind: session.user.kind,
+        }),
+        session: Some(SessionTimes {
+            created_at: rfc3339(session.created_at)?,
+            idle_expires_at: rfc3339(session.last_seen_at.saturating_add(timeouts.idle_ms))?,
+            absolute_expires_at: rfc3339(session.created_at.saturating_add(timeouts.absolute_ms))?,
+        }),
+    })
+}
+
 fn no_session() -> Problem {
     Problem::with_detail(ProblemKind::Unauthenticated, "there is no session")
 }
@@ -111,31 +140,16 @@ async fn session_state(state: &AppState, request: Request<Body>) -> Result<Respo
         let hash = token_hash(&token);
         let _bound = state.db(move |db| db.set_session_csrf(id, &hash)).await?;
     }
-    let timeouts = state.auth().timeouts;
-    let (user, times) = match session {
-        None => (None, None),
-        Some(session) => (
-            Some(SessionUser {
-                login: session.user.login.clone(),
-                role: session.user.role,
-                kind: session.user.kind,
-            }),
-            Some(SessionTimes {
-                created_at: rfc3339(session.created_at)?,
-                idle_expires_at: rfc3339(session.last_seen_at.saturating_add(timeouts.idle_ms))?,
-                absolute_expires_at: rfc3339(
-                    session.created_at.saturating_add(timeouts.absolute_ms),
-                )?,
-            }),
-        ),
+    let body = match session {
+        None => SessionState {
+            authenticated: false,
+            csrf_token: token.to_hex(),
+            user: None,
+            session: None,
+        },
+        Some(session) => describe(session, &token, state.auth().timeouts)?,
     };
-    let mut response = Json(SessionState {
-        authenticated: session.is_some(),
-        csrf_token: token.to_hex(),
-        user,
-        session: times,
-    })
-    .into_response();
+    let mut response = Json(body).into_response();
     if keep {
         append_cookie(response.headers_mut(), &CSRF_COOKIE.set(&token, None));
     }
@@ -234,31 +248,13 @@ pub async fn delete_sessions(State(state): State<AppState>, request: Request<Bod
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use super::*;
-    use crate::access::MatrixPolicy;
-    use crate::auth::AuthSettings;
-    use crate::config::Limits;
-    use crate::state::SystemClock;
 
     #[tokio::test]
     async fn the_handlers_still_refuse_a_request_without_a_session() {
         // The route guard turns anonymous clients away before the handlers run; the handlers
         // do not rely on it for the type they need.
-        let dir = tempfile::tempdir().unwrap();
-        let db = Arc::new(stuffcloud_db::Database::open(&dir.path().join("s.sqlite3")).unwrap());
-        let state = AppState::new(
-            db,
-            Arc::new(MatrixPolicy),
-            Arc::new(SystemClock),
-            Limits::default(),
-            AuthSettings {
-                app_origin: stuffcloud_core::csrf::Origin::parse(b"https://app.example.com")
-                    .unwrap(),
-                timeouts: stuffcloud_core::session::Timeouts::default(),
-            },
-        );
+        let state = crate::state::tests::state();
         let one = end_session(&state, Request::new(Body::empty()))
             .await
             .unwrap_err();

@@ -4,7 +4,8 @@
   (the zone wording of decisions 1 and 6 and the second consequence: anonymous hosting is
   per site and per zone, session cookies are `__Host-` cookies with `Origin` and CSRF checks
   because sites may share the app's registrable domain; the other decisions stay accepted).
-  Sessions, CSRF and the data model: see "Addendum: sessions, CSRF and the auth data model"
+  Sessions, CSRF and the data model: see "Addendum: sessions, CSRF and the auth data model"; local
+  accounts, sign-up modes and password reset: see "Addendum: local accounts"
 - Date: 2026-11-05 (SPEC draft 0.2; carried into draft 0.3 on 2026-11-14)
 - Decided in: [SPEC 6](../SPEC.md#6-users-roles-and-authentication)
 
@@ -293,3 +294,90 @@ Alternatives considered:
 - **Copying the scopes and the role into the token**: rejected; a role change would then need a
   token sweep, and a demoted admin's token would keep working until it expired.
 
+
+## Addendum: local accounts (2026-11-19, A-03)
+
+A-03 ([#33](https://github.com/Mozra-the-great/stuffcloud/issues/33)) implements decisions 2
+(passwords; passkeys and TOTP follow in A-04/A-05), 4 (the break-glass admin), 5 (sign-up modes)
+and 7 (reset without SMTP), and the session cap, login throttling and periodic purge asked for in
+the security review of A-02. No decision above changes.
+
+- **Argon2id** (`argon2` crate, RustCrypto, MIT OR Apache-2.0), version 19, 16-byte random salt,
+  stored as a PHC string in `credentials` (at most one password per account). Defaults are
+  OWASP's first recommendation (19 MiB, 2 iterations, 1 lane), configurable through
+  `STUFFCLOUD_ARGON2_MEMORY_KIB` / `_ITERATIONS` / `_PARALLELISM` (memory 7 MiB to 1 GiB). The
+  start-up log line "password hashing ready" reports how long one hash took (`hash_ms`); the
+  operator raises the memory until it nears a few hundred milliseconds or lowers it on a small
+  host, keeping one of OWASP's equivalent pairs (46 MiB x 1, 19 MiB x 2, 12 MiB x 3, 9 MiB x 4,
+  7 MiB x 5). A hash made with other parameters is replaced at the next successful login.
+  Hashing runs on the blocking pool (decision 8) behind a semaphore of as many slots as the host
+  has cores (at most 16), so a login flood queues (and meets the request time limit) instead of
+  exhausting memory. Passwords are hashed and compared in NFKC (NIST SP 800-63B).
+- **No enumeration by answer or timing.** An unknown login name or address, a service account,
+  an account without a password and a wrong password all get the same 401 `invalid-credentials`
+  document after exactly one Argon2id check: accounts without a stored hash are checked against
+  a dummy hash made at start-up with the current parameters. The failed-login audit row of an
+  existing account is written in the background, so the answer does not wait for a write that an
+  unknown account would not cause. The test counts the Argon2 checks per path instead of timing
+  them (timing tests are flaky; the count is what makes the time equal). Residual: a hash made
+  with older parameters takes a different time until the account's next login rehashes it.
+  Registration tells whether a login name or address is taken (unavoidable without verifying the
+  address by e-mail, A-10); in `invite-only` the invitation is checked first, so only holders of
+  a valid invitation can ask, and registrations are throttled per client address.
+- **Password policy**, length based: at least 12 characters (`STUFFCLOUD_PASSWORD_MIN_LENGTH`, 8
+  to 128), at most 256 (1024 bytes, also the bound of every password field before hashing), not
+  the login name, the address or its local part, not one repeated character. The breached-password
+  check is an **offline** list the operator may supply (`STUFFCLOUD_PASSWORD_BLOCKLIST_FILE`, one
+  password per line, kept in memory as 64-bit SHA-256 prefixes); stuffcloud never contacts a
+  breach service (no k-anonymity request either: the API is LAN-only and must work without
+  internet).
+- **Throttling instead of lockout** (in memory, never stored or logged; `app::throttle`). Per
+  client address (the TCP peer; behind the proxies listed in `STUFFCLOUD_TRUSTED_PROXIES` the
+  right-most untrusted `X-Forwarded-For` entry; IPv6 by /64): 20 free failures (failed logins,
+  wrong current passwords, unknown reset tokens), then waits of 1 s doubling to 15 minutes. Per
+  typed login name or address (hashed, so the table holds no names): 10 free failures, then the
+  same waits; it counts unknown names exactly like known ones. Registrations: 5 per address, then
+  waits from one minute to an hour. A throttled attempt is answered 429 with `Retry-After`
+  without being checked. **Trade-off of the per-account rule:** an attacker with a few addresses
+  can keep an account waiting. It is bounded: the wait never exceeds 15 minutes and every attempt
+  after it is checked again (no lockout an attacker could extend indefinitely), and an address
+  that logged in to the account within the last 30 days skips the per-account rule (it keeps its
+  own address rule), so the owner's usual devices are not affected. A client behind the same NAT
+  as an attacker shares the address rule; that is the price of throttling by address at all.
+  The tables are bounded (50 000 keys each; forgotten keys first, then the oldest) and forgotten
+  on restart.
+- **Sessions:** login and registration start the session through `auth::start_session` (the
+  presented session ends: no fixation; the answer carries the new CSRF token). At most
+  `STUFFCLOUD_SESSION_MAX_PER_USER` sessions per account (default 10): the oldest beyond it end
+  (`session.evicted`). Expired sessions, invitations and reset tokens are purged every 10 minutes
+  besides the purges on login, lookup and start.
+- **Sign-up modes** (settings group `signup`, default `invite-only`): `open`, `invite-only`
+  (single-use invitations created by an admin, 1 to 720 hours, optionally bound to one address,
+  at most 1000 pending), `oidc-only` (no local registration; admins still have the break-glass
+  account). Anonymous writes (login, register, reset) pass the `Origin` and CSRF checks like any
+  write (#134).
+- **Password reset without SMTP:** an admin asks for a link
+  (`POST /api/v1/admin/users/{login}/password-reset`), or the operator runs
+  `stuffcloud-app reset-link <login>` on the host (the break-glass path when no admin can log
+  in). The token is 32 random bytes, stored as SHA-256, valid for 60 minutes, single use, one per
+  account (a new one replaces the old); the link carries it after `#`, so it never reaches a
+  server log or a `Referer`. Redeeming it sets the password and ends every session of the
+  account. A-10 adds the self-service request over e-mail on the same table.
+- **Bootstrap admin:** `STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN`, `_EMAIL` (optional) and `_PASSWORD`
+  or `_PASSWORD_FILE` create the first admin in the bootstrap transaction on the first start; a
+  weak or listed password stops the start. Later starts ignore the variables with a log line.
+- **Audit:** `user.created`, `password.changed`, `password.reset_issued`, `password.reset`,
+  `invitation.created`, `invitation.used`, `invitation.revoked`, `login.failed` (existing
+  accounts only, at most once a minute per account), `session.evicted`,
+  `session.ended_by_password_change`, `session.ended_by_password_reset`: internal ids only.
+
+Alternatives considered:
+
+- **Account lockout after N failures:** rejected; anyone could lock out any account by typing
+  wrong passwords. The backoff with the known-address exemption limits guessing without that.
+- **bcrypt or scrypt:** Argon2id is OWASP's first choice and memory hard; bcrypt truncates at 72
+  bytes.
+- **An online breach check (k-anonymity range queries):** rejected for now; the app runs in the
+  LAN and must not depend on an outside service. The offline list gives the same check.
+- **A timing test with a stopwatch:** rejected as flaky; counting the Argon2 checks proves the
+  equal work deterministically.

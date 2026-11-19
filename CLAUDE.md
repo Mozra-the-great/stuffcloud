@@ -19,14 +19,16 @@ phase that needs them; each new crate inherits `[workspace.lints]` (`[lints] wor
 ```
 crates/core/    domain types + validation (SafeRelPath, Subdomain), API building blocks (etag,
                 query, body + field errors, settings shapes), auth building blocks (token,
-                cookie: `__Host-` cookies + Cookie lookup, csrf: Origin + CSRF check, session:
-                timeouts, roles), no I/O
+                authorization: the Authorization header (only a well-formed Bearer skips CSRF),
+                cookie: `__Host-` cookies + `SetCookie` + Cookie lookup, csrf: Origin + CSRF
+                check, session: timeouts, roles), no I/O
   tests/        properties.rs, api_properties.rs, auth_properties.rs (proptest), regression.rs (attack corpus)
 crates/db/      SQLite (rusqlite, WAL): migrations/ + runner, resource store, audit log, bootstrap,
                 auth.rs (users, hashed sessions, timeouts, rotation, security audit events)
 crates/app/     LAN API (axum): config (env + _FILE), resource conventions (resource.rs), problem
                 details, auth.rs (session cookie + CSRF middleware, the only place that sets
-                cookies), sessions.rs (session endpoints), health/metrics, telemetry, bootstrap,
+                cookies), sessions.rs (session endpoints), sampler.rs (rate-limited log lines),
+                health/metrics, telemetry, bootstrap,
                 OpenAPI (utoipa), CLI (`serve`, `healthcheck`, `openapi`); tests/integration
                 (router, auth: cookies/CSRF of every route, log redaction, process)
 docker/app/     Dockerfile (distroless, non-root) + bootstrap.dev.json for the dev stack
@@ -49,7 +51,7 @@ rust-toolchain.toml  pinned stable (same as rust-version in Cargo.toml)
 scripts/ci/     label script (opt-in via LABELS_ENABLED), npm license gate (license_gate.py,
                 license-policy.toml), THIRD-PARTY.md generator (third_party.py), container
                 hardening gate (check_container_hardening.py), dev stack smoke test
-                (dev_stack_smoke.py), cookie scope gate (check_cookies.py), tests
+                (dev_stack_smoke.py), cookie scope gate (check_cookies.py: Rust, Cargo.toml, Caddyfiles, web/), tests
 compose.dev.yml local dev stack (Caddy, app, Mailpit; `edge` joins with H-19); docker/caddy/
                 Caddyfile.dev, placeholder site, Dockerfile (web build baked in); .env.example
 docs/           SPEC.md, ACCESSIBILITY.md (a11y gate, keyboard map), adr/ (architecture decision
@@ -69,7 +71,7 @@ cargo deny check && cargo deny --manifest-path fuzz/Cargo.toml check
 cargo +nightly-2026-11-01 fuzz run safe_rel_path fuzz/corpus/safe_rel_path \
     fuzz/seeds/safe_rel_path -- -dict=fuzz/dicts/stuffcloud.dict -max_total_time=60
 python -m unittest discover -s scripts/ci -p "test_*.py"   # CI helper tests (Python 3.11+)
-python scripts/ci/check_cookies.py            # no cookie with a Domain attribute, Set-Cookie only in app/src/auth.rs
+python scripts/ci/check_cookies.py            # no cookie with a Domain attribute, Set-Cookie only in app/src/auth.rs, no document.cookie
 python scripts/ci/license_gate.py             # npm license gate (needs pnpm; installs into a temp dir)
 python scripts/ci/third_party.py --write      # regenerate docs/THIRD-PARTY.md after a lockfile change
 cargo run -q -p stuffcloud-app -- openapi > docs/api/openapi.json   # after a handler change, then:

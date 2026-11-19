@@ -3,7 +3,7 @@
 
 use std::fmt;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use axum::http::request::Parts;
 use stuffcloud_core::session::Role;
@@ -13,6 +13,7 @@ use crate::auth::{AuthSettings, Authentication};
 use crate::config::Limits;
 use crate::metrics::Metrics;
 use crate::problem::{Problem, ProblemKind};
+use crate::sampler::LogSampler;
 
 /// What a request wants to do with a resource.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,6 +82,10 @@ impl Clock for SystemClock {
     }
 }
 
+/// At most one log line per this interval for refused cross-site requests (#135); the exact
+/// count is in the metrics.
+pub const REJECTION_LOG_INTERVAL: Duration = Duration::from_secs(10);
+
 /// Everything a handler needs. Cheap to clone.
 #[derive(Debug, Clone)]
 pub struct AppState {
@@ -95,6 +100,7 @@ struct Inner {
     metrics: Metrics,
     limits: Limits,
     auth: AuthSettings,
+    rejection_log: LogSampler,
 }
 
 impl AppState {
@@ -115,6 +121,7 @@ impl AppState {
                 metrics: Metrics::new(),
                 limits,
                 auth,
+                rejection_log: LogSampler::new(REJECTION_LOG_INTERVAL),
             }),
         }
     }
@@ -123,6 +130,12 @@ impl AppState {
     #[must_use]
     pub fn auth(&self) -> &AuthSettings {
         &self.inner.auth
+    }
+
+    /// The rate limit of the log lines for refused requests.
+    #[must_use]
+    pub fn rejection_log(&self) -> &LogSampler {
+        &self.inner.rejection_log
     }
 
     /// The access policy.

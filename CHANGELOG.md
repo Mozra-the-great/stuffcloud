@@ -263,6 +263,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   available; D6: workflows are copied per repo, no central reusable workflows).
 
 ### Fixed
+- Auth hardening after the security review of A-02 (#134 to #137): only a well-formed
+  `Authorization: Bearer` header skips the Origin and CSRF checks, another scheme (`Basic`,
+  `Digest`, `Negotiate`, ...) is ignored and a malformed `Bearer` header or several
+  `Authorization` headers answer 401; `GET /api/v1/auth/session` binds a new CSRF token only for
+  same-origin requests (`Sec-Fetch-Site`), session lookups of unknown or fresh sessions no
+  longer take the write lock, refused requests are counted in
+  `stuffcloud_auth_rejections_total{reason}` and logged at most once per 10 seconds, and the
+  typed client repeats a write once with a fresh token (`refreshCsrfToken`); `HostCookie::set`
+  and `clear` return a `SetCookie` that is the only value `append_cookie` takes;
+  `scripts/ci/check_cookies.py` scans every Rust file (tests, `build.rs`, fuzz targets), escaped
+  and `concat!`-ed names, cookie libraries, `Cargo.toml`, Caddy files and `web/`
+  (`document.cookie`), each bypass with a failing fixture; an `Origin` port with a leading zero
+  is refused; the ADR 0005 addendum documents the accepted residual risks (cookie tossing logs a
+  user out, timeouts need a correct clock). New fuzz target `authorization`. (#138)
 - `web/`: the indeterminate `Progress` bar animates `transform` only (stripes on a child one
   stripe period wider than the bar, moved by `translateX` in four steps) instead of
   `background-position`, so it no longer restyles and repaints at every display frame; style recalculations on

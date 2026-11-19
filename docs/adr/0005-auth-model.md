@@ -99,18 +99,18 @@ either record changes.
   lifetime) and `__Host-stuffcloud-csrf` (`SameSite=Strict`), both `Secure`, `HttpOnly`,
   `Path=/`, never `Domain`. The `core` type `HostCookie` cannot express a `Domain` attribute,
   the app reads only these two names byte for byte, and a name given twice counts as absent.
-  CI enforces the rule twice: `scripts/ci/check_cookies.py` (job `repo-checks`, static scan of
-  every crate) and an integration test that sends every route of the OpenAPI document and
-  checks every `Set-Cookie`.
-- **CSRF:** every request other than `GET`, `HEAD`, `OPTIONS` that has no `Authorization`
-  header must carry exactly one `Origin` equal to the app address (`STUFFCLOUD_APP_URL`),
+  CI enforces the rule twice: `scripts/ci/check_cookies.py` (job `repo-checks`, static scan,
+  widened in the follow-up below) and an integration test that sends every route of the OpenAPI
+  document and the fallback, probe and metrics paths and checks every `Set-Cookie`.
+- **CSRF:** every request other than `GET`, `HEAD`, `OPTIONS` that is not an API-token request
+  (a well-formed `Authorization: Bearer` header, see the follow-up below) must carry exactly one `Origin` equal to the app address (`STUFFCLOUD_APP_URL`),
   `Sec-Fetch-Site: same-origin` when the browser sends it, and an `X-CSRF-Token` header equal
   to the CSRF cookie (double submit, compared in constant time). With a session, the token must
   also be the one bound to it (its hash is stored in the session). The check runs for every
   path, also without a session, so the login form is covered. `GET /api/v1/auth/session` hands
-  out the token. A request with an `Authorization` header (API tokens, A-08) is never
-  authenticated by cookie and skips these checks: a browser cannot add that header cross-site
-  without a CORS preflight, which the app never allows.
+  out the token. A request with a well-formed `Authorization: Bearer` header (API tokens, A-08) is
+  never authenticated by cookie and skips these checks: a browser cannot add that header
+  cross-site without a CORS preflight, which the app never allows.
 - **Lifetimes:** idle timeout (`STUFFCLOUD_SESSION_IDLE_MINUTES`, default 480) and absolute
   timeout (`STUFFCLOUD_SESSION_ABSOLUTE_HOURS`, default 168), applied on every lookup; expired
   sessions are deleted when seen, on every login and at startup. Use is recorded at most once a
@@ -138,3 +138,92 @@ Alternatives considered:
 - **`Origin` check alone:** the issue and ADR 0009 require a token as well; the token also
   covers clients that strip `Origin` on some requests.
 - **Trusting `SameSite`:** rejected by ADR 0009: hosted sites may be same-site with the app.
+
+
+## Addendum: hardening after the security review of A-02 (2026-11-19, #134 to #137)
+
+The review of [#133](https://github.com/Mozra-the-great/stuffcloud/pull/133) found no way to
+read or forge a session, and four points that this addendum closes or accepts. Nothing in the
+decisions above changes; the paragraphs "CSRF" and "Cookies" are made precise.
+
+- **Only a well-formed bearer token skips the CSRF checks
+  ([#134](https://github.com/Mozra-the-great/stuffcloud/issues/134)).** The first version
+  skipped Origin, `Sec-Fetch-Site` and CSRF token for *any* `Authorization` header. Browsers
+  attach cached HTTP credentials (`Basic`, `Digest`, `Negotiate`, `NTLM`) on their own, also to
+  cross-site form posts, for example when a reverse proxy in front of the app asks for a
+  login; such a request would have run anonymously without a CSRF check. The reasoning "a
+  browser cannot add the header cross-site without a preflight" holds for one credential only,
+  an explicit `Authorization: Bearer <token>`. `stuffcloud_core::authorization::classify` now
+  sorts the header: **exactly one** field, the scheme `Bearer` (any case), one space and a
+  `token68` credential of at most 512 bytes is an API client (cookies ignored, no CSRF check).
+  Any **other scheme** is ignored: the request is handled as if it had no `Authorization`
+  header (cookies work, writes need the CSRF proof), so a proxy that adds `Basic` neither breaks
+  sessions nor opens a hole. A **malformed `Bearer`** header (no or bad credential) or **several
+  fields** are refused with 401, never read as anonymous and never rescued by a cookie. Until
+  the token store of A-08 ([#38](https://github.com/Mozra-the-great/stuffcloud/issues/38)) exists
+  the credential syntax is the only check; A-08 narrows `is_credential` to the real token format
+  and answers 401 for a well-formed token that names no token (never anonymous).
+- **No CSRF rebinding by a cross-site `GET`
+  ([#135](https://github.com/Mozra-the-great/stuffcloud/issues/135)).** `GET /api/v1/auth/session`
+  used to bind a new CSRF token to the session whenever the browser sent the session cookie
+  without a matching CSRF cookie. A cross-site top-level navigation does exactly that (the Lax
+  session cookie is sent, the Strict CSRF cookie is not), so any page could invalidate the token
+  of every open tab (a nuisance, no leak). Chosen fix: **`Sec-Fetch-Site`**. A new token is
+  stored (database and cookie) only when the request is `same-origin` or `none` (typed address,
+  bookmark) or carries no `Sec-Fetch-Site` at all (browsers before 2023 and non-browser clients,
+  which no third party can steer); for anything else the endpoint answers the same JSON but
+  stores nothing and sets no cookie. Rejected alternative: a deterministic token (HMAC of the
+  session secret). It would need a server key with its own rotation and storage, and the stored
+  hash of the session would become redundant; the header check needs no new secret and no
+  state, and the residual case (a browser without fetch metadata) is the situation before the
+  fix, restricted to old browsers. The typed client retries a write **once** with a fresh token
+  when the server refuses it for its CSRF token (`refreshCsrfToken` option; origin and fetch
+  metadata refusals are never retried).
+- **Session lookups no longer take the write lock for nothing
+  ([#135](https://github.com/Mozra-the-great/stuffcloud/issues/135)).** `find_session` reads in a
+  deferred (read-only) transaction first; an unknown token and a valid session whose last use
+  is less than a minute old are answered without a write. Only a touch or the deletion of an
+  expired session opens a write transaction, which looks the row up again (the session may have
+  ended in between). A client that sends random session cookies therefore cannot queue writers
+  behind each other or behind `edge`.
+- **Refusals are counted, their log line is rate limited
+  ([#135](https://github.com/Mozra-the-great/stuffcloud/issues/135)).** Every refusal increments
+  `stuffcloud_auth_rejections_total{reason}` (`reason` is a rule name such as
+  `missing_origin`, `token_mismatch` or `invalid_authorization`, never a request value) and
+  logs one `warn` line per 10 seconds with the number of lines suppressed in between.
+- **A `Set-Cookie` can only be built by `HostCookie`
+  ([#136](https://github.com/Mozra-the-great/stuffcloud/issues/136)).** `HostCookie::set` and
+  `clear` return a `SetCookie`, a newtype with a private field that is the only type the helper
+  `append_cookie` accepts, so no module can attach an arbitrary cookie string. The static gate
+  `scripts/ci/check_cookies.py` is defense in depth and now also scans tests, `build.rs`,
+  benches, fuzz targets and future crates (every `*.rs` of the repository), reads escaped,
+  `concat!`-ed and raw names, sees multi-line `.domain(` calls, `CookieJar`/`Cookie::new`-style
+  library APIs and cookie libraries in `Cargo.toml`, scans `Caddyfile*`/`*.caddy` for
+  `Set-Cookie` and `Domain=`, and `web/` for `document.cookie`, `cookieStore` and cookie
+  libraries (allowlist `WEB_COOKIE_ALLOWLIST`, empty). Every bypass has a failing fixture in
+  `scripts/ci/test_check_cookies.py`. What it cannot see (a header name or attribute assembled
+  at run time from non-literal pieces) is the reason the type, not the scan, is the boundary.
+  The runtime test now also sends the probe, metrics, fallback and bare-prefix paths.
+- **Origin ports are canonical ([#137](https://github.com/Mozra-the-great/stuffcloud/issues/137)).**
+  `Origin::parse` refuses a port with a leading zero (`:0443`): browsers never send one, and
+  accepting it would have made a non-canonical text equal to the app origin.
+
+### Accepted residual risks
+
+- **Cookie tossing can log a user out.** A cookie name that appears twice counts as absent and
+  the app clears the session cookie in its answer. A sibling host under the same registrable
+  domain (a hosted site with scripts) can plant a second `__Host-stuffcloud-session` for the
+  parent domain in browsers that do not enforce the `__Host-` rules for such a cookie, or with
+  the nameless-cookie trick, and so end the user's session on their next request. It reads
+  nothing and gives no access; it is the denial of service already accepted in SPEC 5.5, and
+  the mitigations there apply (restrict the zone to trusted accounts, use a sub-level or
+  another zone, or request a PSL entry). Not sending a clear for an ambiguous cookie would
+  not help: the session would still not be found, and the stale cookie would stay.
+- **Timeouts depend on the wall clock.** Idle and absolute timeouts compare the stored Unix
+  times with the system clock (`SystemClock`). A clock that jumps forward ends sessions early,
+  one that jumps back extends them until it catches up; an operator who needs the timeouts to
+  hold keeps the host in sync (NTP or chrony). The database stores no monotonic time because it
+  must survive restarts and be shared with `edge`.
+- **Browsers without `Sec-Fetch-Site`** still let a cross-site navigation rebind the CSRF token
+  of a session whose CSRF cookie is missing, as before the fix (see above); the effect is a
+  failed write that the client repeats with a fresh token.

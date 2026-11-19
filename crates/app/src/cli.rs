@@ -568,7 +568,7 @@ mod tests {
             .with("STUFFCLOUD_APP_URL", "http://stuff.localhost")
             .with("STUFFCLOUD_DATA_DIR", dir.path().to_str().unwrap())
             .with("STUFFCLOUD_ARGON2_MEMORY_KIB", "7168")
-            .with("STUFFCLOUD_ARGON2_ITERATIONS", "1")
+            .with("STUFFCLOUD_ARGON2_ITERATIONS", "5")
             .with("STUFFCLOUD_PASSWORD_BLOCKLIST_FILE", list.to_str().unwrap())
             .with("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN", "root")
             .with(

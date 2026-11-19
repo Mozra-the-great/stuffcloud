@@ -32,6 +32,19 @@ pub fn is_safe_method(method: &str) -> bool {
     matches!(method, "GET" | "HEAD" | "OPTIONS")
 }
 
+/// Whether a request may bind a new CSRF token to a session (#135). A cross-site navigation
+/// to `GET /api/v1/auth/session` carries the `SameSite=Lax` session cookie but not the `Strict`
+/// CSRF cookie, so the cookie looks lost; if that request were allowed to replace the stored
+/// token, any page could make every open tab of the user fail its next write. A request may bind
+/// when the browser says it comes from the app itself (`same-origin`) or from the user (`none`:
+/// typed address, bookmark), or when it sends no `Sec-Fetch-Site` at all (old browsers and
+/// non-browser clients, which are not exposed to cross-site navigation by a third party). Any
+/// other value, or the header given more than once, does not.
+#[must_use]
+pub fn may_bind_token(fetch_sites: &[&[u8]]) -> bool {
+    matches!(fetch_sites, [] | [b"same-origin" | b"none"])
+}
+
 /// The scheme of an origin.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Scheme {
@@ -83,7 +96,7 @@ pub enum OriginError {
     /// The host is empty, too long or has a character other than a letter, digit, `-` or
     /// `.` (or is a bracketed IPv6 address with other characters).
     Host,
-    /// The port is not a number from 1 to 65535.
+    /// The port is not a number from 1 to 65535 written without a leading zero.
     Port,
     /// There is more after the host and port (a path, query, fragment or user information).
     Trailing,
@@ -172,8 +185,10 @@ impl Origin {
             scheme.default_port()
         } else {
             let digits = port.strip_prefix(':').ok_or(OriginError::Trailing)?;
-            // `parse` alone would also take a sign; empty and too large fail there.
-            if !digits.bytes().all(|byte| byte.is_ascii_digit()) {
+            // `parse` alone would also take a sign; empty and too large fail there. A leading
+            // zero (`:0443`) is not how a browser writes a port: it never sends one, so such a
+            // text is no origin of a browser and also covers port 0.
+            if digits.starts_with('0') || !digits.bytes().all(|byte| byte.is_ascii_digit()) {
                 return Err(OriginError::Port);
             }
             digits
@@ -352,6 +367,27 @@ mod tests {
     }
 
     #[test]
+    fn only_the_app_or_the_user_may_bind_a_token() {
+        assert!(may_bind_token(&[]));
+        assert!(may_bind_token(&[b"same-origin"]));
+        assert!(may_bind_token(&[b"none"]));
+        for site in [
+            &b"same-site"[..],
+            b"cross-site",
+            b"Same-Origin",
+            b"NONE",
+            b"",
+            b"none ",
+            b"other",
+        ] {
+            assert!(!may_bind_token(&[site]), "{site:?}");
+        }
+        assert!(!may_bind_token(&[b"same-origin", b"same-origin"]));
+        assert!(!may_bind_token(&[b"none", b"same-origin"]));
+        assert!(!may_bind_token(&[b"same-origin", b"cross-site"]));
+    }
+
+    #[test]
     fn origins_parse_and_normalise() {
         let cases: &[(&str, Scheme, &str, u16, &str)] = &[
             (
@@ -474,6 +510,11 @@ mod tests {
             (b"https://[::1]x", OriginError::Trailing),
             (b"https://app.example.com:", OriginError::Port),
             (b"https://app.example.com:0", OriginError::Port),
+            (b"https://app.example.com:00", OriginError::Port),
+            (b"https://app.example.com:0443", OriginError::Port),
+            (b"https://app.example.com:080", OriginError::Port),
+            (b"http://app.example.com:08080", OriginError::Port),
+            (b"https://[2001:db8::1]:0443", OriginError::Port),
             (b"https://app.example.com:65536", OriginError::Port),
             (b"https://app.example.com:123456", OriginError::Port),
             (b"https://app.example.com:+1", OriginError::Port),

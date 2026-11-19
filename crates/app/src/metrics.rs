@@ -47,6 +47,14 @@ pub struct RouteLabels {
     pub route: String,
 }
 
+/// Labels of the counter of refused authentication and CSRF checks.
+#[derive(Debug, Clone, Hash, PartialEq, Eq, EncodeLabelSet)]
+pub struct ReasonLabels {
+    /// Why the request was refused: one of the fixed rule names of
+    /// `stuffcloud_core::csrf::CsrfRefusal::code` or `invalid_authorization`.
+    pub reason: String,
+}
+
 type HistogramFamily = Family<RouteLabels, Histogram, fn() -> Histogram>;
 
 fn latency_histogram() -> Histogram {
@@ -59,6 +67,7 @@ pub struct Metrics {
     registry: Registry,
     requests: Family<RequestLabels, Counter>,
     durations: HistogramFamily,
+    rejections: Family<ReasonLabels, Counter>,
 }
 
 impl fmt::Debug for Metrics {
@@ -105,6 +114,12 @@ impl Metrics {
             "Time to answer an HTTP request, by method and route",
             durations.clone(),
         );
+        let rejections = Family::<ReasonLabels, Counter>::default();
+        registry.register(
+            "auth_rejections",
+            "Requests refused by the CSRF checks or an invalid Authorization header, by rule",
+            rejections.clone(),
+        );
         registry.register(
             "build",
             "Version of the running build",
@@ -117,7 +132,19 @@ impl Metrics {
             registry,
             requests,
             durations,
+            rejections,
         }
+    }
+
+    /// Records one request refused by an authentication rule. `reason` must come from a fixed
+    /// set of rule names (never from the request), so the label stays bounded.
+    pub fn record_rejection(&self, reason: &'static str) {
+        let _total = self
+            .rejections
+            .get_or_create(&ReasonLabels {
+                reason: reason.to_owned(),
+            })
+            .inc();
     }
 
     /// Records one answered request.
@@ -223,6 +250,20 @@ mod tests {
         )));
         assert!(text.ends_with("# EOF\n"));
         assert_eq!(format!("{metrics:?}"), "Metrics");
+    }
+
+    #[test]
+    fn renders_rejections_by_reason() {
+        let metrics = Metrics::default();
+        metrics.record_rejection("missing_origin");
+        metrics.record_rejection("missing_origin");
+        metrics.record_rejection("token_mismatch");
+        let text = metrics.render().unwrap();
+        assert!(
+            text.contains("stuffcloud_auth_rejections_total{reason=\"missing_origin\"} 2"),
+            "{text}"
+        );
+        assert!(text.contains("stuffcloud_auth_rejections_total{reason=\"token_mismatch\"} 1"));
     }
 
     #[test]

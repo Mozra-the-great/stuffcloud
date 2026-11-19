@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Crypto misuse gate (#148; #151): `scripts/ci/check_crypto.py` in `repo-checks` lets salted
+  password hashes, keys or salts from literal bytes and SHA-2 appear in product code only at
+  the reviewed call sites (listed with reason and exact count), and fails on MD5, MD4 and SHA-1
+  in code or as a dependency; it compensates the repository-wide CodeQL excludes of A-03.
 - Local accounts (A-03, #33; ADR 0005 addendum "local accounts"): login with login name or
   e-mail address (`POST /api/v1/auth/login`), registration in the sign-up modes `open`,
   `invite-only` (the default; single-use admin invitations, optionally bound to an address) and

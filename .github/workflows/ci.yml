@@ -74,6 +74,13 @@ jobs:
       - name: No cookie with a Domain attribute
         run: python3 scripts/ci/check_cookies.py
 
+      # Crypto misuse gate (#148): compensates the repository-wide CodeQL excludes of
+      # rust/hard-coded-cryptographic-value and rust/weak-sensitive-data-hashing. Salted
+      # password hashes, keys from literal bytes and SHA-2 may appear in product code only at
+      # the reviewed call sites listed with their reasons; MD5, MD4 and SHA-1 never.
+      - name: No crypto misuse in product code
+        run: python3 scripts/ci/check_crypto.py
+
       # The hash of the design sources must match docs/design/pdf-source.sha256,
       # which build.py writes with the PDF. Fails when docs/design changed without
       # a PDF rebuild.

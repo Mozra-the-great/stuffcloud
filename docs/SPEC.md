@@ -687,7 +687,7 @@ On every PR and push (`ci.yml`):
 | `e2e` | Playwright in Chromium and Firefox against the built app: app shell, tool registry, worker pool in a real browser, and the privacy test (no request carries file content, no request leaves the own origin or is anything but a `GET` of an own asset); no retries; axe joins with T-05 |
 | `codeql` | CodeQL `security-extended` for Rust, Python and the workflows (JavaScript/TypeScript with `web/`); fails on any result, also weekly on `main` |
 | `supply-chain` | `cargo-deny`: RustSec advisories (incl. unmaintained, unsound, yanked), licenses (section 3), crates.io only, no wildcard versions |
-| `repo-checks` | CI helper tests, design PDF is current, cookie scope gate (`check_cookies.py`: no `Domain` attribute, `Set-Cookie` only in the cookie module) |
+| `repo-checks` | CI helper tests, design PDF is current, cookie scope gate (`check_cookies.py`: no `Domain` attribute, `Set-Cookie` only in the cookie module), crypto misuse gate (`check_crypto.py`) |
 
 Nightly and on demand (`deep-tests.yml`, not required, failures handled like a red
 PR): fuzzing for 45 minutes per target that grows and minimises the shared
@@ -738,6 +738,11 @@ Test layers and what each must cover:
   libraries and `document.cookie`, in addition to the per-route tests (which also cover the
   probe, metrics and fallback paths). It is defense in depth: the `SetCookie` type is the
   boundary.
+- **Crypto check** (since #148): `scripts/ci/check_crypto.py` compensates the repository-wide
+  CodeQL excludes of `rust/hard-coded-cryptographic-value` and `rust/weak-sensitive-data-hashing`:
+  in product code (outside tests and `#[cfg(test)]`) a salted password hash, a key or salt from
+  literal bytes and SHA-2 hashing may appear only at the reviewed call sites listed with their
+  reason and exact count; MD5, MD4 and SHA-1 fail in code and as a dependency.
 - **Listener tests** (hosting): on the tunnel listener the app address, internal sites
   and unknown names give the same response; forged `Host`, `X-Forwarded-*` and tunnel
   headers on the LAN listener never make a request count as coming from the internet.

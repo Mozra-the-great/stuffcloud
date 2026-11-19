@@ -338,11 +338,9 @@ pub fn check(request: &CsrfRequest<'_>, app: &Origin) -> Result<CsrfPass, CsrfRe
     let cookie = request.cookie.value().ok_or(CsrfRefusal::MissingToken)?;
     let token = Token::parse(header).map_err(|_malformed| CsrfRefusal::MalformedToken)?;
     let cookie_token = Token::parse(cookie).map_err(|_malformed| CsrfRefusal::MalformedToken)?;
-    if constant_time_eq(token.as_bytes(), cookie_token.as_bytes()) {
-        Ok(CsrfPass::Verified(token))
-    } else {
-        Err(CsrfRefusal::TokenMismatch)
-    }
+    constant_time_eq(token.as_bytes(), cookie_token.as_bytes())
+        .then_some(CsrfPass::Verified(token))
+        .ok_or(CsrfRefusal::TokenMismatch)
 }
 
 #[cfg(test)]

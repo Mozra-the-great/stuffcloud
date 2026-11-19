@@ -152,6 +152,7 @@ export default defineTool({
 <ToolFrame id=${JSON.stringify(id)} />
 `,
     [`tests/tools/${id}.test.ts`]: renderTest(options),
+    [`e2e/specs/${id}.spec.ts`]: renderSpec(options),
   };
   if (worker) {
     files[`${dir}/task.ts`] = `import type { TaskContext } from '@stuffcloud/tools';
@@ -251,6 +252,37 @@ describe(${quote(id)}, () => {
   it('is found by search and listed with its category', async () => {
     const view = await openTool(manifest);
     expect(view.searchHits(${quote(name.toLowerCase())})).toEqual([${quote(id)}]);
+  });
+});
+`;
+}
+
+/**
+ * The browser spec every tool brings (CLAUDE.md, "Tools"): the page opens with one `h1`, passes
+ * the accessibility gate (axe, WCAG 2.2 AA), and every control can be reached with Tab alone.
+ * The author adds the states of the tool: `a11y.check(page, '<state>')` after each one, and
+ * `net.watch(file)` for each uploaded file so the privacy check can see it.
+ */
+function renderSpec(options: ScaffoldOptions): string {
+  const { id, name } = options;
+  return `import { expect, test } from '../support/fixtures.ts';
+import { expectKeyboardOnly } from '../support/keyboard.ts';
+
+// ${name} in the built app, in Chromium and Firefox (T-05, #13: the accessibility gate applies to
+// every tool). Add a test per state of the tool; call \`a11y.check(page, '<state>')\` after each
+// one, and \`net.watch(file)\` for each file the test uploads.
+test.describe(${quote(id)}, () => {
+  test('opens with one heading and passes the accessibility gate', async ({ page, a11y }) => {
+    await page.goto('/tools/${id}');
+    await expect(page.getByRole('heading', { level: 1, name: ${quote(name)}, exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+    await a11y.check(page, ${quote(id)});
+  });
+
+  test('can be used with the keyboard alone', async ({ page }) => {
+    await page.goto('/tools/${id}');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expectKeyboardOnly(page, ${quote(id)});
   });
 });
 `;
@@ -358,6 +390,7 @@ export async function runScaffoldCli(
         'next:',
         `  - choose category and sticker in src/tools/${parsed.options.id}/manifest.ts (now ${parsed.options.category}, ${parsed.options.sticker})`,
         '  - translate the German texts in src/i18n/messages/de.ts',
+        `  - extend e2e/specs/${parsed.options.id}.spec.ts: one test per state, a11y.check after each (pnpm e2e)`,
         `  - build the tool in src/tools/${parsed.options.id}/Tool.svelte, inside <ToolFrame>`,
         '  - pnpm lint && pnpm typecheck && pnpm test',
       ].join('\n'),

@@ -1,5 +1,6 @@
 import { test as base, expect, type Page, type TestInfo } from '@playwright/test';
 import { createA11yGate, type A11yGate } from './a11y.ts';
+import { createAxeRunner } from './axe.ts';
 import { NetworkRecorder } from './network.ts';
 
 interface Options {
@@ -57,10 +58,10 @@ export const test = base.extend<Fixtures & Options>({
     { auto: true },
   ],
 
-  // The accessibility gate is off until T-05 (#13) passes an axe runner here.
+  // The accessibility gate: axe scans every state a spec puts on screen (T-05, #13).
   // eslint-disable-next-line no-empty-pattern
   a11y: async ({}, use) => {
-    await use(createA11yGate());
+    await use(createA11yGate(createAxeRunner()));
   },
 });
 

@@ -74,11 +74,9 @@ impl std::error::Error for QueryError {}
 /// The longest prefix of `text` that is at most `max` bytes and ends on a character
 /// boundary, so an echoed parameter cannot make a message arbitrarily long.
 fn clip(text: &str, max: usize) -> String {
-    let mut end = text.len().min(max);
-    while !text.is_char_boundary(end) {
-        end = end.saturating_sub(1);
-    }
-    text.get(..end).unwrap_or_default().to_owned()
+    text.get(..text.floor_char_boundary(max))
+        .unwrap_or_default()
+        .to_owned()
 }
 
 /// Longest parameter name or value echoed in an error.

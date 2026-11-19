@@ -117,8 +117,8 @@ impl Database {
         let conn = Connection::open_with_flags(
             path,
             OpenFlags::SQLITE_OPEN_READ_WRITE
-                | OpenFlags::SQLITE_OPEN_CREATE
-                | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+                .union(OpenFlags::SQLITE_OPEN_CREATE)
+                .union(OpenFlags::SQLITE_OPEN_NO_MUTEX),
         )?;
         conn.busy_timeout(BUSY_TIMEOUT)?;
         enable_wal(&conn)?;

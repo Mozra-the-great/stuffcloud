@@ -101,19 +101,18 @@ pub fn probe_address(listen: SocketAddr) -> SocketAddr {
 /// Asks `GET /readyz` on `address`; `true` for a 200 answer.
 #[must_use]
 pub fn probe(address: SocketAddr) -> bool {
-    let Ok(mut stream) = TcpStream::connect_timeout(&address, HEALTHCHECK_TIMEOUT) else {
-        return false;
-    };
-    if stream.set_read_timeout(Some(HEALTHCHECK_TIMEOUT)).is_err()
-        || stream.set_write_timeout(Some(HEALTHCHECK_TIMEOUT)).is_err()
-        || stream
-            .write_all(b"GET /readyz HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
-            .is_err()
-    {
-        return false;
-    }
+    ask_ready(address).unwrap_or(false)
+}
+
+/// The probe itself; any I/O problem means "not ready".
+fn ask_ready(address: SocketAddr) -> std::io::Result<bool> {
+    let mut stream = TcpStream::connect_timeout(&address, HEALTHCHECK_TIMEOUT)?;
+    stream.set_read_timeout(Some(HEALTHCHECK_TIMEOUT))?;
+    stream.set_write_timeout(Some(HEALTHCHECK_TIMEOUT))?;
+    stream.write_all(b"GET /readyz HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")?;
     let mut status_line = [0_u8; 12];
-    stream.read_exact(&mut status_line).is_ok() && &status_line == b"HTTP/1.1 200"
+    stream.read_exact(&mut status_line)?;
+    Ok(&status_line == b"HTTP/1.1 200")
 }
 
 fn healthcheck<E: Environment + ?Sized>(env: &E, err: &mut dyn Write) -> u8 {

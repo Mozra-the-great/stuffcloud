@@ -157,8 +157,10 @@ mod lifecycle {
             .unwrap()
     }
 
-    fn wait_ready(port: u16) {
-        let deadline = Instant::now() + Duration::from_secs(30);
+    /// Waits until the app answers `/readyz`; fails at once when the process exits and after
+    /// a few seconds otherwise (well below the time the mutation tests allow a test run).
+    fn wait_ready(child: &mut Child, port: u16) {
+        let deadline = Instant::now() + Duration::from_secs(8);
         loop {
             let probe = run(
                 &["healthcheck"],
@@ -167,7 +169,13 @@ mod lifecycle {
             if probe.status.success() {
                 return;
             }
-            assert!(Instant::now() < deadline, "the app did not become ready");
+            if let Some(status) = child.try_wait().unwrap() {
+                panic!("the app exited before it was ready: {status}");
+            }
+            if Instant::now() >= deadline {
+                let _ = child.kill();
+                panic!("the app did not become ready");
+            }
             std::thread::sleep(Duration::from_millis(100));
         }
     }
@@ -212,8 +220,8 @@ mod lifecycle {
         .unwrap();
 
         let port = free_port();
-        let child = start(&data, &bootstrap, port);
-        wait_ready(port);
+        let mut child = start(&data, &bootstrap, port);
+        wait_ready(&mut child, port);
         let address: SocketAddr = format!("127.0.0.1:{port}").parse().unwrap();
         let answer = raw_http(
             address,
@@ -246,8 +254,8 @@ mod lifecycle {
         )
         .unwrap();
         let port = free_port();
-        let child = start(&data, &bootstrap, port);
-        wait_ready(port);
+        let mut child = start(&data, &bootstrap, port);
+        wait_ready(&mut child, port);
         let address: SocketAddr = format!("127.0.0.1:{port}").parse().unwrap();
         let answer = raw_http(
             address,

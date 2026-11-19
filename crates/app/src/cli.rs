@@ -18,7 +18,7 @@ use std::time::Duration;
 
 use stuffcloud_db::Database;
 
-use crate::access::{MatrixPolicy, permissions_markdown};
+use crate::access::{MatrixPolicy, permissions_markdown, verify};
 use crate::auth::AuthSettings;
 use crate::config::{self, Config, Environment};
 use crate::state::{AppState, Clock, SystemClock};
@@ -188,7 +188,8 @@ pub fn start(config: &Config) -> Result<(), String> {
         .purge_expired_sessions(&config.session, clock.now_millis())
         .map_err(|error| format!("cannot purge expired sessions: {error}"))?;
     tracing::info!(target: "stuffcloud::server", purged, "expired sessions purged");
-    server::check_routes().map_err(|error| error.to_string())?;
+    // A route without a declared policy never serves a request: the start fails instead.
+    verify(&server::declared_routes(), &openapi::document()).map_err(|error| error.to_string())?;
     let state = AppState::new(
         Arc::new(db),
         Arc::new(MatrixPolicy),

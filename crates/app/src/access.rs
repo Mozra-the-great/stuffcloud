@@ -9,7 +9,7 @@
 //!   is no way to add a route without declaring what it needs. A test fails when `server.rs`
 //!   registers a route any other way.
 //! - [`verify`] compares the declared routes with the operations of the OpenAPI document and
-//!   fails (at startup, [`crate::server::check_routes`]) when one has no declared policy or a
+//!   fails (at startup, in `cli::start`) when one has no declared policy or a
 //!   declared route is missing from the document.
 //! - The guard (`enforce`) runs after [`crate::auth::authenticate`], so the request already
 //!   carries its [`Authentication`]. A refusal is 401 for a client that is not logged in and 403

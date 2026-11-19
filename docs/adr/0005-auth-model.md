@@ -263,7 +263,7 @@ the interim `AdminWritePolicy`. No decision above changes.
   JavaScript. The zone resource itself (H-02) only has to build the `ZonePolicy`.
 - **Every route declares its requirement.** Routes are registered through `app::access::Endpoints`
   with the requirement next to the handler; a guard in front of the handler runs after
-  authentication and refuses with 401 (not logged in) or 403. `server::check_routes` compares the
+  authentication and refuses with 401 (not logged in) or 403. `access::verify` (called at startup) compares the
   table with the OpenAPI document at startup and fails the start for an operation without a
   declared policy; tests enumerate every operation against every kind of caller and check that
   `server.rs` registers no route another way. Handlers no longer authorise themselves: the

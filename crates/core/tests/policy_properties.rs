@@ -121,9 +121,9 @@ proptest! {
 
     #[test]
     fn demoting_the_owner_never_widens_a_token(
-        high in role(), low in role(), scopes in scopes()
+        first in role(), second in role(), scopes in scopes()
     ) {
-        prop_assume!(low <= high);
+        let (low, high) = if first <= second { (first, second) } else { (second, first) };
         let of = |role| {
             effective(&Subject::Token {
                 owner: Account { login: "owner", kind: UserKind::Person, role },

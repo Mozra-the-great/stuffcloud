@@ -10,7 +10,7 @@ use stuffcloud_core::scope::{Area, Level, Permission};
 use tokio::net::TcpListener;
 use tower_http::catch_panic::CatchPanicLayer;
 
-use crate::access::{Declared, Endpoints, RouteMismatch, verify};
+use crate::access::{Declared, Endpoints};
 use crate::middleware::{
     observe, panic_response, problems_for_bare_errors, security_headers, timeout,
 };
@@ -37,7 +37,7 @@ fn v1(path: &str) -> String {
 
 /// Every route of the application with the requirement it declares (A-07). This is the only
 /// place that registers routes: a route cannot be added without saying who may use it, and
-/// [`check_routes`] fails the start when the OpenAPI document and this table differ. The
+/// `access::verify` (run at startup) fails the start when the OpenAPI document and this table differ. The
 /// table is rendered to `docs/api/permissions.md` (`stuffcloud-app permissions`).
 ///
 /// Reads of the settings groups the client needs before it logs in are `public` (the API is
@@ -81,16 +81,6 @@ pub fn endpoints(state: AppState) -> Endpoints {
 #[must_use]
 pub fn declared_routes() -> Vec<Declared> {
     table(Endpoints::unguarded()).into_parts().1
-}
-
-/// Fails when a route of the application has no declared policy, or a declared route is not in
-/// the OpenAPI document. Run at startup, so a route without a policy never serves a request.
-///
-/// # Errors
-///
-/// [`RouteMismatch`] listing every difference.
-pub fn check_routes() -> Result<(), RouteMismatch> {
-    verify(&declared_routes(), &openapi::document())
 }
 
 /// The complete application. Middleware, from the outside in: metrics and access log,

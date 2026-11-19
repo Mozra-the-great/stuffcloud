@@ -18,7 +18,7 @@ use axum::middleware::{Next, from_fn};
 use serde_json::json;
 use stuffcloud_app::access::{Declared, operations, verify};
 use stuffcloud_app::auth::{ApiCaller, Authentication, start_session};
-use stuffcloud_app::server::{check_routes, declared_routes, endpoints};
+use stuffcloud_app::server::{declared_routes, endpoints};
 use stuffcloud_app::state::Clock;
 use stuffcloud_core::policy::Requirement;
 use stuffcloud_core::scope::Scopes;
@@ -240,7 +240,6 @@ fn every_operation_of_the_document_has_a_declared_policy() {
     let document = stuffcloud_app::openapi::document();
     let declared = declared_routes();
     assert_eq!(verify(&declared, &document), Ok(()));
-    assert_eq!(check_routes(), Ok(()));
     let documented = operations(&document);
     assert!(documented.len() >= 10, "{documented:?}");
     assert_eq!(declared.len(), documented.len());

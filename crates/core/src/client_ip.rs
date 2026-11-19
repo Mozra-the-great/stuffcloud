@@ -330,8 +330,14 @@ mod tests {
             client_address(proxy, &[b"203.0.113.7, unknown"], &proxies),
             proxy
         );
+        // Not UTF-8 counts as garbage too: at the right it stops at the peer, further left at
+        // the trusted hop passed so far.
         assert_eq!(
             client_address(proxy, &[b"203.0.113.7, 192.0.2.11, \xff"], &proxies),
+            proxy
+        );
+        assert_eq!(
+            client_address(proxy, &[b"203.0.113.7, \xff, 192.0.2.11"], &proxies),
             ip("192.0.2.11")
         );
         assert_eq!(client_address(proxy, &[b""], &proxies), proxy);

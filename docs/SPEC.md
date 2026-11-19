@@ -246,7 +246,12 @@ Authentication
 - Sign-up mode (setting): `open`, `invite-only`, or `oidc-only`.
 - Sessions: `__Host-` prefixed, HttpOnly, Secure, SameSite=Lax cookies, host-only on the
   app address (no `Domain=` attribute); `Origin` check and CSRF token on every
-  state-changing request (section 5.5). API tokens for the CLI and automation (hashed at
+  state-changing request (section 5.5). Session tokens are random, stored only as hashes,
+  end after an idle and an absolute timeout (deployment configuration, defaults 8 hours and
+  7 days), are never reused across a login (fixation) and end on logout, "logout everywhere"
+  and a role change. The client gets the CSRF token from `GET /api/v1/auth/session` and sends
+  it as `X-CSRF-Token`; requests with an `Authorization` header (tokens) are not cookie
+  authenticated and skip these checks (ADR 0005, addendum A-02). API tokens for the CLI and automation (hashed at
   rest, scoped incl. admin scopes, revocable) and service accounts without interactive login
   (section 10.4).
 - E-mail is **optional** infrastructure (SMTP configurable). Without SMTP:
@@ -377,13 +382,15 @@ Rate limits per IP (in memory, not persisted) and per account.
 
 ## 9. Data model (sketch)
 
-`users` (login name, kind `person`/`service`), `credentials` (password/passkey/TOTP), `oidc_identities`, `sessions`,
+`users` (login name, kind `person`/`service`, role), `credentials` (password/passkey/TOTP), `oidc_identities`,
+`recovery_codes` (hashes), `sessions` (token and CSRF token as hashes, timestamps),
 `api_tokens` (owner, name, scopes, expiry), `sites` (id, owner?, zone, name, kind, expires_at, visibility,
 password_hash?, burn_after_read, size_bytes, status), `site_files`, `pastes`
 (edit mode, token hash), `builder_projects`, `reports`, `blocklist`, `zones` (domain,
 sub-level?, enabled, hosting roles, anonymous allowed, public allowed, interstitial,
 DNS provider reference), `zone_reserved_names`, `zone_hosters` (allow-list of accounts),
-`settings`, `audit_log`. Every configurable row has a natural key and an ETag (section
+`settings`, `audit_log` (resource changes and security events, internal ids only, no IP
+addresses). Every configurable row has a natural key and an ETag (section
 10.2). Versioned migrations; SQLite WAL; a `StorageBackend`
 interface (`put/get/delete/list/usage`).
 
@@ -615,7 +622,7 @@ On every PR and push (`ci.yml`):
 | `e2e` | Playwright in Chromium and Firefox against the built app: app shell, tool registry, worker pool in a real browser, and the privacy test (no request carries file content, no request leaves the own origin or is anything but a `GET` of an own asset); no retries; axe joins with T-05 |
 | `codeql` | CodeQL `security-extended` for Rust, Python and the workflows (JavaScript/TypeScript with `web/`); fails on any result, also weekly on `main` |
 | `supply-chain` | `cargo-deny`: RustSec advisories (incl. unmaintained, unsound, yanked), licenses (section 3), crates.io only, no wildcard versions |
-| `repo-checks` | label-script tests, design PDF is current |
+| `repo-checks` | CI helper tests, design PDF is current, cookie scope gate (`check_cookies.py`: no `Domain` attribute, `Set-Cookie` only in the cookie module) |
 
 Nightly and on demand (`deep-tests.yml`, not required, failures handled like a red
 PR): fuzzing for 45 minutes per target that grows and minimises the shared
@@ -645,8 +652,9 @@ Test layers and what each must cover:
   and CSRF rules: every `Set-Cookie` of every route has the `__Host-` prefix and no
   `Domain=` attribute, every state-changing route refuses a missing or foreign `Origin`
   and a missing CSRF token, and cookies tossed for the parent domain are ignored.
-- **Cookie check** (with the first cookie code, A-02): a CI check fails on any cookie
-  with a `Domain=` attribute in `app` and `edge`, in addition to the per-route tests.
+- **Cookie check** (since A-02): `scripts/ci/check_cookies.py` fails on any cookie with a
+  `Domain=` attribute in any crate (`app` now, `edge` when it exists) and on `Set-Cookie`
+  outside the cookie module, in addition to the per-route tests.
 - **Listener tests** (hosting): on the tunnel listener the app address, internal sites
   and unknown names give the same response; forged `Host`, `X-Forwarded-*` and tunnel
   headers on the LAN listener never make a request count as coming from the internet.

@@ -13,6 +13,7 @@ use crate::health::{self, HealthStatus};
 use crate::metrics;
 use crate::problem::ProblemBody;
 use crate::resource::{FieldChange, ResourceMeta, WriteChange};
+use crate::sessions::{self, EndedSessions, SessionState, SessionTimes, SessionUser};
 use crate::settings;
 
 /// The API description.
@@ -20,7 +21,7 @@ use crate::settings;
 #[openapi(
     info(
         title = "stuffcloud API",
-        description = "LAN API of stuffcloud (ADR 0010). Errors are RFC 9457 problem details; resources follow the conventions of docs/adr/0010-api-first-and-configuration-as-code.md.",
+        description = "LAN API of stuffcloud (ADR 0010). Errors are RFC 9457 problem details; resources follow the conventions of docs/adr/0010-api-first-and-configuration-as-code.md. Browser clients authenticate with the __Host-stuffcloud-session cookie; every write without an Authorization header needs an Origin header equal to the app address and the X-CSRF-Token header from GET /api/v1/auth/session (docs/api/problems.md#csrf-rejected).",
         license(name = "GPL-3.0-or-later", identifier = "GPL-3.0-or-later"),
     ),
     paths(
@@ -28,13 +29,27 @@ use crate::settings;
         health::ready,
         metrics::render,
         openapi_json,
+        sessions::get_session,
+        sessions::delete_session,
+        sessions::delete_sessions,
         settings::get_reserved_names,
         settings::put_reserved_names,
         settings::delete_reserved_names,
     ),
-    components(schemas(HealthStatus, ProblemBody, ResourceMeta, FieldChange, WriteChange)),
+    components(schemas(
+        HealthStatus,
+        ProblemBody,
+        ResourceMeta,
+        FieldChange,
+        WriteChange,
+        SessionState,
+        SessionUser,
+        SessionTimes,
+        EndedSessions,
+    )),
     tags(
         (name = "operations", description = "Probes, metrics and the API description"),
+        (name = "auth", description = "Sessions and the CSRF token (SPEC 5.5 and 6)"),
         (name = "settings", description = "Instance-wide settings groups (SPEC 10.3)"),
     ),
 )]

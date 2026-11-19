@@ -5,13 +5,21 @@ use std::time::Duration;
 
 use axum::body::Body;
 use axum::http::{Method, Request};
+use stuffcloud_app::auth::AuthSettings;
 use stuffcloud_app::config::Limits;
 use stuffcloud_app::middleware::SECURITY_HEADERS;
 use stuffcloud_app::server::router;
-use stuffcloud_app::state::{AppState, ReadOnlyPolicy, SystemClock};
+use stuffcloud_app::state::{AdminWritePolicy, AppState, SystemClock};
 use stuffcloud_db::Database;
 
-use crate::common::{Policy, TestApp};
+use crate::common::{APP_ORIGIN, Policy, TIMEOUTS, TestApp, csrf_headers};
+
+fn auth_settings() -> AuthSettings {
+    AuthSettings {
+        app_origin: stuffcloud_core::csrf::Origin::parse(APP_ORIGIN.as_bytes()).unwrap(),
+        timeouts: TIMEOUTS,
+    }
+}
 
 #[tokio::test]
 async fn the_api_boots_against_a_temporary_database() {
@@ -31,9 +39,10 @@ async fn readiness_fails_on_an_unmigrated_database() {
     let db = Arc::new(Database::open(&dir.path().join("raw.sqlite3")).unwrap());
     let state = AppState::new(
         db,
-        Arc::new(ReadOnlyPolicy),
+        Arc::new(AdminWritePolicy),
         Arc::new(SystemClock),
         Limits::default(),
+        auth_settings(),
     );
     let app = router(state);
     let response =
@@ -96,11 +105,13 @@ async fn unknown_routes_and_methods_are_problems() {
     ] {
         app.get(path).await.assert_problem(404, "not-found");
     }
+    // With the CSRF checks passed, the router reports the method.
     let post = app
-        .send(
-            Request::post("/api/v1/settings/reserved-names")
-                .body(Body::empty())
-                .unwrap(),
+        .call(
+            Method::POST,
+            "/api/v1/settings/reserved-names",
+            &csrf_headers(),
+            None,
         )
         .await;
     post.assert_problem(405, "method-not-allowed");
@@ -109,6 +120,11 @@ async fn unknown_routes_and_methods_are_problems() {
         assert!(allow.contains(method), "{allow}");
     }
     let patch = app
+        .call(Method::PATCH, "/healthz", &csrf_headers(), None)
+        .await;
+    patch.assert_problem(405, "method-not-allowed");
+    // Without them the CSRF check answers first, for known and unknown routes alike.
+    let bare = app
         .send(
             Request::builder()
                 .method(Method::PATCH)
@@ -117,7 +133,7 @@ async fn unknown_routes_and_methods_are_problems() {
                 .unwrap(),
         )
         .await;
-    patch.assert_problem(405, "method-not-allowed");
+    bare.assert_problem(403, "csrf-rejected");
 }
 
 #[tokio::test]
@@ -155,7 +171,13 @@ async fn slow_requests_hit_the_time_limit() {
         request_timeout: Duration::from_millis(50),
         ..Limits::default()
     };
-    let state = AppState::new(db, Arc::new(ReadOnlyPolicy), Arc::new(SystemClock), limits);
+    let state = AppState::new(
+        db,
+        Arc::new(AdminWritePolicy),
+        Arc::new(SystemClock),
+        limits,
+        auth_settings(),
+    );
     // The middleware of the real router around a handler that is too slow and one that is not.
     let app = axum::Router::new()
         .route(

@@ -11,6 +11,9 @@ export default tseslint.config(
     ignores: [
       '**/node_modules/**',
       '**/dist/**',
+      '**/dist-e2e/**',
+      '**/test-results/**',
+      '**/playwright-report/**',
       '**/coverage/**',
       'packages/api-client/src/generated/**',
       // Deliberately bad code; only the lint-config test lints it (with `ignore: false`).

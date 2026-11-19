@@ -25,7 +25,8 @@ web/            pnpm workspace (Node 24, own lockfile; the backend never depends
                 tool registry + `ToolFrame`), src/tools/<id>/ (one directory per tool: manifest.ts + Tool.svelte),
                 tools.config.json (disabled tools), scripts/ (tokens, check-tools, new-tool),
                 src/i18n (catalogues de/en, typed keys, CI check), src/gallery (component gallery),
-                src/assets/fonts (self-hosted), bench/ (animation benchmark: `node bench/run.ts bench|verify|size`)
+                src/assets/fonts (self-hosted), bench/ (animation benchmark: `node bench/run.ts bench|verify|size`),
+                e2e/ (Playwright: specs/, support/ privacy check + axe seam, app/ test-only tools; README.md)
   packages/tools/       manifest schema + `defineTool`, capabilities, stickers, worker pool (`createWorkerPool`, `serveWorker`)
   packages/api-client/  typed client + OpenAPI generation script (generated file comes with app)
   tests/        lint-config test (a deliberate `any` must fail lint)
@@ -72,6 +73,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build   # coverage floor 95 % p
 pnpm tokens                                              # regenerate src/styles/tokens.css from docs/design (test fails when stale)
 pnpm new-tool <id> [--category c] [--sticker s] [--name "N"] [--worker]   # scaffold a tool (ADR 0012)
 pnpm check-tools                                         # validate all tool manifests (`vite build` runs the same check)
+pnpm e2e                                                 # Playwright (Chromium + Firefox) against the built app; once: `pnpm --filter @stuffcloud/web exec playwright install chromium firefox`
 CHROME_PATH=... node apps/web/bench/run.ts bench         # animation runtime benchmark (needs Chrome; ADR 0008)
 ```
 
@@ -93,7 +95,7 @@ Tests are part of the security design; err on the side of too many (SPEC section
 ## CI
 
 `ci.yml` job `build` is the required check: an aggregate over fmt, clippy, test,
-docs, coverage, mutants, fuzz, web (lint, typecheck, test, build of `web/`), licenses (npm
+docs, coverage, mutants, fuzz, web (lint, typecheck, test, build of `web/`), e2e (Playwright, no retries), licenses (npm
 license gate + THIRD-PARTY.md freshness), dev-stack (container hardening gate on every compose file
 and Dockerfile, Caddyfile check, smoke test of the dev stack), supply-chain, codeql and repo-checks (add new jobs to its `needs`; no job skips itself on changed
 paths, because the aggregate counts a skipped job as a failure). `deep-tests.yml` runs nightly: long fuzzing (grows the cached corpus),
@@ -131,7 +133,10 @@ which owns the one `<h1>`) and its test. Name, description and keywords are cata
 (`tool.<id>.name|description|keywords`, German and English), never literals. A tool never sends file
 content anywhere: `fileContent: 'stays-in-browser'`, no network API in tool sources (a test scans
 them). Heavy work runs in a worker through `createWorkerPool`/`serveWorker`. New generic pieces
-go to kern (#121), not into `src/ui`.
+go to kern (#121), not into `src/ui`. A tool gets an e2e spec in `web/apps/web/e2e/specs/` (import `test`
+from `../support/fixtures.ts`: it fails the test when the page sends anything but `GET`s of its own
+assets; call `net.watch(file)` so a piece of an uploaded file in any request fails it too, and
+`a11y.check(page, '<state>')` after each state, the seam for axe).
 
 ## API-first (no UI-only features)
 

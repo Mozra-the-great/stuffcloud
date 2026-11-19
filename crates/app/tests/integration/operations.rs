@@ -149,15 +149,42 @@ async fn every_response_has_the_security_headers() {
 
 #[tokio::test]
 async fn slow_requests_hit_the_time_limit() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = Arc::new(Database::open(&dir.path().join("t.sqlite3")).unwrap());
     let limits = Limits {
-        request_timeout: Duration::ZERO,
+        request_timeout: Duration::from_millis(50),
         ..Limits::default()
     };
-    let app = TestApp::with_limits(Policy::Production, limits);
-    // The database call runs on the blocking pool and cannot finish within zero time.
-    let problem = app
-        .get("/api/v1/settings/reserved-names")
+    let state = AppState::new(db, Arc::new(ReadOnlyPolicy), Arc::new(SystemClock), limits);
+    // The middleware of the real router around a handler that is too slow and one that is not.
+    let app = axum::Router::new()
+        .route(
+            "/slow",
+            axum::routing::get(|| async {
+                tokio::time::sleep(Duration::from_secs(5)).await;
+                "late"
+            }),
+        )
+        .route("/fast", axum::routing::get(|| async { "quick" }))
+        .layer(axum::middleware::from_fn_with_state(
+            state,
+            stuffcloud_app::middleware::timeout,
+        ));
+    let slow = tower::ServiceExt::oneshot(
+        app.clone(),
+        Request::get("/slow").body(Body::empty()).unwrap(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(slow.status().as_u16(), 503);
+    let body = axum::body::to_bytes(slow.into_body(), usize::MAX)
         .await
-        .problem(503, "timeout");
-    assert_eq!(problem["detail"], "the request took longer than 0 s");
+        .unwrap();
+    let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert!(json["type"].as_str().unwrap().ends_with("#timeout"));
+    assert_eq!(json["detail"], "the request took longer than 50 ms");
+    let fast = tower::ServiceExt::oneshot(app, Request::get("/fast").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(fast.status().as_u16(), 200);
 }

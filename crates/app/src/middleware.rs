@@ -85,7 +85,7 @@ pub async fn timeout(State(state): State<AppState>, request: Request, next: Next
         Ok(response) => response,
         Err(_elapsed) => Problem::with_detail(
             ProblemKind::Timeout,
-            format!("the request took longer than {} s", limit.as_secs()),
+            format!("the request took longer than {} ms", limit.as_millis()),
         )
         .into_response(),
     }

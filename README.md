@@ -90,7 +90,9 @@ cd web && pnpm --filter @stuffcloud/api-client generate -- --input ../../../docs
 ```
 
 **Resource baseline of `app`** (CI job `dev-stack`, `docker stats` after the smoke test, idle
-apart from it): BASELINE_PLACEHOLDER
+apart from it, 2026-11-19): about 2.4 MiB
+memory, 0 % CPU, 6 threads (Caddy: 12 MiB, Mailpit: 9 MiB). The numbers are printed in every run
+(step "Resource baseline"); the production compose of T-26 sets limits with headroom above them.
 
 **After changing the web app** run the first command again (`--build`). For UI work with hot
 reload use `pnpm --filter @stuffcloud/web dev` in `web/`; the stack is for the proxy, the zones

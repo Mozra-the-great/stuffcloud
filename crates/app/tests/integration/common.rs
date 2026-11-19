@@ -1,10 +1,7 @@
 //! Helpers shared by the integration tests.
 
-use std::io::{Read, Write};
-use std::net::{SocketAddr, TcpStream};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicI64, Ordering};
-use std::time::Duration;
 
 use axum::Router;
 use axum::body::{Body, to_bytes};
@@ -177,8 +174,13 @@ impl Reply {
 }
 
 /// A minimal HTTP/1.1 client over a real socket: returns the raw answer.
-pub(crate) fn raw_http(address: SocketAddr, request: &str) -> String {
-    let mut stream = TcpStream::connect_timeout(&address, Duration::from_secs(5)).unwrap();
+#[cfg(unix)]
+pub(crate) fn raw_http(address: std::net::SocketAddr, request: &str) -> String {
+    use std::io::{Read, Write};
+    use std::time::Duration;
+
+    let mut stream =
+        std::net::TcpStream::connect_timeout(&address, Duration::from_secs(5)).unwrap();
     stream
         .set_read_timeout(Some(Duration::from_secs(10)))
         .unwrap();

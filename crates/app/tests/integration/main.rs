@@ -12,6 +12,5 @@
 
 mod common;
 mod conventions;
-mod logging;
 mod operations;
 mod process;

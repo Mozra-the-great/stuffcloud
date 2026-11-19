@@ -139,3 +139,64 @@ fn subdomain_attacks_are_rejected() {
         );
     }
 }
+
+/// Hostile `If-Match` / `If-None-Match` values: header injection, smuggled quotes and
+/// separators, look-alike characters, wildcards mixed into lists.
+const ENTITY_TAG_ATTACKS: &[&str] = &[
+    "\"a\"\r\nX-Injected: 1",
+    "\"a\"\nX-Injected: 1",
+    "\"a\0\"",
+    "\"a\" \"b\"",
+    "\"a\"\"b\"",
+    "\u{201c}a\u{201d}",
+    "W/\u{201c}a\u{201d}",
+    "*, \"a\"",
+    "\"a\", *",
+    "**",
+    "w/\"a\"",
+    "W/W/\"a\"",
+    "\"a\\\"b\"",
+    "\"",
+    "\"\"\"",
+    "\"a b\"",
+    "\"\u{7f}\"",
+    "\"\u{a0}\"",
+];
+
+#[test]
+fn entity_tag_attacks_are_rejected() {
+    for input in ENTITY_TAG_ATTACKS {
+        assert!(
+            stuffcloud_core::etag::Condition::parse(input).is_err(),
+            "accepted attack entity tag list {input:?}"
+        );
+    }
+}
+
+/// Query strings that must never be read as a dry run being off by accident, nor as one
+/// being on.
+const WRITE_QUERY_ATTACKS: &[&str] = &[
+    "dryrun=true",
+    "dry-run=true",
+    "DRY_RUN=true",
+    "dry_run=TRUE",
+    "dry_run=1",
+    "dry_run=true&dry_run=false",
+    "dry_run=false&dry_run=true",
+    "dry_run=true;x=1",
+    "dry_run=true%00",
+    "dry_run=%74rue",
+    "dry%5Frun=true",
+    "dry_run[]=true",
+    "dry_run",
+];
+
+#[test]
+fn write_query_attacks_are_rejected() {
+    for input in WRITE_QUERY_ATTACKS {
+        assert!(
+            stuffcloud_core::query::WriteQuery::parse(Some(input)).is_err(),
+            "accepted attack query {input:?}"
+        );
+    }
+}

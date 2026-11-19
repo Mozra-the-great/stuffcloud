@@ -8,3 +8,6 @@
 *.pdf binary
 *.jks binary
 *.keystore binary
+
+# Fuzz seeds are exact bytes (some contain CR LF on purpose); never normalise them.
+fuzz/seeds/** binary

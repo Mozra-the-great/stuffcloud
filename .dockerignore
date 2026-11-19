@@ -5,9 +5,15 @@
 
 !web/
 !docs/design/prototypes/
+# The Cargo workspace, for the `app` image (docker/app/Dockerfile).
+!Cargo.toml
+!Cargo.lock
+!rust-toolchain.toml
+!crates/
 
 # Never copy installed or built output from the host into an image.
 **/node_modules
+**/target
 **/dist
 **/coverage
 **/.tmp-*

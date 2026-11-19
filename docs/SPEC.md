@@ -109,8 +109,9 @@ Components
 Repository layout (Cargo workspace): `crates/core`, `crates/db`, `crates/app`,
 `crates/edge`, `crates/cli`; `fuzz/` (cargo-fuzz targets, own workspace);
 `web/` (pnpm workspace: `apps/web` Svelte + Vite SPA, `packages/tools`,
-`packages/api-client`). Only `crates/core`, `fuzz/` and the `web/` scaffold exist
-so far; the others are added in the phase that needs them (section 15).
+`packages/api-client`). `crates/core`, `crates/db`, `crates/app`, `fuzz/` and the
+`web/` scaffold exist so far; `edge` and `cli` are added in the phase that needs them
+(section 15). The SQLite driver is `rusqlite` (ADR 0001, addendum).
 
 Stack rationale (decision 9 in section 16): the instance is exposed, so security
 and a small footprint outweigh "one language end to end". Rust gives memory
@@ -392,7 +393,8 @@ configuration can be managed as code.
 ### 10.1 API-first
 - REST + JSON under `/api/v1`. The OpenAPI document is generated from the Rust handlers
   (`utoipa`); the frontend's typed client is generated from it
-  (`openapi-typescript` + `openapi-fetch`), and CI regenerates both and fails on a
+  (`openapi-typescript` + `openapi-fetch`); the document is committed as
+  `docs/api/openapi.json`, and CI (job `openapi`) regenerates both and fails on a
   diff. Request bodies are deserialised into strict types
   (`deny_unknown_fields`) and then parsed into `core` types at the boundary.
 - **No UI-only features.** The web UI uses only the generated client. Every action the UI
@@ -426,7 +428,7 @@ configuration can be managed as code.
 - Every write accepts `?dry_run=true`: authentication, authorisation and validation run, the
   response carries a field-level diff, nothing changes.
 - Errors are RFC 9457 problem details with a stable `type` and every invalid field at once
-  (JSON Pointer per field).
+  (JSON Pointer per field); the types are documented in `docs/api/problems.md`.
 - Secrets are never values in the API: settings that need one (OIDC client secret, SMTP
   password, DNS-01 credentials) hold a reference to deployment configuration (an environment
   variable or secret file name). Token secrets are the only secrets the API returns, once.
@@ -523,7 +525,8 @@ zones:
 - Backups: a documented data directory (SQLite + site files) picked up by the
   homelab Restic job; temporary sites may be excluded. Built-in **per-user export**
   (ZIP of sites and account data) and account deletion.
-- Observability: `/healthz`, Prometheus metrics, structured logs **without IP
+- Observability: `/healthz` (liveness), `/readyz` (database ready), Prometheus metrics
+  (`/metrics`, OpenMetrics), structured logs **without IP
   addresses**, optional OpenTelemetry tracing, **Wazuh integration** via log
   decoders/rules for auth failures, takedowns and rate-limit hits.
 - Upgrades: versioned migrations, release notes in `CHANGELOG.md`.

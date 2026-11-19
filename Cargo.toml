@@ -1,7 +1,8 @@
 # stuffcloud Rust workspace (docs/SPEC.md, section 4).
 #
-# crates/core is the only member so far: domain types and validation without I/O.
-# app (LAN API), edge (public endpoints), db and cli join it in phases 2 and 3.
+# crates/core: domain types and validation without I/O; crates/db: SQLite (WAL), migrations
+# and the resource store; crates/app: the LAN API (axum). edge (public endpoints) and cli
+# join them in phases 3 and later.
 # fuzz/ is a separate workspace because cargo-fuzz needs a nightly toolchain.
 
 [workspace]
@@ -20,8 +21,26 @@ publish = false
 
 [workspace.dependencies]
 stuffcloud-core = { path = "crates/core" }
+stuffcloud-db = { path = "crates/db" }
 unicode-normalization = "0.1.24"
 proptest = "1.12.0"
+axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "matched-path", "tokio", "tower-log"] }
+prometheus-client = "0.26.0"
+# SQLite is compiled in (static, so the distroless image needs no libsqlite3).
+rusqlite = { version = "0.43.0", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+serde_path_to_error = "0.1.20"
+sha2 = "0.11.1"
+tempfile = "3.27.0"
+thiserror = "2.0.21"
+time = { version = "0.3.55", features = ["formatting"] }
+tokio = { version = "1.54.1", features = ["macros", "net", "rt-multi-thread", "signal", "time"] }
+tower = { version = "0.5.3", default-features = false, features = ["util"] }
+tower-http = { version = "0.7.1", default-features = false, features = ["catch-panic"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "json", "std"] }
+utoipa = "6.0.0"
 
 # Lints apply to every crate (`[lints] workspace = true`). They are warnings here so
 # local work is not blocked; CI turns every warning into an error.

@@ -81,6 +81,23 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
+  # The `app` image (docker/app/Dockerfile). The Rust build image follows rust-toolchain.toml
+  # (a test in crates/app fails otherwise), so only its digest is updated here; its version is
+  # bumped by hand together with the toolchain.
+  - package-ecosystem: "docker"
+    directory: "/docker/app"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(docker)"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "rust"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+
   # compose.dev.yml images (one PR per image, so a failure maps to one update)
   - package-ecosystem: "docker-compose"
     directory: "/"

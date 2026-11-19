@@ -9,7 +9,10 @@ script, no DNS or hosts entry needed):
 
 - the web app answers on the app address, a deep link gets the index fallback, a missing
   asset is a 404 and a real asset is cached for good (ADR 0011, decision 3)
-- the API placeholder answers with a problem document
+- the API (`app`) answers through Caddy: the settings group the dev bootstrap file created,
+  with an ETag and the security headers; the OpenAPI document; a write is refused with a
+  401 problem document (no accounts yet); an unknown API path is a 404 problem document;
+  the probes of `app` are not reachable from outside
 - a placeholder site answers on a random name below the site base, the site base itself and
   an unknown name do not
 - a cookie set on the app origin is not sent to a site origin (acceptance criterion of F-04)
@@ -118,12 +121,65 @@ def web_app() -> None:
         check("hashed asset is served", asset.status == 200 and "javascript" in asset.headers.get("content-type", ""), str(asset.status))
         check("hashed asset is cached for good", "immutable" in asset.headers.get("cache-control", ""))
 
-    api = get(url(APP_HOST, "/api/v1/health"))
+
+
+def request(method: str, target: str, body: bytes | None = None, headers: dict[str, str] | None = None) -> Response:
+    """Like `get`, for any method."""
+    req = urllib.request.Request(target, data=body, method=method, headers={"User-Agent": "stuffcloud-dev-smoke", **(headers or {})})
+    try:
+        with direct_opener().open(req, timeout=15) as reply:
+            return Response(reply.status, {k.lower(): v for k, v in reply.headers.items()}, reply.read().decode("utf-8", "replace"))
+    except urllib.error.HTTPError as err:
+        return Response(err.code, {k.lower(): v for k, v in err.headers.items()}, err.read().decode("utf-8", "replace"))
+
+
+def problem_type(reply: Response) -> str:
+    try:
+        return str(json.loads(reply.body).get("type", ""))
+    except (json.JSONDecodeError, AttributeError):
+        return ""
+
+
+def api() -> None:
+    names = get(url(APP_HOST, "/api/v1/settings/reserved-names"))
+    try:
+        document = json.loads(names.body)
+    except json.JSONDecodeError:
+        document = {}
     check(
-        "API placeholder answers 501 problem+json",
-        api.status == 501 and api.headers.get("content-type", "").startswith("application/problem+json"),
-        f"{api.status} {api.headers.get('content-type')}",
+        "API serves the settings group from the dev bootstrap file",
+        names.status == 200 and document.get("names") == ["auth", "status", "vault"],
+        f"{names.status} {names.body[:200]}",
     )
+    etag = names.headers.get("etag", "")
+    check("API answers with a strong ETag", etag.startswith('"') and etag == document.get("meta", {}).get("etag"), etag)
+    check("API responses are not cached", names.headers.get("cache-control") == "no-store")
+    check("API responses forbid framing", "frame-ancestors 'none'" in names.headers.get("content-security-policy", ""))
+
+    spec = get(url(APP_HOST, "/api/v1/openapi.json"))
+    check("API serves its OpenAPI document", spec.status == 200 and '"openapi"' in spec.body, str(spec.status))
+
+    write = request(
+        "PUT",
+        url(APP_HOST, "/api/v1/settings/reserved-names"),
+        body=json.dumps({"names": ["other"]}).encode(),
+        headers={"Content-Type": "application/json", "If-Match": etag},
+    )
+    check(
+        "API refuses writes without authentication (401 problem+json)",
+        write.status == 401 and write.headers.get("content-type", "").startswith("application/problem+json")
+        and problem_type(write).endswith("#unauthenticated"),
+        f"{write.status} {write.body[:200]}",
+    )
+    missing = get(url(APP_HOST, "/api/v1/does-not-exist"))
+    check(
+        "unknown API path is a 404 problem+json",
+        missing.status == 404 and problem_type(missing).endswith("#not-found"),
+        f"{missing.status} {missing.body[:200]}",
+    )
+    for probe in ("/healthz", "/readyz", "/metrics"):
+        reply = get(url(APP_HOST, probe))
+        check(f"{probe} of app is not routed from outside", "stuffcloud_http" not in reply.body and '"status"' not in reply.body, reply.body[:100])
 
 
 def sites() -> None:
@@ -163,6 +219,8 @@ def tunnel_listener() -> None:
         ("the mail UI", MAIL_HOST),
     ):
         check(f"tunnel treats {label} like an unknown name", tunnel(host) == unknown)
+    api_status = tunnel(f"public.{SITES_BASE}", "/api/v1/openapi.json").split("\n", 1)[0]
+    check("tunnel does not route the API", "200" not in api_status, api_status)
     helper_status = tunnel(f"public.{SITES_BASE}", "/__dev/echo-cookie").split("\n", 1)[0]
     check("tunnel does not offer dev helpers", "200" not in helper_status, helper_status)
 
@@ -185,7 +243,7 @@ def mail() -> None:
 
 
 def main() -> int:
-    for section in (web_app, sites, cookies, tunnel_listener, mail):
+    for section in (web_app, api, sites, cookies, tunnel_listener, mail):
         print(f"-- {section.__name__}")
         try:
             section()

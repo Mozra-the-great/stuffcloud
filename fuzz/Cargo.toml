@@ -16,6 +16,7 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4.13"
+serde_json = "1.0.154"
 stuffcloud-core = { path = "../crates/core" }
 
 [workspace]
@@ -31,6 +32,27 @@ bench = false
 [[bin]]
 name = "subdomain"
 path = "fuzz_targets/subdomain.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "entity_tags"
+path = "fuzz_targets/entity_tags.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "write_query"
+path = "fuzz_targets/write_query.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "writable_body"
+path = "fuzz_targets/writable_body.rs"
 test = false
 doc = false
 bench = false

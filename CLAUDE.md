@@ -10,15 +10,21 @@ Greenfield project (public, GPL-3.0).
 
 Rust backend (Cargo workspace: `axum`, `tokio`, SQLite) + Svelte/Vite frontend
 (TypeScript strict), Caddy, Docker Compose. See `docs/SPEC.md` sections 4 and 14.
-Exists so far: `crates/core` (validation, no I/O), `fuzz/` and the `web/` scaffold.
-`app`, `edge`, `db` and `cli` are added in the phase that needs them; each new crate
-inherits `[workspace.lints]` (`[lints] workspace = true`).
+Exists so far: `crates/core` (validation, no I/O), `crates/db` (SQLite, migrations),
+`crates/app` (LAN API), `fuzz/` and the `web/` scaffold. `edge` and `cli` are added in the
+phase that needs them; each new crate inherits `[workspace.lints]` (`[lints] workspace = true`).
 
 ## Structure
 
 ```
-crates/core/    domain types + validation (SafeRelPath, Subdomain), no I/O
-  tests/        properties.rs (proptest), regression.rs (attack corpus)
+crates/core/    domain types + validation (SafeRelPath, Subdomain), API building blocks (etag,
+                query, body + field errors, settings shapes), no I/O
+  tests/        properties.rs, api_properties.rs (proptest), regression.rs (attack corpus)
+crates/db/      SQLite (rusqlite, WAL): migrations/ + runner, resource store, audit log, bootstrap
+crates/app/     LAN API (axum): config (env + _FILE), resource conventions (resource.rs), problem
+                details, health/metrics, telemetry, bootstrap, OpenAPI (utoipa), CLI (`serve`,
+                `healthcheck`, `openapi`); tests/integration (router, log redaction, process)
+docker/app/     Dockerfile (distroless, non-root) + bootstrap.dev.json for the dev stack
 web/            pnpm workspace (Node 24, own lockfile; the backend never depends on it)
   apps/web/     Svelte + Vite SPA (static build): src/styles (generated tokens.css, fonts.css, theme.css),
                 src/ui (base components, `Mascot` + mascot catalogue), src/app (app shell, router, pages,
@@ -38,9 +44,10 @@ scripts/ci/     label script (opt-in via LABELS_ENABLED), npm license gate (lice
                 license-policy.toml), THIRD-PARTY.md generator (third_party.py), container
                 hardening gate (check_container_hardening.py), dev stack smoke test
                 (dev_stack_smoke.py), tests
-compose.dev.yml local dev stack (Caddy + Mailpit; `app`/`edge` join with A-01/H-19); docker/caddy/
+compose.dev.yml local dev stack (Caddy, app, Mailpit; `edge` joins with H-19); docker/caddy/
                 Caddyfile.dev, placeholder site, Dockerfile (web build baked in); .env.example
-docs/           SPEC.md, adr/ (architecture decision records), THIRD-PARTY.md (generated),
+docs/           SPEC.md, adr/ (architecture decision records), api/ (openapi.json generated from
+                `app`, problems.md: the problem types), THIRD-PARTY.md (generated),
                 THIRD-PARTY-ASSETS.md, design/, TEMPLATE-SETUP.md
 ```
 
@@ -57,6 +64,8 @@ cargo +nightly-2026-11-01 fuzz run safe_rel_path fuzz/corpus/safe_rel_path \
 python -m unittest discover -s scripts/ci -p "test_*.py"   # CI helper tests (Python 3.11+)
 python scripts/ci/license_gate.py             # npm license gate (needs pnpm; installs into a temp dir)
 python scripts/ci/third_party.py --write      # regenerate docs/THIRD-PARTY.md after a lockfile change
+cargo run -q -p stuffcloud-app -- openapi > docs/api/openapi.json   # after a handler change, then:
+(cd web && pnpm --filter @stuffcloud/api-client generate -- --input ../../docs/api/openapi.json)
 docker compose -f compose.dev.yml up --build  # local dev stack (README, "Local development stack")
 python scripts/ci/check_container_hardening.py static   # hardening gate (needs docker for the compose files)
 ```
@@ -93,12 +102,14 @@ Tests are part of the security design; err on the side of too many (SPEC section
 ## CI
 
 `ci.yml` job `build` is the required check: an aggregate over fmt, clippy, test,
-docs, coverage, mutants, fuzz, web (lint, typecheck, test, build of `web/`), licenses (npm
+docs, coverage, mutants (6 shards), fuzz, web (lint, typecheck, test, build of `web/`), openapi
+(committed OpenAPI document and generated TS client match the handlers), licenses (npm
 license gate + THIRD-PARTY.md freshness), dev-stack (container hardening gate on every compose file
 and Dockerfile, Caddyfile check, smoke test of the dev stack), supply-chain, codeql and repo-checks (add new jobs to its `needs`; no job skips itself on changed
 paths, because the aggregate counts a skipped job as a failure). `deep-tests.yml` runs nightly: long fuzzing (grows the cached corpus),
 full mutants, Miri, 500k proptest cases, fresh advisories, beta toolchain.
-Toolchain bump: `rust-toolchain.toml` + `rust-version` in `Cargo.toml`; nightly
+Toolchain bump: `rust-toolchain.toml` + `rust-version` in `Cargo.toml` + the `rust:` image in
+`docker/app/Dockerfile` (a test enforces it); nightly
 bump: `NIGHTLY` in both workflows. Dependabot handles actions, cargo, npm (`/web`,
 minor/patch grouped; semver-major `@types/node` is ignored, it follows the Node major in
 `web/.nvmrc` and is bumped by hand together with it) and the Docker images (`docker`, `docker-compose`;

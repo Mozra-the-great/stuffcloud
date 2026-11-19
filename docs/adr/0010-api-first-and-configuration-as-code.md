@@ -202,8 +202,8 @@ configuration use only RFC 2606 names.
 - Marking resources as "managed as code" (so the UI can warn before an edit that the next
   `apply` would revert) is decided with the admin UI (A-09,
   [#39](https://github.com/Mozra-the-great/stuffcloud/issues/39)).
-- The tool for the OpenAPI breaking-change check is chosen in A-01 (license checked like any
-  dependency); the check becomes active with the first release that contains the API.
+- The tool for the OpenAPI breaking-change check: chosen in A-01, see "Addendum: A-01"
+  below; the check becomes active with the first release that contains the API.
 - Repository location of the Ansible collection and the OpenTofu provider: decided when each
   is built (decision 10).
 - Owner question SF12: secrets only as references (decision 4) or also as write-only values
@@ -235,3 +235,34 @@ configuration use only RFC 2606 names.
 - [SPEC 6](../SPEC.md#6-users-roles-and-authentication), [9](../SPEC.md#9-data-model-sketch), [10](../SPEC.md#10-api-and-cli), [11](../SPEC.md#11-operations), [16](../SPEC.md#16-decisions-on-the-former-open-questions)
 - Issues [#116](https://github.com/Mozra-the-great/stuffcloud/issues/116), [#31](https://github.com/Mozra-the-great/stuffcloud/issues/31) (A-01), [#37](https://github.com/Mozra-the-great/stuffcloud/issues/37) (A-07), [#38](https://github.com/Mozra-the-great/stuffcloud/issues/38) (A-08), [#39](https://github.com/Mozra-the-great/stuffcloud/issues/39) (A-09), [#46](https://github.com/Mozra-the-great/stuffcloud/issues/46) (H-02), [#57](https://github.com/Mozra-the-great/stuffcloud/issues/57) (H-13), [#60](https://github.com/Mozra-the-great/stuffcloud/issues/60) (H-16), [#119](https://github.com/Mozra-the-great/stuffcloud/issues/119), [#120](https://github.com/Mozra-the-great/stuffcloud/issues/120)
 - [ADR 0004](0004-client-side-tools.md), [ADR 0005](0005-auth-model.md), [ADR 0009](0009-zone-model-and-shared-domain-isolation.md)
+
+## Addendum: A-01 (2026-11-19)
+
+How A-01 ([#31](https://github.com/Mozra-the-great/stuffcloud/issues/31)) built the conventions
+of decision 3, and the choices it left open:
+
+- **Shared building blocks.** The pure parts live in `core` (entity tags and `If-Match` /
+  `If-None-Match`, the strict write query, writable documents with every field error and a JSON
+  Pointer, the settings shapes), each with property tests and a fuzz target; storage in `db`
+  (create-or-replace in one transaction, content-derived strong ETag, audit row only on a real
+  change, dry runs that run the same statements and roll back); HTTP in `app/src/resource.rs`.
+  The first resource is the settings group `reserved-names`.
+- **Problem types** are documented in `docs/api/problems.md`; each `type` is the URL of its
+  section there (the project's own repository, the only project-specific URL allowed).
+- **Unknown query parameters are refused** (400), so a misspelt `?dryrun=true` can never become
+  a real write. Request bodies must be `application/json` (415 otherwise).
+- **Writes need authentication, which does not exist yet.** Until accounts (A-02) and the
+  policy matrix (A-07) arrive, the production access policy allows reads and answers every
+  write, dry runs included, with 401; the integration tests use a test policy. The instance is
+  configured through the bootstrap file meanwhile.
+- **Bootstrap (decision 8).** The configuration file is applied once, in one transaction, on the
+  first start with an empty database; JSON only until the CLI's `validate`/`plan`/`apply`
+  (H-13, #57) brings YAML for the same format. `STUFFCLOUD_BOOTSTRAP_ADMIN_*` and
+  `STUFFCLOUD_BOOTSTRAP_TOKEN_FILE` stop the app with a clear message until accounts (A-03) and
+  tokens (A-08) exist: ignoring them would leave an operator without the admin they asked for.
+- **OpenAPI breaking-change check: [`oasdiff`](https://github.com/oasdiff/oasdiff)**
+  (Apache-2.0, a single static binary, `oasdiff breaking --fail-on ERR <last release> <new>`).
+  It becomes a job of `build` with the first release that contains the API; until then the
+  `openapi` job only enforces that the committed document and the TypeScript client match the
+  handlers. Alternatives: `openapi-diff` (Apache-2.0, needs a Java runtime in CI) and
+  `openapi-changes` (MIT, reports but does not classify breaking changes by severity).

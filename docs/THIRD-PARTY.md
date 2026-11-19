@@ -132,7 +132,7 @@ come from neither package manager are in
 | zeroize | 1.9.2 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/zeroize/1.9.2) |
 | zmij | 1.0.23 | MIT | [crates.io](https://crates.io/crates/zmij/1.0.23) |
 
-## npm (32)
+## npm (35)
 
 | Name | Version | License | Source |
 |---|---|---|---|
@@ -152,10 +152,12 @@ come from neither package manager are in
 | axobject-query | 4.1.0 | Apache-2.0 | [npm](https://www.npmjs.com/package/axobject-query/v/4.1.0) |
 | clsx | 2.1.1 | MIT | [npm](https://www.npmjs.com/package/clsx/v/2.1.1) |
 | devalue | 5.9.4 | MIT | [npm](https://www.npmjs.com/package/devalue/v/5.9.4) |
+| diff | 9.0.0 | BSD-3-Clause | [npm](https://www.npmjs.com/package/diff/v/9.0.0) |
 | dompurify | 3.4.18 | (MPL-2.0 OR Apache-2.0) | [npm](https://www.npmjs.com/package/dompurify/v/3.4.18) |
 | esm-env | 1.2.2 | MIT | [npm](https://www.npmjs.com/package/esm-env/v/1.2.2) |
 | esrap | 2.4.0 | MIT | [npm](https://www.npmjs.com/package/esrap/v/2.4.0) |
 | is-reference | 3.0.3 | MIT | [npm](https://www.npmjs.com/package/is-reference/v/3.0.3) |
+| jsqr | 1.4.0 | Apache-2.0 | [npm](https://www.npmjs.com/package/jsqr/v/1.4.0) |
 | locate-character | 3.0.0 | MIT | [npm](https://www.npmjs.com/package/locate-character/v/3.0.0) |
 | magic-string | 0.30.21 | MIT | [npm](https://www.npmjs.com/package/magic-string/v/0.30.21) |
 | marked | 18.2.1 | MIT | [npm](https://www.npmjs.com/package/marked/v/18.2.1) |
@@ -166,5 +168,6 @@ come from neither package manager are in
 | pdfjs-dist | 6.5.438 | Apache-2.0 | [npm](https://www.npmjs.com/package/pdfjs-dist/v/6.5.438) |
 | svelte | 5.57.3 | MIT | [npm](https://www.npmjs.com/package/svelte/v/5.57.3) |
 | tslib | 1.14.1 | 0BSD | [npm](https://www.npmjs.com/package/tslib/v/1.14.1) |
+| uqr | 0.1.3 | MIT | [npm](https://www.npmjs.com/package/uqr/v/0.1.3) |
 | yaml | 2.9.1 | ISC | [npm](https://www.npmjs.com/package/yaml/v/2.9.1) |
 | zimmerframe | 1.1.5 | MIT | [npm](https://www.npmjs.com/package/zimmerframe/v/1.1.5) |

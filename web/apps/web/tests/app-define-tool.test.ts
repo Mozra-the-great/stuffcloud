@@ -12,11 +12,11 @@ const key = (text: string): MessageKey => text as MessageKey;
 describe('defineTool of the app', () => {
   it('returns the checked manifest', () => {
     const manifest = defineTool({
-      id: 'qr',
+      id: 'unlisted',
       category: 'text',
-      nameKey: key('tool.qr.name'),
-      descriptionKey: key('tool.qr.description'),
-      keywordsKey: key('tool.qr.keywords'),
+      nameKey: key('tool.unlisted.name'),
+      descriptionKey: key('tool.unlisted.description'),
+      keywordsKey: key('tool.unlisted.keywords'),
       sticker: 'qr',
       runsIn: 'client',
       fileContent: 'stays-in-browser',
@@ -24,18 +24,18 @@ describe('defineTool of the app', () => {
       budget: { scriptKb: 1, assetsKb: 0 },
       load: page,
     });
-    expect(manifest.id).toBe('qr');
-    expect(manifest.nameKey).toBe('tool.qr.name');
+    expect(manifest.id).toBe('unlisted');
+    expect(manifest.nameKey).toBe('tool.unlisted.name');
   });
 
   it('throws the schema error for a manifest that breaks a rule', () => {
     expect(() =>
       defineTool({
-        id: 'qr',
+        id: 'unlisted',
         category: 'text',
         nameKey: 'tool.localOnly',
-        descriptionKey: key('tool.qr.description'),
-        keywordsKey: key('tool.qr.keywords'),
+        descriptionKey: key('tool.unlisted.description'),
+        keywordsKey: key('tool.unlisted.keywords'),
         sticker: 'qr',
         runsIn: 'client',
         fileContent: 'stays-in-browser',
@@ -49,12 +49,12 @@ describe('defineTool of the app', () => {
   it('does not compile with a message key the catalogue lacks', () => {
     const attempt = (): unknown =>
       defineTool({
-        id: 'qr',
+        id: 'unlisted',
         category: 'text',
-        // @ts-expect-error -- 'tool.qr.name' is not a message of the catalogue
-        nameKey: 'tool.qr.name',
-        descriptionKey: key('tool.qr.description'),
-        keywordsKey: key('tool.qr.keywords'),
+        // @ts-expect-error -- 'tool.unlisted.name' is not a message of the catalogue
+        nameKey: 'tool.unlisted.name',
+        descriptionKey: key('tool.unlisted.description'),
+        keywordsKey: key('tool.unlisted.keywords'),
         sticker: 'qr',
         runsIn: 'client',
         fileContent: 'stays-in-browser',

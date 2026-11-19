@@ -356,9 +356,10 @@ Library candidates (license must be verified per version before adoption):
 | Parse | user-agent | own rules, tested on a corpus of real strings (no dependency; T-19; `ua-parser-js` v2 is AGPL) |
 | Network | subnet calculator | ipaddr.js / ip-address |
 | Network | MAC lookup | bundled IEEE OUI snapshot, updated by a CI job, offline |
-| Text | lorem ipsum, UUID (v4/v7), QR code | native / qrcode |
-| Text | diff viewer | jsdiff |
-| Text | text manipulation (case, sort, dedupe, trim, count, ...) | own small functions |
+| Text | lorem ipsum, UUID (v4/v7) | own word list; `crypto.getRandomValues` only, version 7 counts up inside a millisecond so UUIDs sort in the order they were made (no dependency; T-21) |
+| Text | QR code (text/URL, Wi-Fi, vCard; PNG and SVG) | `uqr` (MIT, encoder) and `jsQR` (Apache-2.0, reader for the scan test); own PNG writer; stuffcloud style at level H with an automatic scan test (T-21) |
+| Text | diff viewer | jsdiff (`diff`, BSD-3-Clause) in a worker with a time limit, lines or words, side by side or inline (T-21) |
+| Text | text manipulation (case, sort, dedupe, trim, number, find/replace, slugify, count) | own small functions in a worker with a time limit (no dependency; T-21) |
 | Extra | hash/checksum, password generator | WebCrypto (text); files hashed piece by piece by own incremental SHA-1/2 in a worker; `crypto.getRandomValues` (no dependency; T-22) |
 | Extra | regex tester, URL encode/decode, JWT decoder, timestamp converter | native: the regex runs in a worker that is stopped on a timeout; the JWT signature check uses WebCrypto and a pasted key (no dependency; T-22) |
 | Extra | Markdown preview, JSON formatter/validator, SQL formatter | `marked` + `DOMPurify` (MIT, MPL-2.0 or Apache-2.0): the sanitised result is parsed in an inert document and never loads a picture from the internet; own JSON reader; own SQL formatter (`sql-formatter` needs `argparse`, license Python-2.0, not allowed in a production tree) with a dialect choice for quotes, comments and parameters (T-23) |

@@ -362,4 +362,42 @@ export const de: Readonly<Record<MessageKey, Message>> = {
   'ua.announce.browser': '{browser}, {type}',
   'ua.announce.os': '{os}, {type}',
   'ua.announce.none': 'In diesem String wird nichts erkannt.',
+
+  'tool.hash.name': 'Hash und Prüfsumme',
+  'tool.hash.description':
+    'SHA-1, SHA-256, SHA-384 und SHA-512 von einem Text oder einer beliebig großen Datei berechnen und das Ergebnis mit einer vorgegebenen Prüfsumme vergleichen.',
+  'tool.hash.keywords':
+    'hash prüfsumme checksumme sha sha1 sha256 sha384 sha512 digest datei integrität prüfen download vergleichen',
+  'hash.mode': 'Hashen von',
+  'hash.mode.text': 'Text',
+  'hash.mode.file': 'Datei',
+  'hash.text': 'Text zum Hashen',
+  'hash.textHint': 'Die Hashes unten folgen beim Tippen. Der Text wird als UTF-8 gehasht.',
+  'hash.dropHint': 'Datei hierher ziehen',
+  'hash.choose': 'Datei wählen',
+  'hash.file': 'Datei: {name}',
+  'hash.fileSize': 'Datei: {name}, {size} Bytes',
+  'hash.progress': '{name} wird gehasht',
+  'hash.progressText': '{done} von {total} Bytes',
+  'hash.cancel': 'Abbrechen',
+  'hash.cancelled': 'Abgebrochen. Die Datei wurde nicht gehasht.',
+  'hash.failed': 'Die Eingabe konnte nicht gehasht werden. Versuche es erneut oder wähle eine andere Datei.',
+  'hash.announce.text': 'Die Hashes des Textes sind fertig.',
+  'hash.announce.file': 'Die Hashes von {name} sind fertig.',
+  'hash.results': 'Hashes',
+  'hash.format': 'Darstellung',
+  'hash.format.hex': 'Hex, Kleinbuchstaben',
+  'hash.format.hexUpper': 'Hex, Großbuchstaben',
+  'hash.format.base64': 'Base64',
+  'hash.copy': '{algorithm} kopieren',
+  'hash.sha1Note':
+    'SHA-1 taugt nur dazu, Versehen zu erkennen (ein kaputter Download). Kollisionen lassen sich gezielt erzeugen, es beweist also nichts gegen jemanden, der eine Datei absichtlich verändert: Dafür SHA-256 oder länger nehmen.',
+  'hash.compare': 'Vergleichen',
+  'hash.compare.label': 'Vorgegebene Prüfsumme',
+  'hash.compare.hint':
+    'Einen Hex-Hash mit 40, 64, 96 oder 128 Stellen einfügen. Groß- und Kleinschreibung, Leerzeichen, Doppelpunkte und Bindestriche spielen keine Rolle.',
+  'hash.compare.invalid':
+    'Das ist kein Hex-Hash mit 40, 64, 96 oder 128 Stellen (SHA-1, SHA-256, SHA-384 oder SHA-512).',
+  'hash.compare.match': 'Er passt zu {algorithm}.',
+  'hash.compare.none': 'Er passt zu keinem der Hashes oben.',
 };

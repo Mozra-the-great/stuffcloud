@@ -358,6 +358,44 @@ export const en = {
   'ua.announce.browser': '{browser}, {type}',
   'ua.announce.os': '{os}, {type}',
   'ua.announce.none': 'Nothing in this string is recognised.',
+
+  'tool.hash.name': 'Hash and checksum',
+  'tool.hash.description':
+    'Calculate SHA-1, SHA-256, SHA-384 and SHA-512 of a text or a file of any size, and compare the result with a checksum you were given.',
+  'tool.hash.keywords':
+    'hash checksum sha sha1 sha256 sha384 sha512 digest file integrity verify download compare',
+  'hash.mode': 'Hash a',
+  'hash.mode.text': 'Text',
+  'hash.mode.file': 'File',
+  'hash.text': 'Text to hash',
+  'hash.textHint': 'The digests below follow as you type. The text is hashed as UTF-8.',
+  'hash.dropHint': 'Drop a file here',
+  'hash.choose': 'Choose a file',
+  'hash.file': 'File: {name}',
+  'hash.fileSize': 'File: {name}, {size} bytes',
+  'hash.progress': 'Hashing {name}',
+  'hash.progressText': '{done} of {total} bytes',
+  'hash.cancel': 'Cancel',
+  'hash.cancelled': 'Cancelled. The file was not hashed.',
+  'hash.failed': 'The input could not be hashed. Try again, or choose another file.',
+  'hash.announce.text': 'The digests of the text are ready.',
+  'hash.announce.file': 'The digests of {name} are ready.',
+  'hash.results': 'Digests',
+  'hash.format': 'Show as',
+  'hash.format.hex': 'Hex, lowercase',
+  'hash.format.hexUpper': 'Hex, uppercase',
+  'hash.format.base64': 'Base64',
+  'hash.copy': 'Copy {algorithm}',
+  'hash.sha1Note':
+    'SHA-1 is only good for catching accidents (a broken download). Collisions can be made on purpose, so it proves nothing against someone who tampers with a file: use SHA-256 or longer for that.',
+  'hash.compare': 'Compare',
+  'hash.compare.label': 'Checksum you were given',
+  'hash.compare.hint':
+    'Paste a hex digest of 40, 64, 96 or 128 digits. Case, spaces, colons and dashes do not matter.',
+  'hash.compare.invalid':
+    'This is not a hex digest of 40, 64, 96 or 128 digits (SHA-1, SHA-256, SHA-384 or SHA-512).',
+  'hash.compare.match': 'It matches {algorithm}.',
+  'hash.compare.none': 'It does not match any digest above.',
 } as const satisfies Readonly<Record<string, Message>>;
 
 export type MessageKey = keyof typeof en;

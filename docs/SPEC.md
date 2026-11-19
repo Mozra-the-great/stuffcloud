@@ -348,8 +348,8 @@ Library candidates (license must be verified per version before adoption):
 | Image | convert PNG/JPG/WebP/AVIF | wasm-vips or jSquash |
 | Image | compress, strip EXIF | jSquash, exif libs |
 | Image | background removal, pixel-art filter | **U²-Netp** (Apache-2.0 weights, about 5 MB) through ONNX Runtime Web (MIT) as default; **BiRefNet-lite** (MIT, about 114 MB) as an opt-in higher-quality download; own pixelate filter. Not used: `@imgly/background-removal` (GPL/AGPL, commercial dual license), MODNet (conflicting license statements). Exact weights are re-checked at adoption |
-| Convert | JSON / YAML / XML | js-yaml, fast-xml-parser |
-| Convert | Base64 encode/decode | native |
+| Convert | JSON / YAML / XML | `yaml` (ISC, no dependencies; `js-yaml` needs `argparse`, license Python-2.0/PSF-2.0, which the policy does not allow); own JSON reader (positions, JSON5, exact numbers) and own XML reader/writer without DTDs or entities, run in a worker that is stopped on a timeout (T-17) |
+| Convert | Base64 encode/decode | own codec (RFC 4648: both alphabets, padding, line breaks, data URIs, error positions); files in a worker (no dependency; T-17) |
 | Convert | colour picker + formats, contrast, palette from an image | own small functions (no dependency; T-18) |
 | Convert | unit converter | own unit tables (no dependency; T-18) |
 | Parse | CRON expression | own parser, explainer (de/en) and next-run search; time zones through `Intl` (no dependency; T-19) |
@@ -361,7 +361,7 @@ Library candidates (license must be verified per version before adoption):
 | Text | text manipulation (case, sort, dedupe, trim, count, ...) | own small functions |
 | Extra | hash/checksum, password generator | WebCrypto (text); files hashed piece by piece by own incremental SHA-1/2 in a worker; `crypto.getRandomValues` (no dependency; T-22) |
 | Extra | regex tester, URL encode/decode, JWT decoder, timestamp converter | native: the regex runs in a worker that is stopped on a timeout; the JWT signature check uses WebCrypto and a pasted key (no dependency; T-22) |
-| Extra | Markdown preview, JSON formatter/validator, SQL formatter | marked + DOMPurify, native, sql-formatter |
+| Extra | Markdown preview, JSON formatter/validator, SQL formatter | `marked` + `DOMPurify` (MIT, MPL-2.0 or Apache-2.0): the sanitised result is parsed in an inert document and never loads a picture from the internet; own JSON reader; own SQL formatter (`sql-formatter` needs `argparse`, license Python-2.0, not allowed in a production tree) with a dialect choice for quotes, comments and parameters (T-23) |
 
 Rules
 - Large WASM/ML assets load only when the tool opens, are self-hosted, and show

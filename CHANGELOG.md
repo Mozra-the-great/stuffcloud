@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Converters and formatters (T-17, #22; T-23, #28): five client-side tools, each with its a11y spec (axe in Chromium
+  and Firefox, keyboard walk, 320 px reflow, German). **JSON, YAML and XML converter**: any direction, indentation,
+  sorted keys, XML root name, declaration, typed XML values, swap and download; the conversion runs in a worker
+  that is stopped after 10 seconds, every error names format, line and column, and the document is counted before
+  it is written (every use of an alias counts again, indentation is estimated) so that a YAML alias bomb, a
+  deeply nested document or a huge value count is refused. XML is read by our own reader without DTDs and without
+  entities of its own (a DOCTYPE with an internal subset is refused with an explanation; nothing is ever fetched),
+  compared against the browser's parser in the tests. **Base64**: text and files (a worker reads a file in pieces,
+  with progress and cancel), standard and URL-safe alphabet, padding, 64/76 character lines, data URIs both ways,
+  decoded text or a download, exact error positions. **JSON formatter and validator**: our own reader keeps the
+  numbers as written, accepts comments and JSON5 on request (strict mode refuses them), shows the path at the
+  cursor, finds a value by path, sorts keys, minifies and warns about duplicate keys. **Markdown preview**: `marked`
+  (GFM, in a worker that is stopped after 8 seconds, because some texts take it minutes) and DOMPurify with a short
+  allow list; the sanitised result is parsed in an inert document, pictures from
+  the internet are replaced by their description (the e2e privacy check proves no request leaves), links get
+  `noopener noreferrer`, headings are moved below the tool's own so the outline never skips a level, and "copy
+  as HTML" copies the sanitised markup; tested against an XSS corpus of 97 payloads in jsdom and in both browsers. Decoded Base64 is never saved as
+  a type a browser would run (HTML, SVG, XML, script).
+  **SQL formatter**: our own tokenizer and layout (clause per line, nested queries indented, `BETWEEN` / `CASE` /
+  `JOIN` aware, keyword case, 2/4/tab/one line) with a dialect choice for quotes, comments and parameters
+  (standard, PostgreSQL, MySQL, SQLite, SQL Server, Oracle); only white space and keyword case change, which a
+  property test checks on damaged input too. New dependencies `yaml` (ISC), `marked` (MIT) and `dompurify`
+  (MPL-2.0 OR Apache-2.0); `js-yaml` and `sql-formatter` were not used because both pull `argparse`
+  (Python-2.0 / PSF-2.0), which the license policy does not allow in a production tree. (#154)
 - Operator-domain gate (SC-D, SF11): `scripts/ci/check_operator_domains.py` in `repo-checks` searches every
   tracked file and file name for the domains of a maintainer's list that is never in the repository: the
   Actions secret (or variable) `STUFFCLOUD_FORBIDDEN_DOMAINS` (one domain per line or comma separated; a

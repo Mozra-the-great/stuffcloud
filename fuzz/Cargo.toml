@@ -91,3 +91,17 @@ path = "fuzz_targets/scope.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "account"
+path = "fuzz_targets/account.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "forwarded_for"
+path = "fuzz_targets/forwarded_for.rs"
+test = false
+doc = false
+bench = false

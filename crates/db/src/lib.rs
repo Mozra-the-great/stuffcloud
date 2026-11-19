@@ -7,13 +7,16 @@
 //!   create-or-replace, strong entity tags, preconditions, dry runs, audit rows) and the
 //!   one-time bootstrap.
 //! - [`auth`] holds accounts and sessions (A-02): hashed session and CSRF tokens, timeouts,
-//!   rotation, logout, and the security events of the audit log.
+//!   rotation, logout, the session cap, and the security events of the audit log.
+//! - [`accounts`] holds local accounts (A-03): passwords, registration, invitations and
+//!   password reset tokens.
 //!
 //! The crate is synchronous (`rusqlite`). One connection is shared behind a mutex: SQLite
 //! has a single writer anyway, and the `app` crate calls every method from
 //! `tokio::task::spawn_blocking`, never on an async worker. The crate reads no clock: every
 //! write takes the time as an argument, which keeps it deterministic under test.
 
+pub mod accounts;
 pub mod auth;
 pub mod migrate;
 pub mod store;
@@ -24,6 +27,9 @@ use std::time::Duration;
 
 use rusqlite::{Connection, OpenFlags};
 
+pub use accounts::{
+    Invitation, InvitationOutcome, NewAccount, PasswordRecord, Profile, Registration, ResetIssue,
+};
 pub use auth::{
     NewSession, RoleChange, Session, SessionLookup, TOUCH_INTERVAL_MS, TokenHash, User, token_hash,
 };
@@ -201,10 +207,10 @@ mod tests {
             db.check_schema(),
             Err(DbError::SchemaOutdated {
                 found: 0,
-                expected: 2
+                expected: 3
             })
         ));
-        assert_eq!(db.migrate().unwrap().applied, vec![1, 2]);
+        assert_eq!(db.migrate().unwrap().applied, vec![1, 2, 3]);
         db.check_schema().unwrap();
         assert_eq!(db.migrate().unwrap().applied, Vec::<u32>::new());
         let conn = db.lock().unwrap();

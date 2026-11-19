@@ -113,7 +113,18 @@ async fn logs_contain_no_addresses_tokens_cookies_or_queries() {
         stuffcloud_app::auth::AuthSettings {
             app_origin: stuffcloud_core::csrf::Origin::parse(b"https://app.example.com").unwrap(),
             timeouts: stuffcloud_core::session::Timeouts::default(),
+            max_sessions: 10,
         },
+        stuffcloud_app::accounts::Accounts::new(
+            stuffcloud_app::password::Passwords::new(
+                stuffcloud_app::password::Argon2Settings::CHEAPEST,
+                stuffcloud_core::account::PasswordPolicy::default(),
+                stuffcloud_app::password::Blocklist::default(),
+                2,
+            )
+            .unwrap(),
+            stuffcloud_core::client_ip::ProxyList::default(),
+        ),
     );
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();

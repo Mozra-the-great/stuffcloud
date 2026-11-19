@@ -107,6 +107,9 @@ pub struct NewSession {
     /// The session the request presented, if any: it is ended, so a login never keeps a
     /// session id that existed before it (session fixation).
     pub replaces: Option<i64>,
+    /// The most sessions the account may hold (A-03): when the new one exceeds it, the oldest
+    /// sessions of the account end (`session.evicted`). `None` only in tests.
+    pub max_per_user: Option<usize>,
 }
 
 /// Result of [`Database::set_role`].
@@ -122,7 +125,7 @@ pub struct RoleChange {
 type SessionRow = (i64, Vec<u8>, i64, i64, i64, String, String, String, i64);
 
 /// Adds a security event to the audit log.
-fn audit(
+pub(crate) fn audit(
     conn: &Connection,
     now: i64,
     actor: Option<&str>,
@@ -145,7 +148,7 @@ fn hash_from(bytes: &[u8]) -> Result<TokenHash, DbError> {
 }
 
 /// Builds a [`User`] from stored columns.
-fn user_from(
+pub(crate) fn user_from(
     id: i64,
     login: String,
     kind: &str,
@@ -162,7 +165,7 @@ fn user_from(
 }
 
 /// Reads an account.
-fn read_user(conn: &Connection, id: i64) -> Result<Option<User>, DbError> {
+pub(crate) fn read_user(conn: &Connection, id: i64) -> Result<Option<User>, DbError> {
     let row: Option<(i64, String, String, String, i64)> = conn
         .query_row(
             "SELECT id, login, kind, role, created_at FROM users WHERE id = ?1",
@@ -308,8 +311,40 @@ fn purge_expired(conn: &Connection, timeouts: &Timeouts, now: i64) -> Result<usi
     Ok(expired.len())
 }
 
+/// Ends the oldest sessions of an account beyond the newest `keep` (the session cap of A-03),
+/// one `session.evicted` row each; returns how many.
+fn evict_oldest(
+    conn: &Connection,
+    user_id: i64,
+    keep: usize,
+    actor: &str,
+    now: i64,
+) -> Result<usize, DbError> {
+    let keep = i64::try_from(keep).unwrap_or(i64::MAX);
+    let evicted: Vec<i64> = {
+        let mut statement = conn.prepare(
+            "SELECT id FROM sessions WHERE user_id = ?1
+             ORDER BY created_at DESC, id DESC LIMIT -1 OFFSET ?2",
+        )?;
+        let rows = statement.query_map(params![user_id, keep], |row| row.get(0))?;
+        rows.collect::<Result<_, _>>()?
+    };
+    for id in &evicted {
+        let _rows = conn.execute("DELETE FROM sessions WHERE id = ?1", [id])?;
+        audit(
+            conn,
+            now,
+            Some(actor),
+            "session.evicted",
+            SESSION_KIND,
+            &id.to_string(),
+        )?;
+    }
+    Ok(evicted.len())
+}
+
 /// Ends every session of an account; returns how many.
-fn end_all(
+pub(crate) fn end_all(
     tx: &Transaction<'_>,
     user_id: i64,
     actor: Option<&str>,
@@ -411,7 +446,7 @@ impl Database {
 
     /// Stores a new session after a successful login and ends the session the request
     /// presented ([`NewSession::replaces`]). Expired sessions of every account are purged on
-    /// the way.
+    /// the way, and the oldest sessions of the account beyond [`NewSession::max_per_user`] end.
     ///
     /// # Errors
     ///
@@ -459,6 +494,9 @@ impl Database {
             SESSION_KIND,
             &id.to_string(),
         )?;
+        if let Some(max) = new.max_per_user {
+            let _evicted = evict_oldest(&tx, user.id, max, &actor, now)?;
+        }
         tx.commit()?;
         Ok(Session {
             id,

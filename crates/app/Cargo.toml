@@ -13,11 +13,13 @@ name = "stuffcloud-app"
 path = "src/main.rs"
 
 [dependencies]
+argon2.workspace = true
 axum.workspace = true
 getrandom.workspace = true
 prometheus-client.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 stuffcloud-core = { workspace = true, features = ["openapi"] }
 stuffcloud-db.workspace = true
 time.workspace = true

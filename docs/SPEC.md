@@ -277,13 +277,40 @@ Authentication
   In the homelab OIDC is the preferred login. Roles come from group claims
   (configurable mapping, e.g. `stuffcloud-admins` -> admin). Local accounts stay
   available; one local break-glass admin is required.
-- Sign-up mode (setting): `open`, `invite-only`, or `oidc-only`.
+- Sign-up mode (settings group `signup`, default `invite-only`): `open`, `invite-only` (an admin
+  invitation, single use, 1 to 720 hours, optionally for one e-mail address), or `oidc-only` (no
+  local registration). A registration logs the new account in.
+- Local accounts (A-03, ADR 0005 addendum "local accounts"): the login name (3 to 32 of
+  `a-z 0-9 . _ -`, lowercase only) is the natural key; the e-mail address is optional for
+  admin-created accounts, required for a registration, stored in lowercase and unique. Login with
+  the login name or the address. Passwords are hashed with **Argon2id** (OWASP parameters by
+  default: 19 MiB, 2 iterations, 1 lane; deployment configuration `STUFFCLOUD_ARGON2_*`, the
+  start-up log reports the time of one hash for calibration) in their NFKC form, at most as many
+  at once as the host has cores. Policy: length based (at least 12 characters by default,
+  configurable down to 8, at most 256), not the login name or the address, not one repeated
+  character, and not on the operator's optional offline list of breached passwords
+  (`STUFFCLOUD_PASSWORD_BLOCKLIST_FILE`; stuffcloud never sends a password or its hash anywhere).
+- Account enumeration: an unknown login name or address, a service account and a wrong password
+  get the same answer after the same work (one Argon2id check against a dummy hash). Login
+  attempts are throttled in memory (never stored or logged): per client address (behind the
+  proxies named in `STUFFCLOUD_TRUSTED_PROXIES` the forwarded address, IPv6 by /64) 20 free
+  failures, per typed login name 10, then waits that double up to 15 minutes; an address that
+  logged in to the account within 30 days is not slowed down by the per-account rule. It is a
+  backoff, never a lockout; the trade-off is in the ADR addendum. Registrations: 5 per address,
+  then waits up to an hour.
+- Password reset: a reset token is single use, valid for 60 minutes, stored as a hash, and ends
+  every session of the account when redeemed. Without SMTP an admin issues the link
+  (`POST /api/v1/admin/users/{login}/password-reset`) or the operator does on the host
+  (`stuffcloud-app reset-link <login>`); with SMTP (A-10) the account asks for it itself. A
+  password change needs the current password and ends the account's other sessions.
 - Sessions: `__Host-` prefixed, HttpOnly, Secure, SameSite=Lax cookies, host-only on the
   app address (no `Domain=` attribute); `Origin` check and CSRF token on every
   state-changing request (section 5.5). Session tokens are random, stored only as hashes,
   end after an idle and an absolute timeout (deployment configuration, defaults 8 hours and
   7 days), are never reused across a login (fixation) and end on logout, "logout everywhere"
-  and a role change. The client gets the CSRF token from `GET /api/v1/auth/session` and sends
+  and a role change. At most `STUFFCLOUD_SESSION_MAX_PER_USER` sessions per account (default 10):
+  a login beyond it ends the oldest. Expired sessions and tokens are purged every 10 minutes.
+  The client gets the CSRF token from `GET /api/v1/auth/session` and sends
   it as `X-CSRF-Token`; requests with a well-formed `Authorization: Bearer` header (tokens) are
   not cookie authenticated and skip these checks, any other `Authorization` scheme is ignored
   (the request is handled as if it had none), and a malformed one is refused with 401 (ADR 0005,
@@ -420,6 +447,7 @@ Rate limits per IP (in memory, not persisted) and per account.
 
 `users` (login name, kind `person`/`service`, role), `credentials` (password/passkey/TOTP), `oidc_identities`,
 `recovery_codes` (hashes), `sessions` (token and CSRF token as hashes, timestamps),
+`invitations` and `password_resets` (token hashes, expiry, single use),
 `api_tokens` (owner, name, scopes, expiry), `sites` (id, owner?, zone, name, kind, expires_at, visibility,
 password_hash?, burn_after_read, size_bytes, status), `site_files`, `pastes`
 (edit mode, token hash), `builder_projects`, `reports`, `blocklist`, `zones` (domain,
@@ -544,7 +572,8 @@ zones:
 - The app address and all secrets come from environment variables, each also as a `_FILE`
   variant (section 11).
 - On the first start with an empty database the app creates the first admin (the local
-  break-glass admin, section 6) from `STUFFCLOUD_BOOTSTRAP_ADMIN_*`, optionally a service
+  break-glass admin, section 6; since A-03) from `STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN`, `_EMAIL`
+  (optional) and `_PASSWORD` or `_PASSWORD_FILE` (checked against the password policy), optionally a service
   account with an admin-scoped token whose secret the operator supplies in a file (stored
   hashed), and applies an optional bootstrap configuration file once. Later starts ignore
   these inputs with a log line.
@@ -695,6 +724,14 @@ Test layers and what each must cover:
   non-admin and a service account that tries to log in; every OpenAPI operation must have a
   declared policy (the application refuses to start otherwise), `docs/api/permissions.md` must
   equal the generated document, and property tests assert that a token never exceeds its owner.
+- **Account tests** (A-03): an unknown login name or address, a service account and a wrong
+  password get byte-identical answers after exactly one Argon2id check each (the enumeration
+  test counts the checks instead of measuring time); `invite-only` refuses open registration and
+  `oidc-only` every local one; invitations and reset tokens work once and expire; the throttles
+  answer 429 with `Retry-After` without checking the password; the session cap ends the oldest
+  session; the audit log holds no login name, address or token. Fuzz targets `account` (login
+  names, addresses, the password policy) and `forwarded_for` (trusted proxies and
+  `X-Forwarded-For`).
 - **Cookie check** (since A-02): `scripts/ci/check_cookies.py` fails on any cookie with a
   `Domain=` attribute in any Rust file of the repository (sources, tests, `build.rs`, fuzz
   targets), Caddy file or script of `web/`, on `Set-Cookie` outside the cookie module, on cookie

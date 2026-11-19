@@ -5,6 +5,10 @@
 //! stuffcloud-app healthcheck exit 0 when the local API is ready (container health check)
 //! stuffcloud-app openapi     print the OpenAPI document (CI drift check)
 //! stuffcloud-app permissions print the permission matrix and route table (docs/api/permissions.md)
+//! stuffcloud-app reset-link <login>
+//!                            print a password reset link for an account (break-glass: works
+//!                            without an admin session and without e-mail; configuration from
+//!                            the environment, the database must be migrated)
 //! stuffcloud-app version     print the version
 //! ```
 //!
@@ -18,9 +22,17 @@ use std::time::Duration;
 
 use stuffcloud_db::Database;
 
+use stuffcloud_core::account::{Login, PasswordContext};
+use stuffcloud_core::session::Role;
+use stuffcloud_db::NewAccount;
+
 use crate::access::{MatrixPolicy, permissions_markdown, verify};
+use crate::accounts::Accounts;
 use crate::auth::AuthSettings;
 use crate::config::{self, Config, Environment};
+use crate::invitations::{Issued, issue_reset_link};
+use crate::maintenance::{PURGE_INTERVAL, spawn_purger};
+use crate::password::{Blocklist, Passwords};
 use crate::state::{AppState, Clock, SystemClock};
 use crate::{bootstrap, openapi, server, telemetry};
 
@@ -34,7 +46,7 @@ pub const EXIT_USAGE: u8 = 2;
 /// How long the health check waits for a connection and an answer.
 pub const HEALTHCHECK_TIMEOUT: Duration = Duration::from_secs(3);
 
-const USAGE: &str = "usage: stuffcloud-app [serve | healthcheck | openapi | permissions | version]";
+const USAGE: &str = "usage: stuffcloud-app [serve | healthcheck | openapi | permissions | reset-link <login> | version]";
 
 /// Runs the command given by `args` (without the program name).
 pub fn run<E: Environment + ?Sized>(
@@ -63,8 +75,118 @@ pub fn run<E: Environment + ?Sized>(
             }
             _ => usage(err),
         },
+        [command, login] if command == "reset-link" => reset_link_command(env, login, out, err),
         _ => usage(err),
     }
+}
+
+/// `stuffcloud-app reset-link <login>`: a reset link straight from the database, for an
+/// operator who has a shell on the host but no admin who can log in.
+fn reset_link_command<E: Environment + ?Sized>(
+    env: &E,
+    login: &str,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> u8 {
+    match reset_link(env, login) {
+        Ok(lines) => {
+            report(out, &lines);
+            EXIT_OK
+        }
+        Err(message) => {
+            report(err, &message);
+            EXIT_FAILURE
+        }
+    }
+}
+
+/// The work of `reset-link`: the link and its expiry, or a sentence for the operator.
+fn reset_link<E: Environment + ?Sized>(env: &E, login: &str) -> Result<String, String> {
+    let config = config::from_env(env).map_err(|errors| errors.to_string())?;
+    let login =
+        Login::parse(login).map_err(|error| format!("{login:?} is not a login name: {error}"))?;
+    let path = config.database_path();
+    let db = Database::open(&path)
+        .map_err(|error| format!("cannot open the database {}: {error}", path.display()))?;
+    db.check_schema()
+        .map_err(|error| format!("the database is not ready (start the app once): {error}"))?;
+    match issue_reset_link(
+        &db,
+        config.app_url.origin(),
+        &login,
+        None,
+        SystemClock.now_millis(),
+    )? {
+        Issued::Link(link) => Ok(format!(
+            "{}\nvalid once until {} (an older link of the account no longer works)",
+            link.link, link.expires_at
+        )),
+        Issued::UnknownUser => Err(format!("no account is named {:?}", login.as_str())),
+        Issued::ServiceAccount => Err(format!(
+            "{:?} is a service account, which has no password",
+            login.as_str()
+        )),
+    }
+}
+
+/// Builds password hashing from the configuration: reads the offline list and makes the dummy
+/// hash (whose duration is logged as the calibration of the Argon2 parameters).
+///
+/// # Errors
+///
+/// A sentence for the operator.
+pub fn passwords(config: &Config) -> Result<Passwords, String> {
+    let settings = &config.accounts;
+    let blocklist = match &settings.blocklist {
+        None => Blocklist::default(),
+        Some(path) => Blocklist::from_text(&std::fs::read_to_string(path).map_err(|error| {
+            format!(
+                "cannot read STUFFCLOUD_PASSWORD_BLOCKLIST_FILE {}: {}",
+                path.display(),
+                error.kind()
+            )
+        })?),
+    };
+    let concurrency = std::thread::available_parallelism().map_or(1, std::num::NonZero::get);
+    let passwords = Passwords::new(settings.argon2, settings.policy, blocklist, concurrency)
+        .map_err(|error| format!("invalid Argon2 parameters: {error}"))?;
+    tracing::info!(
+        target: "stuffcloud::server",
+        memory_kib = settings.argon2.memory_kib,
+        iterations = settings.argon2.iterations,
+        parallelism = settings.argon2.parallelism,
+        hash_ms = u64::try_from(passwords.calibration_ms()).unwrap_or(u64::MAX),
+        concurrency = passwords.concurrency(),
+        breached_list = passwords_listed(settings.blocklist.is_some()),
+        "password hashing ready (one Argon2id hash took hash_ms; keep it well below a second)"
+    );
+    Ok(passwords)
+}
+
+fn passwords_listed(configured: bool) -> &'static str {
+    if configured { "configured" } else { "none" }
+}
+
+/// The hash of the first admin's password, checked against the offline list too.
+fn bootstrap_admin_hash(config: &Config, passwords: &Passwords) -> Result<Option<String>, String> {
+    let Some(admin) = &config.accounts.bootstrap_admin else {
+        return Ok(None);
+    };
+    let problems = passwords.policy().check(
+        admin.password.expose(),
+        &PasswordContext {
+            login: admin.login.as_str(),
+            email: admin
+                .email
+                .as_ref()
+                .map(stuffcloud_core::account::Email::as_str),
+        },
+        passwords.breached(admin.password.expose()),
+    );
+    if let Some(problem) = problems.first() {
+        return Err(format!("STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD: {problem}"));
+    }
+    passwords.hash_now(admin.password.expose()).map(Some)
 }
 
 /// Writes one line; a closed stdout or stderr is not worth a panic.
@@ -182,8 +304,24 @@ pub fn start(config: &Config) -> Result<(), String> {
         "database ready"
     );
     let clock = SystemClock;
-    let _bootstrap = bootstrap::run(&db, config.bootstrap_config.as_deref(), clock.now_millis())
-        .map_err(|error| error.to_string())?;
+    let passwords = passwords(config)?;
+    let admin_hash = bootstrap_admin_hash(config, &passwords)?;
+    let admin = match (&config.accounts.bootstrap_admin, &admin_hash) {
+        (Some(admin), Some(hash)) => Some(NewAccount {
+            login: &admin.login,
+            email: admin.email.as_ref(),
+            role: Role::Admin,
+            password_hash: hash,
+        }),
+        _ => None,
+    };
+    let _bootstrap = bootstrap::run(
+        &db,
+        config.bootstrap_config.as_deref(),
+        admin.as_ref(),
+        clock.now_millis(),
+    )
+    .map_err(|error| error.to_string())?;
     let purged = db
         .purge_expired_sessions(&config.session, clock.now_millis())
         .map_err(|error| format!("cannot purge expired sessions: {error}"))?;
@@ -198,7 +336,9 @@ pub fn start(config: &Config) -> Result<(), String> {
         AuthSettings {
             app_origin: config.app_url.origin().clone(),
             timeouts: config.session,
+            max_sessions: config.accounts.max_sessions,
         },
+        Accounts::new(passwords, config.accounts.trusted_proxies.clone()),
     );
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -210,6 +350,7 @@ pub fn start(config: &Config) -> Result<(), String> {
             .await
             .map_err(|error| format!("cannot listen on {listen}: {error}"))?;
         tracing::info!(target: "stuffcloud::server", %listen, "listening");
+        let _purger = spawn_purger(state.clone(), PURGE_INTERVAL);
         server::serve(listener, server::router(state), server::shutdown_signal())
             .await
             .map_err(|error| format!("server error: {error}"))
@@ -233,6 +374,22 @@ mod tests {
             String::from_utf8(out).unwrap(),
             String::from_utf8(err).unwrap(),
         )
+    }
+
+    /// The error `start` refuses with. A start that does not refuse would serve until the
+    /// process ends; the thread and the time limit turn that into a failed test (and a
+    /// caught mutant) instead of a hung test run.
+    fn refusal(config: &Config) -> String {
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let config = config.clone();
+        let _detached = std::thread::spawn(move || {
+            let _sent = sender.send(start(&config));
+        });
+        match receiver.recv_timeout(Duration::from_secs(10)) {
+            Ok(Err(error)) => error,
+            Ok(Ok(())) => panic!("the app started and stopped instead of refusing"),
+            Err(error) => panic!("the app did not refuse to start: {error}"),
+        }
     }
 
     #[test]
@@ -380,7 +537,7 @@ mod tests {
                 dir.path().join("missing.json").to_str().unwrap(),
             );
         let config = config::from_env(&env).unwrap();
-        let error = start(&config).unwrap_err();
+        let error = refusal(&config);
         assert!(
             error.starts_with("cannot read the bootstrap configuration"),
             "{error}"
@@ -393,8 +550,120 @@ mod tests {
             ..config
         };
         std::fs::create_dir(config.database_path()).unwrap();
-        let error = start(&config).unwrap_err();
+        let error = refusal(&config);
         assert!(error.starts_with("cannot open the database"), "{error}");
+    }
+
+    #[test]
+    fn start_refuses_a_weak_or_breached_admin_password_and_a_missing_list() {
+        let dir = tempfile::tempdir().unwrap();
+        let list = dir.path().join("breached.txt");
+        std::fs::write(&list, "correct horse battery staple\n").unwrap();
+        let env = MapEnvironment::default()
+            .with("STUFFCLOUD_APP_URL", "http://stuff.localhost")
+            .with("STUFFCLOUD_DATA_DIR", dir.path().to_str().unwrap())
+            .with("STUFFCLOUD_ARGON2_MEMORY_KIB", "7168")
+            .with("STUFFCLOUD_ARGON2_ITERATIONS", "1")
+            .with("STUFFCLOUD_PASSWORD_BLOCKLIST_FILE", list.to_str().unwrap())
+            .with("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN", "root")
+            .with(
+                "STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD",
+                "correct horse battery staple",
+            );
+        let config = config::from_env(&env).unwrap();
+        assert_eq!(
+            refusal(&config),
+            "STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD: this password is on the list of breached or common passwords; choose another"
+        );
+        // Nothing was created.
+        let db = Database::open(&config.database_path()).unwrap();
+        assert_eq!(db.bootstrapped_at().unwrap(), None);
+        let missing = Config {
+            accounts: config::AccountSettings {
+                blocklist: Some(dir.path().join("nope.txt")),
+                ..config.accounts.clone()
+            },
+            ..config
+        };
+        let error = refusal(&missing);
+        assert!(
+            error.starts_with("cannot read STUFFCLOUD_PASSWORD_BLOCKLIST_FILE "),
+            "{error}"
+        );
+        assert_eq!(passwords_listed(true), "configured");
+        assert_eq!(passwords_listed(false), "none");
+    }
+
+    #[test]
+    fn reset_link_prints_a_link_for_an_account() {
+        let dir = tempfile::tempdir().unwrap();
+        let env = MapEnvironment::default()
+            .with("STUFFCLOUD_APP_URL", "https://app.example.com")
+            .with("STUFFCLOUD_DATA_DIR", dir.path().to_str().unwrap());
+        // Before the first start the database is not ready.
+        let (code, out, err) = call(&["reset-link", "alice"], &env);
+        assert_eq!(code, EXIT_FAILURE);
+        assert!(out.is_empty());
+        assert!(
+            err.starts_with("the database is not ready (start the app once): "),
+            "{err}"
+        );
+        let config = config::from_env(&env).unwrap();
+        let db = Database::open(&config.database_path()).unwrap();
+        let _ = db.migrate().unwrap();
+        let _ = db
+            .create_user(
+                "alice",
+                stuffcloud_core::session::UserKind::Person,
+                Role::User,
+                None,
+                1,
+            )
+            .unwrap();
+        let _ = db
+            .create_user(
+                "robot",
+                stuffcloud_core::session::UserKind::Service,
+                Role::User,
+                None,
+                1,
+            )
+            .unwrap();
+        let (code, out, err) = call(&["reset-link", "alice"], &env);
+        assert_eq!(code, EXIT_OK, "{err}");
+        assert!(
+            out.starts_with("https://app.example.com/password-reset#token="),
+            "{out}"
+        );
+        assert!(out.contains("\nvalid once until "), "{out}");
+        assert_eq!(
+            call(&["reset-link", "bob"], &env).2.trim_end(),
+            "no account is named \"bob\""
+        );
+        assert_eq!(
+            call(&["reset-link", "robot"], &env).2.trim_end(),
+            "\"robot\" is a service account, which has no password"
+        );
+        assert_eq!(
+            call(&["reset-link", "Bob"], &env).2.trim_end(),
+            "\"Bob\" is not a login name: character 0 is not one of a-z, 0-9, '.', '_' or '-' (lowercase only)"
+        );
+        let (code, _, err) = call(&["reset-link", "alice"], &MapEnvironment::default());
+        assert_eq!(code, EXIT_FAILURE);
+        assert!(err.starts_with("invalid configuration:"), "{err}");
+        let blocked = tempfile::tempdir().unwrap();
+        std::fs::create_dir(blocked.path().join("stuffcloud.sqlite3")).unwrap();
+        let env = MapEnvironment::default()
+            .with("STUFFCLOUD_APP_URL", "https://app.example.com")
+            .with("STUFFCLOUD_DATA_DIR", blocked.path().to_str().unwrap());
+        assert!(
+            call(&["reset-link", "alice"], &env)
+                .2
+                .starts_with("cannot open the database")
+        );
+        // The command needs exactly one login name.
+        assert_eq!(call(&["reset-link"], &env).0, EXIT_USAGE);
+        assert_eq!(call(&["reset-link", "a", "b"], &env).0, EXIT_USAGE);
     }
 
     #[test]
@@ -409,7 +678,7 @@ mod tests {
                 &taken.local_addr().unwrap().to_string(),
             );
         let config = config::from_env(&env).unwrap();
-        let error = start(&config).unwrap_err();
+        let error = refusal(&config);
         assert!(error.starts_with("cannot listen on 127.0.0.1:"), "{error}");
     }
 }

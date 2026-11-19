@@ -22,18 +22,25 @@ crates/core/    domain types + validation (SafeRelPath, Subdomain), API building
                 authorization: the Authorization header (only a well-formed Bearer skips CSRF),
                 cookie: `__Host-` cookies + `SetCookie` + Cookie lookup, csrf: Origin + CSRF
                 check, session: timeouts, roles; authorisation: scope = permission names + token
-                scopes, policy = the permission matrix + `decide`, hosting = zone rules `may_host`), no I/O
-  tests/        properties.rs, api_properties.rs, auth_properties.rs, policy_properties.rs (proptest), regression.rs (attack corpus)
+                scopes, policy = the permission matrix + `decide`, hosting = zone rules `may_host`), account
+                building blocks (account: login names, e-mail addresses, password policy, action bodies;
+                throttle: backoff rule; client_ip: trusted proxies + X-Forwarded-For), no I/O
+  tests/        properties.rs, api_properties.rs, auth_properties.rs, policy_properties.rs, account_properties.rs (proptest), regression.rs (attack corpus)
 crates/db/      SQLite (rusqlite, WAL): migrations/ + runner, resource store, audit log, bootstrap,
-                auth.rs (users, hashed sessions, timeouts, rotation, security audit events)
+                auth.rs (users, hashed sessions, timeouts, rotation, session cap, security audit events),
+                accounts.rs (passwords, registration, invitations, reset tokens)
 crates/app/     LAN API (axum): config (env + _FILE), resource conventions (resource.rs), problem
                 details, access.rs (every route is registered with its requirement; guard, startup
                 check against OpenAPI, permissions document), auth.rs (session cookie + CSRF middleware, the only place that sets
-                cookies), sessions.rs (session endpoints), sampler.rs (rate-limited log lines),
+                cookies), sessions.rs (session endpoints), accounts.rs (login, register, reset, password
+                change, profile), invitations.rs (admin invitations + reset links), password.rs (Argon2id,
+                dummy hash, offline breached list), throttle.rs (login throttles), maintenance.rs (periodic
+                purge), sampler.rs (rate-limited log lines),
                 health/metrics, telemetry, bootstrap,
-                OpenAPI (utoipa), CLI (`serve`, `healthcheck`, `openapi`, `permissions`); tests/integration
-                (router, auth: cookies/CSRF of every route, authz: permission matrix of every
-                route x caller, log redaction, process)
+                OpenAPI (utoipa), CLI (`serve`, `healthcheck`, `openapi`, `permissions`, `reset-link`);
+                tests/integration (router, auth: cookies/CSRF of every route, authz: permission matrix of
+                every route x caller, accounts: enumeration, sign-up modes, throttles, reset, log
+                redaction, process)
 docker/app/     Dockerfile (distroless, non-root) + bootstrap.dev.json for the dev stack
 web/            pnpm workspace (Node 24, own lockfile; the backend never depends on it)
   apps/web/     Svelte + Vite SPA (static build): src/styles (generated tokens.css, fonts.css, theme.css),

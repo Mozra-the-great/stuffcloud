@@ -1,8 +1,10 @@
 //! The `stuffcloud-app` binary as a process: commands, exit codes, the committed OpenAPI
 //! document, startup, bootstrap and graceful shutdown.
 
+use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::{Command, Output, Stdio};
+use std::time::{Duration, Instant};
 
 const BIN: &str = env!("CARGO_BIN_EXE_stuffcloud-app");
 const PASSWORD: &str = "hunter2-but-much-longer-9c8b7a";
@@ -23,14 +25,57 @@ fn command() -> Command {
     command
 }
 
-/// Runs the binary with `vars` on top of a clean `STUFFCLOUD_*` environment.
+/// How long a command that must finish may run. A mutation that makes `serve` start instead
+/// of refusing would otherwise run forever; this makes it a failed test (and a caught mutant)
+/// instead of a timeout of the whole test run.
+const RUN_LIMIT: Duration = Duration::from_secs(10);
+
+/// Runs the binary with `vars` on top of a clean `STUFFCLOUD_*` environment, and fails the
+/// test when it has not exited after [`RUN_LIMIT`].
 fn run(args: &[&str], vars: &[(&str, &str)]) -> Output {
     let mut command = command();
     let _ = command.args(args);
     for (name, value) in vars {
         let _ = command.env(name, value);
     }
-    command.output().unwrap()
+    let mut child = command
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut stdout = child.stdout.take().unwrap();
+    let mut stderr = child.stderr.take().unwrap();
+    let stdout = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        let _ = stdout.read_to_end(&mut bytes);
+        bytes
+    });
+    let stderr = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        let _ = stderr.read_to_end(&mut bytes);
+        bytes
+    });
+    let deadline = Instant::now() + RUN_LIMIT;
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!(
+                "`stuffcloud-app {}` did not exit within {RUN_LIMIT:?}",
+                args.join(" ")
+            );
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    };
+    Output {
+        status,
+        stdout: stdout.join().unwrap(),
+        stderr: stderr.join().unwrap(),
+    }
 }
 
 #[test]
@@ -138,11 +183,13 @@ fn the_dockerfile_builds_with_the_pinned_toolchain() {
 mod lifecycle {
     use std::io::{BufRead, BufReader};
     use std::net::SocketAddr;
-    use std::process::{Child, Stdio};
-    use std::time::{Duration, Instant};
+    use std::process::Child;
 
     use super::*;
     use crate::common::{free_port, raw_http};
+
+    /// The first admin's password in the lifecycle test.
+    const ADMIN_PASSWORD: &str = "a root passphrase for the test";
 
     fn start(data: &Path, bootstrap: &Path, port: u16) -> Child {
         command()
@@ -151,6 +198,11 @@ mod lifecycle {
             .env("STUFFCLOUD_DATA_DIR", data)
             .env("STUFFCLOUD_LISTEN", format!("127.0.0.1:{port}"))
             .env("STUFFCLOUD_BOOTSTRAP_CONFIG", bootstrap)
+            .env("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN", "root")
+            .env("STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD", ADMIN_PASSWORD)
+            // The cheapest parameters the configuration allows: the test is about the process.
+            .env("STUFFCLOUD_ARGON2_MEMORY_KIB", "7168")
+            .env("STUFFCLOUD_ARGON2_ITERATIONS", "1")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -193,6 +245,41 @@ mod lifecycle {
             .map(|line| serde_json::from_str(&line.unwrap()).unwrap())
             .collect();
         (status.code(), lines)
+    }
+
+    /// The first admin exists and logs in through the real socket, with the CSRF proof.
+    fn login_through_the_socket(address: SocketAddr, cookie_line: &str) {
+        let csrf = cookie_line
+            .trim_start_matches("set-cookie: __Host-stuffcloud-csrf=")
+            .split(';')
+            .next()
+            .unwrap()
+            .to_owned();
+        let body = format!(r#"{{"login":"root","password":"{ADMIN_PASSWORD}"}}"#);
+        let login = raw_http(
+            address,
+            &format!(
+                "POST /api/v1/auth/login HTTP/1.1
+Host: stuff.localhost
+Origin: http://stuff.localhost:8080
+X-CSRF-Token: {csrf}
+Cookie: __Host-stuffcloud-csrf={csrf}
+Content-Type: application/json
+Content-Length: {}
+Connection: close
+
+{body}",
+                body.len()
+            ),
+        );
+        assert!(login.starts_with("HTTP/1.1 200"), "{login}");
+        assert!(login.contains(r#""role":"admin""#), "{login}");
+        assert!(
+            login
+                .to_ascii_lowercase()
+                .contains("set-cookie: __host-stuffcloud-session="),
+            "{login}"
+        );
     }
 
     fn messages(lines: &[serde_json::Value]) -> Vec<String> {
@@ -258,10 +345,12 @@ mod lifecycle {
             !cookie_line.to_ascii_lowercase().contains("domain"),
             "{cookie_line}"
         );
+        login_through_the_socket(address, &cookie_line);
         let (code, lines) = stop(child);
         assert_eq!(code, Some(0), "graceful shutdown exits with 0");
         let first = messages(&lines);
         for expected in [
+            "password hashing ready (one Argon2id hash took hash_ms; keep it well below a second)",
             "database ready",
             "first start: bootstrap applied",
             "expired sessions purged",

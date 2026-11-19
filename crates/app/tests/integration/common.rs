@@ -30,6 +30,20 @@ impl AccessPolicy for AllowAll {
     }
 }
 
+/// The account machinery with the cheapest Argon2 parameters (a hash costs next to nothing).
+pub(crate) fn cheap_accounts() -> stuffcloud_app::accounts::Accounts {
+    stuffcloud_app::accounts::Accounts::new(
+        stuffcloud_app::password::Passwords::new(
+            stuffcloud_app::password::Argon2Settings::CHEAPEST,
+            stuffcloud_core::account::PasswordPolicy::default(),
+            stuffcloud_app::password::Blocklist::default(),
+            2,
+        )
+        .unwrap(),
+        stuffcloud_core::client_ip::ProxyList::default(),
+    )
+}
+
 /// A clock that moves one second forward on every read, so a write that touched a
 /// timestamp would show it. Tests move it further with [`SteppingClock::advance`].
 #[derive(Debug, Default)]
@@ -149,7 +163,9 @@ impl TestApp {
             AuthSettings {
                 app_origin: Origin::parse(APP_ORIGIN.as_bytes()).unwrap(),
                 timeouts: TIMEOUTS,
+                max_sessions: 10,
             },
+            cheap_accounts(),
         );
         Self {
             dir,
@@ -181,6 +197,7 @@ impl TestApp {
                     token_hash: token_hash(&token),
                     csrf_hash: token_hash(&csrf),
                     replaces: None,
+                    max_per_user: None,
                 },
                 &TIMEOUTS,
                 self.clock.now_millis(),

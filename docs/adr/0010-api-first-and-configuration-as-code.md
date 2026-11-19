@@ -261,7 +261,9 @@ of decision 3, and the choices it left open:
   first start with an empty database; JSON only until the CLI's `validate`/`plan`/`apply`
   (H-13, #57) brings YAML for the same format. `STUFFCLOUD_BOOTSTRAP_ADMIN_*` and
   `STUFFCLOUD_BOOTSTRAP_TOKEN_FILE` stop the app with a clear message until accounts (A-03) and
-  tokens (A-08) exist: ignoring them would leave an operator without the admin they asked for.
+  tokens (A-08) exist: ignoring them would leave an operator without the admin they asked for. (A-03 creates the
+  first admin from `STUFFCLOUD_BOOTSTRAP_ADMIN_*` since 2026-11-19, see the ADR 0005 addendum "local
+  accounts"; the token file stays refused until A-08.)
 - **OpenAPI breaking-change check: [`oasdiff`](https://github.com/oasdiff/oasdiff)**
   (Apache-2.0, a single static binary, `oasdiff breaking --fail-on ERR <last release> <new>`).
   It becomes a job of `build` with the first release that contains the API; until then the

@@ -38,6 +38,15 @@ permission from the matrix.
 
 | Method | Path | Requirement |
 |---|---|---|
+| GET | `/api/v1/account` | `account:read` |
+| POST | `/api/v1/account/password` | `account:write` |
+| GET | `/api/v1/admin/invitations` | `admin:users:read` |
+| POST | `/api/v1/admin/invitations` | `admin:users:write` |
+| DELETE | `/api/v1/admin/invitations/{id}` | `admin:users:write` |
+| POST | `/api/v1/admin/users/{login}/password-reset` | `admin:users:write` |
+| POST | `/api/v1/auth/login` | public |
+| POST | `/api/v1/auth/password-reset` | public |
+| POST | `/api/v1/auth/register` | public |
 | DELETE | `/api/v1/auth/session` | session |
 | GET | `/api/v1/auth/session` | public |
 | DELETE | `/api/v1/auth/sessions` | session |
@@ -45,6 +54,9 @@ permission from the matrix.
 | DELETE | `/api/v1/settings/reserved-names` | `admin:settings:write` |
 | GET | `/api/v1/settings/reserved-names` | public |
 | PUT | `/api/v1/settings/reserved-names` | `admin:settings:write` |
+| DELETE | `/api/v1/settings/signup` | `admin:settings:write` |
+| GET | `/api/v1/settings/signup` | public |
+| PUT | `/api/v1/settings/signup` | `admin:settings:write` |
 | GET | `/healthz` | public |
 | GET | `/metrics` | public |
 | GET | `/readyz` | public |

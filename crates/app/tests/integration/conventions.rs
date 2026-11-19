@@ -391,11 +391,9 @@ async fn the_production_policy_refuses_every_write() {
         .put_json(PATH, &document, &[])
         .await
         .problem(401, "unauthenticated");
-    assert!(
-        problem["detail"]
-            .as_str()
-            .unwrap()
-            .contains("STUFFCLOUD_BOOTSTRAP_CONFIG")
+    assert_eq!(
+        problem["detail"],
+        "this needs a login or an API token (admin:settings:write)"
     );
     app.put_json(&format!("{PATH}?dry_run=true"), &document, &[])
         .await

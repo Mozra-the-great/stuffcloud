@@ -1,0 +1,3 @@
+sites:read
+tokens:write
+admin:settings:write

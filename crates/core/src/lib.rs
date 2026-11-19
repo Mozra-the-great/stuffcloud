@@ -15,16 +15,24 @@
 //! field errors ([`body`], [`field`]) and the settings groups ([`settings`]).
 //!
 //! The auth building blocks of A-02 (ADR 0005 addendum) are pure as well: secret tokens
-//! ([`token`]), the `__Host-` cookies and the `Cookie` header ([`cookie`]), the `Origin` and
+//! ([`token`]), the `Authorization` header ([`authorization`]), the `__Host-` cookies and the `Cookie` header ([`cookie`]), the `Origin` and
 //! CSRF checks ([`csrf`]) and session lifetimes, roles and account kinds ([`session`]).
+//!
+//! Authorisation (A-07) is pure too: permission names and token scopes ([`scope`]), the
+//! permission matrix and the one decision function ([`policy`]) and the zone-level rules for
+//! who may host where ([`hosting`]).
 
+pub mod authorization;
 pub mod body;
 pub mod cookie;
 pub mod csrf;
 pub mod etag;
 pub mod field;
+pub mod hosting;
 pub mod path;
+pub mod policy;
 pub mod query;
+pub mod scope;
 pub mod session;
 pub mod settings;
 pub mod subdomain;

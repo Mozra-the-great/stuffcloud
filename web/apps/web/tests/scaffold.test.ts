@@ -231,9 +231,9 @@ describe('scaffoldTool', () => {
       expect(source).toContain("  'tool.merge-pdf.description': 'Merge PDFs in your browser.',");
       expect(source).toContain("  'tool.merge-pdf.keywords': 'merge pdf',");
     }
-    // The new texts follow the last entry of the catalogue after a blank line, whatever that is.
-    expect(en).toMatch(/,\n\n {2}'tool\.merge-pdf\.name'/);
-    expect(en.startsWith(beforeEn.slice(0, 200))).toBe(true);
+    // Everything that was there stays, and the new texts follow the last one after a blank line.
+    const kept = beforeEn.slice(0, beforeEn.indexOf('} as const')).trimEnd();
+    expect(en.startsWith(`${kept}\n\n  'tool.merge-pdf.name'`)).toBe(true);
     expect(en.endsWith('export type MessageKey = keyof typeof en;\n')).toBe(true);
     expect(de.trimEnd().endsWith('};')).toBe(true);
   });

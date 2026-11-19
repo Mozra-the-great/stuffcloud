@@ -12,8 +12,11 @@
 //!   without the prefix, with a differently cased prefix (`__HOST-`) or with the name given
 //!   twice is ignored.
 //!
-//! There is deliberately no way to give a [`HostCookie`] a `Domain` attribute; a CI check
-//! (`scripts/ci/check_cookies.py`) and a test of every route enforce the same from outside.
+//! There is deliberately no way to give a [`HostCookie`] a `Domain` attribute. The only
+//! `Set-Cookie` value the app can hold is a [`SetCookie`], and only [`HostCookie::set`] and
+//! [`HostCookie::clear`] build one, so code that sets a header from any other string does not
+//! compile against the helpers (it would have to name the header itself, which a CI check,
+//! `scripts/ci/check_cookies.py`, and a test of every route catch from outside).
 
 use std::fmt;
 
@@ -75,6 +78,36 @@ impl SameSite {
     }
 }
 
+/// A `Set-Cookie` header value built by [`HostCookie::set`] or [`HostCookie::clear`]: always a
+/// `__Host-` cookie with `Secure`, `Path=/` and `HttpOnly`, never with a `Domain` attribute.
+/// There is no other constructor, so a function that takes a `SetCookie` cannot be given an
+/// arbitrary cookie string.
+///
+/// `Debug` does not show the value (it holds a session or CSRF token); [`SetCookie::as_str`]
+/// and `Display` do, because that is the text that goes into the header.
+#[derive(Clone, PartialEq, Eq)]
+pub struct SetCookie(String);
+
+impl SetCookie {
+    /// The header value.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for SetCookie {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl fmt::Debug for SetCookie {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("SetCookie(<redacted>)")
+    }
+}
+
 /// A cookie of the app: a `__Host-` name and how it is set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HostCookie {
@@ -109,27 +142,27 @@ impl HostCookie {
     /// The `Set-Cookie` value that stores `value`; with `max_age` (seconds) the browser keeps
     /// it that long, without it until the browser session ends.
     #[must_use]
-    pub fn set(&self, value: &Token, max_age: Option<u64>) -> String {
+    pub fn set(&self, value: &Token, max_age: Option<u64>) -> SetCookie {
         let base = format!(
             "{}={}; Path=/; Secure; HttpOnly; SameSite={}",
             self.name,
             value.to_hex(),
             self.same_site.as_str()
         );
-        match max_age {
+        SetCookie(match max_age {
             Some(seconds) => format!("{base}; Max-Age={seconds}"),
             None => base,
-        }
+        })
     }
 
     /// The `Set-Cookie` value that deletes the cookie.
     #[must_use]
-    pub fn clear(&self) -> String {
-        format!(
+    pub fn clear(&self) -> SetCookie {
+        SetCookie(format!(
             "{}=; Path=/; Secure; HttpOnly; SameSite={}; Max-Age=0",
             self.name,
             self.same_site.as_str()
-        )
+        ))
     }
 }
 
@@ -265,25 +298,36 @@ mod tests {
         assert_eq!(SESSION.same_site(), SameSite::Lax);
         let hex = token().to_hex();
         assert_eq!(
-            SESSION.set(&token(), Some(60)),
+            SESSION.set(&token(), Some(60)).as_str(),
             format!("__Host-s={hex}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=60")
         );
         let strict = HostCookie::new("__Host-c", SameSite::Strict).unwrap();
         assert_eq!(
-            strict.set(&token(), None),
+            strict.set(&token(), None).as_str(),
             format!("__Host-c={hex}; Path=/; Secure; HttpOnly; SameSite=Strict")
         );
         assert_eq!(
-            SESSION.clear(),
+            SESSION.clear().as_str(),
             "__Host-s=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0"
         );
         assert_eq!(
-            strict.clear(),
+            strict.clear().as_str(),
             "__Host-c=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0"
         );
         for header in [SESSION.set(&token(), Some(1)), SESSION.clear()] {
-            assert!(!header.to_ascii_lowercase().contains("domain"), "{header}");
+            let text = header.to_string();
+            assert_eq!(text, header.as_str());
+            assert!(!text.to_ascii_lowercase().contains("domain"), "{header}");
         }
+    }
+
+    #[test]
+    fn a_set_cookie_does_not_show_its_value_in_debug() {
+        let set = SESSION.set(&token(), Some(60));
+        let shown = format!("{set:?}");
+        assert_eq!(shown, "SetCookie(<redacted>)");
+        assert!(!shown.contains(&token().to_hex()));
+        assert!(set.to_string().contains(&token().to_hex()));
     }
 
     fn one(header: &str, name: &str) -> Lookup<'static> {

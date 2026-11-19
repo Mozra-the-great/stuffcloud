@@ -77,3 +77,17 @@ path = "fuzz_targets/csrf_check.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "authorization"
+path = "fuzz_targets/authorization.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "scope"
+path = "fuzz_targets/scope.rs"
+test = false
+doc = false
+bench = false

@@ -9,8 +9,9 @@
 )]
 
 use proptest::prelude::*;
+use stuffcloud_core::authorization::{Authorization, MAX_CREDENTIAL_LEN, classify, is_credential};
 use stuffcloud_core::cookie::{HostCookie, Lookup, SameSite, lookup};
-use stuffcloud_core::csrf::{CsrfPass, CsrfRequest, Origin, check, is_safe_method};
+use stuffcloud_core::csrf::{CsrfPass, CsrfRequest, Origin, OriginError, check, is_safe_method};
 use stuffcloud_core::session::{SessionAge, Timeouts};
 use stuffcloud_core::token::{TOKEN_HEX_LEN, Token, constant_time_eq};
 
@@ -82,6 +83,7 @@ proptest! {
         let same_site = if strict { SameSite::Strict } else { SameSite::Lax };
         let cookie = HostCookie::new("__Host-x", same_site).unwrap();
         for header in [cookie.set(&Token::from_bytes(bytes), age), cookie.clear()] {
+            let header = header.to_string();
             prop_assert!(header.starts_with("__Host-x="));
             prop_assert!(header.contains("; Path=/;"));
             prop_assert!(header.contains("; Secure;"));
@@ -175,5 +177,65 @@ proptest! {
                 timeouts.remaining_secs(created, now) <= u64::try_from(absolute).unwrap() / 1000
             );
         }
+    }
+}
+
+proptest! {
+    #[test]
+    fn a_port_with_a_leading_zero_is_no_origin(zeros in 1_usize..4, port in 1_u16.., https in any::<bool>()) {
+        let scheme = if https { "https" } else { "http" };
+        let text = format!("{scheme}://app.example.com:{}{port}", "0".repeat(zeros));
+        prop_assert_eq!(Origin::parse(text.as_bytes()), Err(OriginError::Port));
+        let canonical = format!("{scheme}://app.example.com:{port}");
+        prop_assert_eq!(Origin::parse(canonical.as_bytes()).unwrap().port(), port);
+    }
+
+    #[test]
+    fn only_a_well_formed_bearer_header_is_a_bearer(value in prop::collection::vec(any::<u8>(), 0..40)) {
+        let space = value.iter().position(|byte| *byte == b' ');
+        let scheme_is_bearer = space.map_or(&value[..], |at| &value[..at]).eq_ignore_ascii_case(b"bearer");
+        match classify(&[&value]) {
+            Authorization::Bearer(credential) => {
+                prop_assert!(scheme_is_bearer);
+                prop_assert!(is_credential(credential));
+                prop_assert_eq!(&value[value.len() - credential.len()..], credential);
+                prop_assert_eq!(value.len() - credential.len(), "Bearer ".len());
+            }
+            Authorization::Other => prop_assert!(!scheme_is_bearer),
+            Authorization::Malformed => prop_assert!(scheme_is_bearer),
+            Authorization::Absent => prop_assert!(false, "one header is never absent"),
+            _ => prop_assert!(false, "unexpected variant"),
+        }
+    }
+
+    #[test]
+    fn any_scheme_but_bearer_never_switches_the_csrf_checks_off(
+        scheme in "[A-Za-z][A-Za-z0-9-]{0,12}", rest in "[ -~]{0,30}",
+    ) {
+        prop_assume!(!scheme.eq_ignore_ascii_case("bearer"));
+        let value = format!("{scheme} {rest}");
+        prop_assert_eq!(classify(&[value.as_bytes()]), Authorization::Other);
+    }
+
+    #[test]
+    fn two_or_more_headers_are_never_a_bearer(
+        first in prop::collection::vec(any::<u8>(), 0..20),
+        second in prop::collection::vec(any::<u8>(), 0..20),
+        third in prop::option::of(prop::collection::vec(any::<u8>(), 0..20)),
+    ) {
+        let mut values: Vec<&[u8]> = vec![&first, &second];
+        if let Some(third) = &third {
+            values.push(third);
+        }
+        prop_assert_eq!(classify(&values), Authorization::Malformed);
+    }
+
+    #[test]
+    fn credentials_are_token68(text in "[A-Za-z0-9._~+/=-]{0,40}") {
+        let padding = text.bytes().rev().take_while(|byte| *byte == b'=').count();
+        let name = &text[..text.len() - padding];
+        let expected = !name.is_empty() && !name.contains('=');
+        prop_assert_eq!(is_credential(text.as_bytes()), expected);
+        prop_assert!(!is_credential(&vec![b'a'; MAX_CREDENTIAL_LEN + 1]));
     }
 }

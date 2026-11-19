@@ -254,7 +254,9 @@ of decision 3, and the choices it left open:
 - **Writes need authentication, which does not exist yet.** Until accounts (A-02) and the
   policy matrix (A-07) arrive, the production access policy allows reads and answers every
   write, dry runs included, with 401; the integration tests use a test policy. The instance is
-  configured through the bootstrap file meanwhile.
+  configured through the bootstrap file meanwhile. (A-07 has replaced this interim policy by the
+  permission matrix, see the addendum "authorisation" in ADR 0005; reads of the settings groups
+  stay public, writes need `admin:settings:write`.)
 - **Bootstrap (decision 8).** The configuration file is applied once, in one transaction, on the
   first start with an empty database; JSON only until the CLI's `validate`/`plan`/`apply`
   (H-13, #57) brings YAML for the same format. `STUFFCLOUD_BOOTSTRAP_ADMIN_*` and

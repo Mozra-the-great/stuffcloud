@@ -236,6 +236,40 @@ Roles
 - **Moderator**: handles abuse reports, takedowns, blocklist entries.
 - **Admin**: all of the above plus users, quotas, zones, tool toggles, settings.
 
+Authorisation (A-07, ADR 0005 addendum "Authorisation")
+- One function decides, `stuffcloud_core::policy::decide`: (subject) x (requirement) -> allow or
+  deny, deny by default. The subject is anonymous, an account with a session, or an API token
+  with its owner. Roles are ordered (`user` < `moderator` < `admin`); a higher role has
+  everything a lower one has.
+- A **permission** is an area of the API at a level, `<area>:<read|write>`, which is also the
+  token scope (SPEC 10.4); `write` includes `read`. The areas are `sites`, `account`, `tokens`,
+  `admin:zones`, `admin:users`, `admin:settings`, `admin:blocklist`, `admin:tokens` and
+  `moderation`. The matrix (the lowest role for each permission, and whether anonymous clients
+  have it) is data in `crates/core/src/policy.rs`; [`docs/api/permissions.md`](api/permissions.md)
+  is generated from it together with the route table, and a test fails when the file is stale.
+  In short: anonymous clients may create sites (`sites:write`, narrowed by the zone rules
+  below); `user` has `sites`, `account` and `tokens`; `moderator` adds `moderation` and
+  `admin:blocklist`; `admin` has everything.
+- Every route is registered together with its **requirement**: `public` (probes, the API
+  description, the CSRF token endpoint, settings groups the client needs before it logs in),
+  `session` (a browser session of a person, for example logout) or a permission. There is no
+  way to register a route without one; a startup check fails when an OpenAPI operation has no
+  declared policy, and a test enumerates every operation against every kind of caller.
+- A **token** has the permissions its scopes grant that its owner's role also has: it never
+  exceeds its owner, and its admin scopes stop working the moment the owner is no longer an
+  admin (the role is read at every request). A **service account** has no session, only
+  tokens.
+- **Zone rules** (SPEC 5.2) narrow `sites:write` per zone in one function,
+  `stuffcloud_core::hosting::may_host`: a disabled zone accepts nobody; anonymous clients host
+  only where the zone allows it, only internal, only temporary and without JavaScript; an
+  account hosts when its role is in the zone's "who may host" roles, or, when the zone has an
+  allow-list, only when it is listed (the allow-list replaces the role rule); public sites need
+  the zone to allow them. No zone is special.
+- A refusal is 401 for a client that is not logged in and 403 for one that is. Every refusal is
+  counted (`stuffcloud_auth_rejections_total{reason}`); a refusal of an authenticated account is
+  also written to the audit log (internal ids only, no login name or address, at most once a
+  minute per account and rule). A role change ends every session of the account.
+
 Authentication
 - Local accounts: e-mail + password (Argon2id), **passkeys (WebAuthn)**,
   **TOTP 2FA**, recovery codes.
@@ -250,8 +284,10 @@ Authentication
   end after an idle and an absolute timeout (deployment configuration, defaults 8 hours and
   7 days), are never reused across a login (fixation) and end on logout, "logout everywhere"
   and a role change. The client gets the CSRF token from `GET /api/v1/auth/session` and sends
-  it as `X-CSRF-Token`; requests with an `Authorization` header (tokens) are not cookie
-  authenticated and skip these checks (ADR 0005, addendum A-02). API tokens for the CLI and automation (hashed at
+  it as `X-CSRF-Token`; requests with a well-formed `Authorization: Bearer` header (tokens) are
+  not cookie authenticated and skip these checks, any other `Authorization` scheme is ignored
+  (the request is handled as if it had none), and a malformed one is refused with 401 (ADR 0005,
+  addenda A-02 and #134). API tokens for the CLI and automation (hashed at
   rest, scoped incl. admin scopes, revocable) and service accounts without interactive login
   (section 10.4).
 - E-mail is **optional** infrastructure (SMTP configurable). Without SMTP:
@@ -280,10 +316,10 @@ Library candidates (license must be verified per version before adoption):
 | Image | background removal, pixel-art filter | **U²-Netp** (Apache-2.0 weights, about 5 MB) through ONNX Runtime Web (MIT) as default; **BiRefNet-lite** (MIT, about 114 MB) as an opt-in higher-quality download; own pixelate filter. Not used: `@imgly/background-removal` (GPL/AGPL, commercial dual license), MODNet (conflicting license statements). Exact weights are re-checked at adoption |
 | Convert | JSON / YAML / XML | js-yaml, fast-xml-parser |
 | Convert | Base64 encode/decode | native |
-| Convert | colour picker + formats | colord |
-| Convert | unit converter | convert-units or equivalent |
-| Parse | CRON expression | cron-parser, cronstrue |
-| Parse | user-agent | ua-parser-js v1 (MIT) or uap-core |
+| Convert | colour picker + formats, contrast, palette from an image | own small functions (no dependency; T-18) |
+| Convert | unit converter | own unit tables (no dependency; T-18) |
+| Parse | CRON expression | own parser, explainer (de/en) and next-run search; time zones through `Intl` (no dependency; T-19) |
+| Parse | user-agent | own rules, tested on a corpus of real strings (no dependency; T-19; `ua-parser-js` v2 is AGPL) |
 | Network | subnet calculator | ipaddr.js / ip-address |
 | Network | MAC lookup | bundled IEEE OUI snapshot, updated by a CI job, offline |
 | Text | lorem ipsum, UUID (v4/v7), QR code | native / qrcode |
@@ -652,9 +688,19 @@ Test layers and what each must cover:
   and CSRF rules: every `Set-Cookie` of every route has the `__Host-` prefix and no
   `Domain=` attribute, every state-changing route refuses a missing or foreign `Origin`
   and a missing CSRF token, and cookies tossed for the parent domain are ignored.
+- **Authorisation matrix test** (A-07): every declared route against every kind of caller
+  (anonymous, each role with a session, a service account's session, tokens of each role with
+  several scope sets) must answer what the hand-written matrix in the test says (401 for a client
+  that is not logged in, 403 otherwise), including a token with admin scopes owned by a
+  non-admin and a service account that tries to log in; every OpenAPI operation must have a
+  declared policy (the application refuses to start otherwise), `docs/api/permissions.md` must
+  equal the generated document, and property tests assert that a token never exceeds its owner.
 - **Cookie check** (since A-02): `scripts/ci/check_cookies.py` fails on any cookie with a
-  `Domain=` attribute in any crate (`app` now, `edge` when it exists) and on `Set-Cookie`
-  outside the cookie module, in addition to the per-route tests.
+  `Domain=` attribute in any Rust file of the repository (sources, tests, `build.rs`, fuzz
+  targets), Caddy file or script of `web/`, on `Set-Cookie` outside the cookie module, on cookie
+  libraries and `document.cookie`, in addition to the per-route tests (which also cover the
+  probe, metrics and fallback paths). It is defense in depth: the `SetCookie` type is the
+  boundary.
 - **Listener tests** (hosting): on the tunnel listener the app address, internal sites
   and unknown names give the same response; forged `Host`, `X-Forwarded-*` and tunnel
   headers on the LAN listener never make a request count as coming from the internet.

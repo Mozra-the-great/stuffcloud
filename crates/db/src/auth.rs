@@ -34,6 +34,13 @@ pub const TOUCH_INTERVAL_MS: i64 = 60_000;
 pub const USER_KIND: &str = "user";
 /// Audit kind of session rows.
 pub const SESSION_KIND: &str = "session";
+/// Audit action of an authenticated request that the access policy refused (A-07). The row's
+/// kind is the permission area (`admin:settings`), its key the level and the rule that refused
+/// it (`write:insufficient_role`).
+pub const ACCESS_DENIED: &str = "access.denied";
+/// Audit action of an interactive login that was refused because the account is a service
+/// account (A-07). The row's kind is `user`, its key the internal id.
+pub const LOGIN_REFUSED: &str = "login.refused";
 
 /// The hash under which a token is stored.
 #[must_use]
@@ -173,6 +180,103 @@ fn read_user(conn: &Connection, id: i64) -> Result<Option<User>, DbError> {
         .optional()?;
     row.map(|(id, login, kind, role, created_at)| user_from(id, login, &kind, &role, created_at))
         .transpose()
+}
+
+/// Reads a session and its account by the hash of its token.
+fn read_session_row(conn: &Connection, hash: &TokenHash) -> Result<Option<SessionRow>, DbError> {
+    Ok(conn
+        .query_row(
+            "SELECT s.id, s.csrf_hash, s.created_at, s.last_seen_at,
+                    u.id, u.login, u.kind, u.role, u.created_at
+             FROM sessions s JOIN users u ON u.id = s.user_id
+             WHERE s.token_hash = ?1",
+            [&hash[..]],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                    row.get(7)?,
+                    row.get(8)?,
+                ))
+            },
+        )
+        .optional()?)
+}
+
+/// Whether a session's use is due to be recorded at `now`.
+const fn touch_due(last_seen_at: i64, now: i64) -> bool {
+    now.saturating_sub(last_seen_at) >= TOUCH_INTERVAL_MS
+}
+
+/// Whether a lookup of this session has to write: an expired session is deleted, a session
+/// whose last recorded use is [`TOUCH_INTERVAL_MS`] old is touched.
+fn session_needs_write(row: &SessionRow, timeouts: &Timeouts, now: i64) -> bool {
+    let (_id, _csrf, created_at, last_seen_at, ..) = row;
+    if !timeouts
+        .evaluate(*created_at, *last_seen_at, now)
+        .is_active()
+    {
+        return true;
+    }
+    touch_due(*last_seen_at, now)
+}
+
+/// The session of a stored row.
+fn session_from(row: SessionRow) -> Result<Session, DbError> {
+    let (id, csrf, created_at, last_seen_at, user_id, login, kind, role, user_created) = row;
+    Ok(Session {
+        id,
+        user: user_from(user_id, login, &kind, &role, user_created)?,
+        csrf_hash: hash_from(&csrf)?,
+        created_at,
+        last_seen_at,
+    })
+}
+
+/// The write half of [`Database::find_session`]: in a write transaction, looks the session up
+/// again (it may have ended since the read) and deletes it when it has expired or records its
+/// use when that is due.
+fn settle_session(
+    conn: &mut Connection,
+    hash: &TokenHash,
+    timeouts: &Timeouts,
+    now: i64,
+) -> Result<SessionLookup, DbError> {
+    let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    let Some(row) = read_session_row(&tx, hash)? else {
+        return Ok(SessionLookup::Unknown);
+    };
+    let (id, _csrf, created_at, last_seen_at, ..) = &row;
+    let (id, created_at, last_seen_at) = (*id, *created_at, *last_seen_at);
+    let age = timeouts.evaluate(created_at, last_seen_at, now);
+    if !age.is_active() {
+        let _rows = tx.execute("DELETE FROM sessions WHERE id = ?1", [id])?;
+        audit(
+            &tx,
+            now,
+            None,
+            "session.expired",
+            SESSION_KIND,
+            &id.to_string(),
+        )?;
+        tx.commit()?;
+        return Ok(SessionLookup::Expired(age));
+    }
+    let mut session = session_from(row)?;
+    if touch_due(last_seen_at, now) {
+        let _rows = tx.execute(
+            "UPDATE sessions SET last_seen_at = ?1 WHERE id = ?2",
+            params![now, id],
+        )?;
+        session.last_seen_at = now;
+    }
+    tx.commit()?;
+    Ok(SessionLookup::Active(session))
 }
 
 /// Deletes the sessions that have expired at `now`, one audit row each.
@@ -368,6 +472,11 @@ impl Database {
     /// Looks up the session of a token hash at `now`. A valid session's use is recorded
     /// (at most every [`TOUCH_INTERVAL_MS`]); an expired one is deleted and audited.
     ///
+    /// The lookup is a read-only (deferred) transaction first: an unknown token and a valid
+    /// session that needs no touch never take the write lock, so a client that sends random
+    /// cookies cannot queue up writers (also those of another process, such as `edge`). Only
+    /// a touch or a deletion opens a write transaction, which looks the row up again.
+    ///
     /// # Errors
     ///
     /// [`DbError::Sqlite`], [`DbError::Corrupt`] or [`DbError::Poisoned`].
@@ -378,66 +487,19 @@ impl Database {
         now: i64,
     ) -> Result<SessionLookup, DbError> {
         let mut conn = self.lock()?;
-        let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let row: Option<SessionRow> = tx
-            .query_row(
-                "SELECT s.id, s.csrf_hash, s.created_at, s.last_seen_at,
-                        u.id, u.login, u.kind, u.role, u.created_at
-                 FROM sessions s JOIN users u ON u.id = s.user_id
-                 WHERE s.token_hash = ?1",
-                [&hash[..]],
-                |row| {
-                    Ok((
-                        row.get(0)?,
-                        row.get(1)?,
-                        row.get(2)?,
-                        row.get(3)?,
-                        row.get(4)?,
-                        row.get(5)?,
-                        row.get(6)?,
-                        row.get(7)?,
-                        row.get(8)?,
-                    ))
-                },
-            )
-            .optional()?;
-        let Some((id, csrf, created_at, last_seen_at, user_id, login, kind, role, user_created)) =
+        let peeked = {
+            let tx = conn.transaction_with_behavior(TransactionBehavior::Deferred)?;
+            let row = read_session_row(&tx, hash)?;
+            tx.commit()?;
             row
-        else {
+        };
+        let Some(row) = peeked else {
             return Ok(SessionLookup::Unknown);
         };
-        let age = timeouts.evaluate(created_at, last_seen_at, now);
-        if !age.is_active() {
-            let _rows = tx.execute("DELETE FROM sessions WHERE id = ?1", [id])?;
-            audit(
-                &tx,
-                now,
-                None,
-                "session.expired",
-                SESSION_KIND,
-                &id.to_string(),
-            )?;
-            tx.commit()?;
-            return Ok(SessionLookup::Expired(age));
+        if !session_needs_write(&row, timeouts, now) {
+            return Ok(SessionLookup::Active(session_from(row)?));
         }
-        let last_seen_at = if now.saturating_sub(last_seen_at) >= TOUCH_INTERVAL_MS {
-            let _rows = tx.execute(
-                "UPDATE sessions SET last_seen_at = ?1 WHERE id = ?2",
-                params![now, id],
-            )?;
-            now
-        } else {
-            last_seen_at
-        };
-        let session = Session {
-            id,
-            user: user_from(user_id, login, &kind, &role, user_created)?,
-            csrf_hash: hash_from(&csrf)?,
-            created_at,
-            last_seen_at,
-        };
-        tx.commit()?;
-        Ok(SessionLookup::Active(session))
+        settle_session(&mut conn, hash, timeouts, now)
     }
 
     /// Gives a session a new token and a new CSRF token, keeping its account and its age
@@ -561,6 +623,25 @@ impl Database {
         let purged = purge_expired(&tx, timeouts, now)?;
         tx.commit()?;
         Ok(purged)
+    }
+
+    /// Adds one security event to the audit log (a refused request or login). Like every
+    /// security row it holds internal ids only: `actor` is `user:<id>`, `kind` and `key` are
+    /// rule names or ids, never a login name, address or token.
+    ///
+    /// # Errors
+    ///
+    /// [`DbError::Sqlite`] or [`DbError::Poisoned`].
+    pub fn record_security_event(
+        &self,
+        actor: Option<&str>,
+        action: &str,
+        kind: &str,
+        key: &str,
+        now: i64,
+    ) -> Result<(), DbError> {
+        let conn = self.lock()?;
+        audit(&conn, now, actor, action, kind, key)
     }
 
     /// The number of stored sessions of an account (all, expired ones included until they

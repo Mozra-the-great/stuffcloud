@@ -3,9 +3,15 @@
 //!
 //! [`authenticate`] runs before every route (unknown ones included):
 //!
-//! 1. A request with an `Authorization` header is an API client (tokens, A-08 #38): cookies
-//!    are ignored completely and no CSRF check applies. A browser cannot add that header to a
-//!    cross-site request without a CORS preflight, which the app never allows.
+//! 1. The `Authorization` header is sorted by [`stuffcloud_core::authorization::classify`].
+//!    Exactly one well-formed `Bearer` credential is an API client (tokens, A-08 #38): cookies
+//!    are ignored completely and no CSRF check applies, because a browser cannot add that
+//!    header to a cross-site request without a CORS preflight, which the app never allows. Any
+//!    other scheme (`Basic`, `Digest`, `Negotiate`, ...) is ignored and the request is handled
+//!    as if it had no `Authorization` header: browsers attach those credentials on their own,
+//!    also to cross-site form posts (a proxy in front of the app may ask for them), so they
+//!    prove nothing about who started the request (#134). A malformed `Bearer` header or
+//!    several `Authorization` headers are refused with 401, never read as anonymous.
 //! 2. Otherwise a state-changing request (any method other than `GET`, `HEAD`, `OPTIONS`) must
 //!    pass [`stuffcloud_core::csrf::check`]: `Origin` equal to the app origin, `Sec-Fetch-Site`
 //!    `same-origin` when present, and the `X-CSRF-Token` header equal to the CSRF cookie. This
@@ -17,8 +23,12 @@
 //!    cookie is cleared in the response.
 //!
 //! Every `Set-Cookie` of the app is built here from [`SESSION_COOKIE`] and [`CSRF_COOKIE`]
-//! (`__Host-`, `Secure`, `Path=/`, `HttpOnly`, never `Domain`); `scripts/ci/check_cookies.py`
-//! fails the build if another file sets a cookie.
+//! (`__Host-`, `Secure`, `Path=/`, `HttpOnly`, never `Domain`) and is a
+//! [`stuffcloud_core::cookie::SetCookie`], the only type the helper that adds a `Set-Cookie` header takes;
+//! `scripts/ci/check_cookies.py` fails the build if another file sets a cookie.
+//!
+//! Every refusal is counted in `stuffcloud_auth_rejections_total{reason}`; the log line for it
+//! is rate limited ([`crate::sampler::LogSampler`]), so a client cannot flood the log.
 
 use axum::body::Body;
 use axum::extract::{Request, State};
@@ -27,11 +37,17 @@ use axum::http::request::Parts;
 use axum::http::{HeaderMap, HeaderName, HeaderValue};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
-use stuffcloud_core::cookie::{HostCookie, Lookup, SameSite, lookup};
-use stuffcloud_core::csrf::{CSRF_HEADER, CsrfPass, CsrfRefusal, CsrfRequest, Origin, check};
+use stuffcloud_core::authorization::{Authorization, classify};
+use stuffcloud_core::cookie::{HostCookie, Lookup, SameSite, SetCookie, lookup};
+use stuffcloud_core::csrf::{
+    CSRF_HEADER, CsrfPass, CsrfRefusal, CsrfRequest, Origin, check, may_bind_token,
+};
+use stuffcloud_core::policy::{Account, Subject};
+use stuffcloud_core::scope::Scopes;
 use stuffcloud_core::session::Timeouts;
 use stuffcloud_core::token::{TOKEN_BYTES, Token, constant_time_eq};
-use stuffcloud_db::{NewSession, Session, SessionLookup, token_hash};
+use stuffcloud_db::auth::{LOGIN_REFUSED, USER_KIND, actor};
+use stuffcloud_db::{DbError, NewSession, Session, SessionLookup, User, token_hash};
 
 use crate::problem::{Problem, ProblemKind};
 use crate::state::AppState;
@@ -51,6 +67,12 @@ pub const CSRF_COOKIE: HostCookie =
         None => unreachable!(),
     };
 
+/// The metric label of a request refused for its `Authorization` header.
+pub const INVALID_AUTHORIZATION: &str = "invalid_authorization";
+
+/// The metric label of a login refused for a service account.
+pub const SERVICE_LOGIN: &str = "service_login";
+
 /// The `Sec-Fetch-Site` request header.
 const SEC_FETCH_SITE: HeaderName = HeaderName::from_static("sec-fetch-site");
 
@@ -63,8 +85,19 @@ pub struct AuthSettings {
     pub timeouts: Timeouts,
 }
 
+/// An API token that was accepted: its owner (as stored now, so a role change takes effect at
+/// once) and the scopes it was created with (A-07, A-08 #38).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApiCaller {
+    /// The account the token belongs to.
+    pub owner: User,
+    /// What the token was created with.
+    pub scopes: Scopes,
+}
+
 /// Who sent a request. Every request that passed [`authenticate`] carries one as an
-/// extension; a handler reads it with [`Authentication::of`].
+/// extension; a handler reads it with [`Authentication::of`], and the access policy turns it
+/// into a [`Subject`] ([`Authentication::subject`]).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Authentication {
     /// No valid session (and, until A-08, no token either).
@@ -72,6 +105,18 @@ pub enum Authentication {
     Anonymous,
     /// A valid browser session.
     Session(Session),
+    /// A valid API token. Nothing produces this before the token store of A-08 (#38); the
+    /// policy and its tests already treat it, so A-08 only has to look the token up.
+    Token(ApiCaller),
+}
+
+/// The account as the policy sees it.
+fn account_of(user: &User) -> Account<'_> {
+    Account {
+        login: &user.login,
+        kind: user.kind,
+        role: user.role,
+    }
 }
 
 impl Authentication {
@@ -86,8 +131,31 @@ impl Authentication {
     #[must_use]
     pub const fn session(&self) -> Option<&Session> {
         match self {
-            Self::Anonymous => None,
+            Self::Anonymous | Self::Token(_) => None,
             Self::Session(session) => Some(session),
+        }
+    }
+
+    /// The account behind the request: the owner of the session or of the token.
+    #[must_use]
+    pub const fn user(&self) -> Option<&User> {
+        match self {
+            Self::Anonymous => None,
+            Self::Session(session) => Some(&session.user),
+            Self::Token(caller) => Some(&caller.owner),
+        }
+    }
+
+    /// The request's sender as the access policy sees it.
+    #[must_use]
+    pub fn subject(&self) -> Subject<'_> {
+        match self {
+            Self::Anonymous => Subject::Anonymous,
+            Self::Session(session) => Subject::Session(account_of(&session.user)),
+            Self::Token(caller) => Subject::Token {
+                owner: account_of(&caller.owner),
+                scopes: &caller.scopes,
+            },
         }
     }
 }
@@ -103,11 +171,18 @@ pub fn new_token() -> Result<Token, Problem> {
     Ok(Token::from_bytes(bytes))
 }
 
-/// Adds a `Set-Cookie` header.
-pub fn append_cookie(headers: &mut HeaderMap, value: &str) {
+/// Adds a `Set-Cookie` header with this value, if it is a valid header value (it always is
+/// for a [`SetCookie`], whose name and value are token characters and hex digits).
+fn append_raw(headers: &mut HeaderMap, value: &str) {
     if let Ok(value) = HeaderValue::from_str(value) {
         let _previous = headers.append(SET_COOKIE, value);
     }
+}
+
+/// Adds a `Set-Cookie` header. A [`SetCookie`] only comes from `HostCookie::set` and
+/// `HostCookie::clear`, so no caller can add a cookie that is not a host-only `__Host-` cookie.
+pub(crate) fn append_cookie(headers: &mut HeaderMap, cookie: &SetCookie) {
+    append_raw(headers, cookie.as_str());
 }
 
 /// The values of a header (all fields of that name), as bytes.
@@ -130,6 +205,34 @@ pub fn csrf_cookie(headers: &HeaderMap) -> Option<Token> {
     lookup(cookie_values(headers), CSRF_COOKIE.name())
         .value()
         .and_then(|value| Token::parse(value).ok())
+}
+
+/// Whether a request may bind a new CSRF token to its session: see
+/// [`stuffcloud_core::csrf::may_bind_token`].
+#[must_use]
+pub fn may_bind_csrf(headers: &HeaderMap) -> bool {
+    may_bind_token(&values(headers, &SEC_FETCH_SITE))
+}
+
+/// What the `Authorization` header of a request makes of it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Presented {
+    /// No header, or one for another scheme: handled as if there were none.
+    Nothing,
+    /// A well-formed bearer token: an API client.
+    Token,
+    /// A broken bearer header or several headers: refused.
+    Invalid,
+}
+
+/// Reads the `Authorization` header.
+fn presented(headers: &HeaderMap) -> Presented {
+    match classify(&values(headers, &AUTHORIZATION)) {
+        Authorization::Bearer(_credential) => Presented::Token,
+        Authorization::Malformed => Presented::Invalid,
+        // Absent, another scheme, or a verdict added later: the cookie and CSRF rules apply.
+        _ => Presented::Nothing,
+    }
 }
 
 /// What the session cookie of a request holds.
@@ -173,16 +276,35 @@ fn csrf_verdict(parts: &Parts, app: &Origin) -> Result<CsrfPass, CsrfRefusal> {
     )
 }
 
-/// The answer to a refused state-changing request. The log line names the rule, never a
-/// header value or the client.
-fn refuse(refusal: CsrfRefusal, method: &str) -> Response {
-    tracing::warn!(
-        target: "stuffcloud::security",
-        reason = refusal.code(),
-        method,
-        "cross-site request refused"
-    );
+/// Counts a refusal and logs it, rate limited. The log line names the rule, never a header
+/// value or the client.
+pub(crate) fn note_rejection(state: &AppState, reason: &'static str, method: &str) {
+    state.metrics().record_rejection(reason);
+    if let Some(suppressed) = state.rejection_log().admit() {
+        tracing::warn!(
+            target: "stuffcloud::security",
+            reason,
+            method,
+            suppressed,
+            "request refused (logged once per interval; the count is stuffcloud_auth_rejections_total)"
+        );
+    }
+}
+
+/// The answer to a refused state-changing request.
+fn refuse(state: &AppState, refusal: CsrfRefusal, method: &str) -> Response {
+    note_rejection(state, refusal.code(), method);
     Problem::with_detail(ProblemKind::CsrfRejected, refusal.to_string()).into_response()
+}
+
+/// The answer to an `Authorization` header that is no usable bearer token.
+fn refuse_authorization(state: &AppState, method: &str) -> Response {
+    note_rejection(state, INVALID_AUTHORIZATION, method);
+    Problem::with_detail(
+        ProblemKind::Unauthenticated,
+        "the Authorization header is not exactly one well-formed Bearer token",
+    )
+    .into_response()
 }
 
 /// Whether a CSRF token is the one bound to a session.
@@ -216,14 +338,18 @@ async fn resolve(
 /// The middleware: see the module documentation.
 pub async fn authenticate(State(state): State<AppState>, request: Request, next: Next) -> Response {
     let (mut parts, body) = request.into_parts();
-    if parts.headers.contains_key(AUTHORIZATION) {
-        let _previous = parts.extensions.insert(Authentication::Anonymous);
-        return next.run(Request::from_parts(parts, body)).await;
+    match presented(&parts.headers) {
+        Presented::Token => {
+            let _previous = parts.extensions.insert(Authentication::Anonymous);
+            return next.run(Request::from_parts(parts, body)).await;
+        }
+        Presented::Invalid => return refuse_authorization(&state, parts.method.as_str()),
+        Presented::Nothing => {}
     }
     let verified = match csrf_verdict(&parts, &state.auth().app_origin) {
         Ok(CsrfPass::SafeMethod) => None,
         Ok(CsrfPass::Verified(token)) => Some(token),
-        Err(refusal) => return refuse(refusal, parts.method.as_str()),
+        Err(refusal) => return refuse(&state, refusal, parts.method.as_str()),
     };
     let (authentication, clear) = match resolve(&state, session_cookie(&parts.headers)).await {
         Ok(resolved) => resolved,
@@ -232,7 +358,7 @@ pub async fn authenticate(State(state): State<AppState>, request: Request, next:
     if let (Some(token), Authentication::Session(session)) = (&verified, &authentication)
         && !bound_to(token, session)
     {
-        return refuse(CsrfRefusal::TokenMismatch, parts.method.as_str());
+        return refuse(&state, CsrfRefusal::TokenMismatch, parts.method.as_str());
     }
     let _previous = parts.extensions.insert(authentication);
     let mut response = next.run(Request::<Body>::from_parts(parts, body)).await;
@@ -279,7 +405,7 @@ impl IssuedTokens {
 /// # Errors
 ///
 /// An internal problem when the random source or the database fails (also for an unknown
-/// or service account).
+/// account); forbidden (and audited) for a service account, which has no interactive login.
 pub async fn start_session(
     state: &AppState,
     parts: &Parts,
@@ -296,10 +422,38 @@ pub async fn start_session(
     };
     let timeouts = state.auth().timeouts;
     let now = state.now_millis();
-    let session = state
-        .db(move |db| db.create_session(&new, &timeouts, now))
+    let created = state
+        .db_outcome(move |db| db.create_session(&new, &timeouts, now))
         .await?;
-    Ok((session, tokens))
+    match created {
+        Ok(session) => Ok((session, tokens)),
+        Err(DbError::NoInteractiveLogin(id)) => {
+            refuse_service_login(state, id).await;
+            Err(Problem::with_detail(
+                ProblemKind::Forbidden,
+                "service accounts have no interactive login; use an API token",
+            ))
+        }
+        Err(error) => Err(Problem::internal(&error)),
+    }
+}
+
+/// Counts and audits a login that was refused because the account is a service account.
+async fn refuse_service_login(state: &AppState, user_id: i64) {
+    state.metrics().record_rejection(SERVICE_LOGIN);
+    let who = actor(user_id);
+    let now = state.now_millis();
+    let _audited = state
+        .db(move |db| {
+            db.record_security_event(
+                Some(&who),
+                LOGIN_REFUSED,
+                USER_KIND,
+                &user_id.to_string(),
+                now,
+            )
+        })
+        .await;
 }
 
 /// Gives a session new tokens after a change of its privilege (a second factor, A-05),
@@ -395,9 +549,9 @@ mod tests {
     #[test]
     fn appended_cookies() {
         let mut headers = HeaderMap::new();
-        append_cookie(&mut headers, "a=1");
-        append_cookie(&mut headers, "b=2");
-        append_cookie(&mut headers, "bad\nvalue");
+        append_raw(&mut headers, "a=1");
+        append_raw(&mut headers, "b=2");
+        append_raw(&mut headers, "bad\nvalue");
         let all: Vec<&str> = headers
             .get_all(SET_COOKIE)
             .iter()
@@ -415,10 +569,55 @@ mod tests {
         assert_eq!(
             all,
             [
-                SESSION_COOKIE.set(&issued.session, Some(42)),
-                CSRF_COOKIE.set(&issued.csrf, None)
+                SESSION_COOKIE.set(&issued.session, Some(42)).to_string(),
+                CSRF_COOKIE.set(&issued.csrf, None).to_string()
             ]
         );
+        let mut headers = HeaderMap::new();
+        append_cookie(&mut headers, &SESSION_COOKIE.clear());
+        assert_eq!(
+            headers.get(SET_COOKIE).unwrap().to_str().unwrap(),
+            SESSION_COOKIE.clear().as_str()
+        );
+    }
+
+    #[test]
+    fn the_authorization_header_decides_how_a_request_is_read() {
+        let of = |values: &[&str]| {
+            let mut headers = HeaderMap::new();
+            for value in values {
+                let _ = headers.append(AUTHORIZATION, HeaderValue::from_str(value).unwrap());
+            }
+            presented(&headers)
+        };
+        assert_eq!(of(&[]), Presented::Nothing);
+        assert_eq!(of(&["Bearer abc"]), Presented::Token);
+        assert_eq!(of(&["bearer abc=="]), Presented::Token);
+        for other in ["Basic dXNlcjpwYXNz", "Digest a=b", "Negotiate x", "NTLM x"] {
+            assert_eq!(of(&[other]), Presented::Nothing, "{other}");
+        }
+        for broken in ["Bearer", "Bearer a=b", "Bearer a b"] {
+            assert_eq!(of(&[broken]), Presented::Invalid, "{broken}");
+        }
+        assert_eq!(of(&["Bearer abc", "Bearer abc"]), Presented::Invalid);
+        assert_eq!(of(&["Basic x", "Bearer abc"]), Presented::Invalid);
+    }
+
+    #[test]
+    fn binding_a_token_needs_a_same_origin_or_user_request() {
+        let headers = |sites: &[&str]| {
+            let mut headers = HeaderMap::new();
+            for site in sites {
+                let _ = headers.append(SEC_FETCH_SITE, HeaderValue::from_str(site).unwrap());
+            }
+            headers
+        };
+        assert!(may_bind_csrf(&headers(&[])));
+        assert!(may_bind_csrf(&headers(&["same-origin"])));
+        assert!(may_bind_csrf(&headers(&["none"])));
+        assert!(!may_bind_csrf(&headers(&["cross-site"])));
+        assert!(!may_bind_csrf(&headers(&["same-site"])));
+        assert!(!may_bind_csrf(&headers(&["same-origin", "same-origin"])));
     }
 
     #[test]

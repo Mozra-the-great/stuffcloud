@@ -5,7 +5,7 @@
 //! detail sentence and, for validation problems, every invalid field with a JSON Pointer.
 //! Internal errors never leak their cause to the client; it is logged instead.
 
-use axum::http::header::{CACHE_CONTROL, CONTENT_TYPE};
+use axum::http::header::{CACHE_CONTROL, CONTENT_TYPE, RETRY_AFTER};
 use axum::http::{HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use serde::Serialize;
@@ -29,12 +29,18 @@ pub enum ProblemKind {
     MalformedBody,
     /// 401: the request needs authentication the client did not provide.
     Unauthenticated,
+    /// 401: a login failed. The same answer for an unknown account and a wrong password.
+    InvalidCredentials,
     /// 403: the client is authenticated but may not do this.
     Forbidden,
     /// 403: a state-changing request failed the `Origin` / CSRF checks (SPEC 5.5).
     CsrfRejected,
+    /// 403: the sign-up mode does not allow this registration.
+    SignupClosed,
     /// 404: no such resource or route.
     NotFound,
+    /// 409: a limit of the instance is reached (for example pending invitations).
+    LimitReached,
     /// 405: the route exists but not with this method.
     MethodNotAllowed,
     /// 412: an `If-Match` / `If-None-Match` precondition failed.
@@ -45,6 +51,8 @@ pub enum ProblemKind {
     UnsupportedMediaType,
     /// 422: the document has invalid fields (all of them are listed).
     ValidationFailed,
+    /// 429: too many attempts; the `Retry-After` header says when to try again.
+    TooManyRequests,
     /// 500: an internal error (details only in the log).
     Internal,
     /// 503: the service is not ready (database unavailable or not migrated).
@@ -61,9 +69,11 @@ impl ProblemKind {
     pub const fn status(self) -> StatusCode {
         match self {
             Self::BadRequest | Self::MalformedBody => StatusCode::BAD_REQUEST,
-            Self::Unauthenticated => StatusCode::UNAUTHORIZED,
-            Self::Forbidden | Self::CsrfRejected => StatusCode::FORBIDDEN,
+            Self::Unauthenticated | Self::InvalidCredentials => StatusCode::UNAUTHORIZED,
+            Self::Forbidden | Self::CsrfRejected | Self::SignupClosed => StatusCode::FORBIDDEN,
             Self::NotFound => StatusCode::NOT_FOUND,
+            Self::LimitReached => StatusCode::CONFLICT,
+            Self::TooManyRequests => StatusCode::TOO_MANY_REQUESTS,
             Self::MethodNotAllowed => StatusCode::METHOD_NOT_ALLOWED,
             Self::PreconditionFailed => StatusCode::PRECONDITION_FAILED,
             Self::PayloadTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
@@ -83,6 +93,10 @@ impl ProblemKind {
             Self::BadRequest => Some("bad-request"),
             Self::MalformedBody => Some("malformed-body"),
             Self::Unauthenticated => Some("unauthenticated"),
+            Self::InvalidCredentials => Some("invalid-credentials"),
+            Self::SignupClosed => Some("signup-closed"),
+            Self::LimitReached => Some("limit-reached"),
+            Self::TooManyRequests => Some("too-many-requests"),
             Self::Forbidden => Some("forbidden"),
             Self::CsrfRejected => Some("csrf-rejected"),
             Self::NotFound => Some("not-found"),
@@ -114,6 +128,10 @@ impl ProblemKind {
             Self::BadRequest => "Bad request",
             Self::MalformedBody => "Malformed body",
             Self::Unauthenticated => "Authentication required",
+            Self::InvalidCredentials => "Invalid credentials",
+            Self::SignupClosed => "Sign-up closed",
+            Self::LimitReached => "Limit reached",
+            Self::TooManyRequests => "Too many requests",
             Self::Forbidden => "Forbidden",
             Self::CsrfRejected => "Cross-site request refused",
             Self::NotFound => "Not found",
@@ -155,6 +173,7 @@ pub struct Problem {
     kind: ProblemKind,
     detail: Option<String>,
     errors: Vec<FieldError>,
+    retry_after: Option<u64>,
 }
 
 impl Problem {
@@ -165,6 +184,7 @@ impl Problem {
             kind,
             detail: None,
             errors: Vec::new(),
+            retry_after: None,
         }
     }
 
@@ -175,6 +195,7 @@ impl Problem {
             kind,
             detail: Some(detail.into()),
             errors: Vec::new(),
+            retry_after: None,
         }
     }
 
@@ -189,7 +210,30 @@ impl Problem {
                 if errors.len() == 1 { "" } else { "s" }
             )),
             errors,
+            retry_after: None,
         }
+    }
+
+    /// A refused attempt that may be repeated after `wait_ms` milliseconds: 429 with a
+    /// `Retry-After` header in whole seconds (rounded up, at least 1).
+    #[must_use]
+    pub fn too_many_requests(wait_ms: i64) -> Self {
+        let seconds = u64::try_from(wait_ms).unwrap_or(0).div_ceil(1000).max(1);
+        Self {
+            kind: ProblemKind::TooManyRequests,
+            detail: Some(format!(
+                "too many attempts; try again in {seconds} second{}",
+                if seconds == 1 { "" } else { "s" }
+            )),
+            errors: Vec::new(),
+            retry_after: Some(seconds),
+        }
+    }
+
+    /// The `Retry-After` value in seconds, if the problem has one.
+    #[must_use]
+    pub const fn retry_after(&self) -> Option<u64> {
+        self.retry_after
     }
 
     /// An internal error: `cause` goes to the log, the client only learns that it happened.
@@ -225,6 +269,9 @@ impl IntoResponse for Problem {
         let headers = response.headers_mut();
         let _previous = headers.insert(CONTENT_TYPE, HeaderValue::from_static(PROBLEM_JSON));
         let _previous = headers.insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
+        if let Some(seconds) = self.retry_after {
+            let _previous = headers.insert(RETRY_AFTER, HeaderValue::from(seconds));
+        }
         response
     }
 }
@@ -236,18 +283,22 @@ mod tests {
 
     use super::*;
 
-    const ALL: [ProblemKind; 15] = [
+    const ALL: [ProblemKind; 19] = [
         ProblemKind::BadRequest,
         ProblemKind::MalformedBody,
         ProblemKind::Unauthenticated,
+        ProblemKind::InvalidCredentials,
         ProblemKind::Forbidden,
         ProblemKind::CsrfRejected,
+        ProblemKind::SignupClosed,
         ProblemKind::NotFound,
+        ProblemKind::LimitReached,
         ProblemKind::MethodNotAllowed,
         ProblemKind::PreconditionFailed,
         ProblemKind::PayloadTooLarge,
         ProblemKind::UnsupportedMediaType,
         ProblemKind::ValidationFailed,
+        ProblemKind::TooManyRequests,
         ProblemKind::Internal,
         ProblemKind::NotReady,
         ProblemKind::Timeout,
@@ -267,14 +318,18 @@ mod tests {
                 (400, "Bad request", t("bad-request")),
                 (400, "Malformed body", t("malformed-body")),
                 (401, "Authentication required", t("unauthenticated")),
+                (401, "Invalid credentials", t("invalid-credentials")),
                 (403, "Forbidden", t("forbidden")),
                 (403, "Cross-site request refused", t("csrf-rejected")),
+                (403, "Sign-up closed", t("signup-closed")),
                 (404, "Not found", t("not-found")),
+                (409, "Limit reached", t("limit-reached")),
                 (405, "Method not allowed", t("method-not-allowed")),
                 (412, "Precondition failed", t("precondition-failed")),
                 (413, "Payload too large", t("payload-too-large")),
                 (415, "Unsupported media type", t("unsupported-media-type")),
                 (422, "Validation failed", t("validation-failed")),
+                (429, "Too many requests", t("too-many-requests")),
                 (500, "Internal error", t("internal")),
                 (503, "Not ready", t("not-ready")),
                 (503, "Request timed out", t("timeout")),
@@ -367,6 +422,30 @@ mod tests {
         );
         let with_detail = Problem::with_detail(ProblemKind::BadRequest, "why").body();
         assert_eq!(with_detail.detail.as_deref(), Some("why"));
+    }
+
+    #[tokio::test]
+    async fn too_many_requests_says_when_to_retry() {
+        for (wait, seconds, detail) in [
+            (1, 1, "too many attempts; try again in 1 second"),
+            (1000, 1, "too many attempts; try again in 1 second"),
+            (1001, 2, "too many attempts; try again in 2 seconds"),
+            (0, 1, "too many attempts; try again in 1 second"),
+            (-5, 1, "too many attempts; try again in 1 second"),
+        ] {
+            let problem = Problem::too_many_requests(wait);
+            assert_eq!(problem.retry_after(), Some(seconds), "{wait}");
+            assert_eq!(problem.body().detail.as_deref(), Some(detail));
+            let response = problem.into_response();
+            assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+            assert_eq!(
+                response.headers()[RETRY_AFTER],
+                seconds.to_string().as_str()
+            );
+        }
+        assert_eq!(Problem::new(ProblemKind::NotFound).retry_after(), None);
+        let plain = Problem::new(ProblemKind::NotFound).into_response();
+        assert!(plain.headers().get(RETRY_AFTER).is_none());
     }
 
     #[test]

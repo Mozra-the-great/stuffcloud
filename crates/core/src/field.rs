@@ -96,6 +96,9 @@ pub enum FieldErrorCode {
     Duplicate,
     /// The list has more entries than allowed.
     TooMany,
+    /// The value is already used by another resource (a login name or an e-mail address
+    /// that another account has).
+    Taken,
 }
 
 /// One invalid field.
@@ -198,6 +201,7 @@ mod tests {
             (FieldErrorCode::InvalidValue, "invalid_value"),
             (FieldErrorCode::Duplicate, "duplicate"),
             (FieldErrorCode::TooMany, "too_many"),
+            (FieldErrorCode::Taken, "taken"),
         ];
         for (code, name) in codes {
             assert_eq!(serde_json::to_value(code).unwrap(), serde_json::json!(name));

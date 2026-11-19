@@ -11,13 +11,22 @@ use tokio::net::TcpListener;
 use tower_http::catch_panic::CatchPanicLayer;
 
 use crate::access::{Declared, Endpoints};
+use crate::accounts::{
+    ACCOUNT_PATH, LOGIN_PATH, PASSWORD_PATH, REGISTER_PATH, RESET_PATH, change_password,
+    get_account, login, register, reset_password,
+};
+use crate::invitations::{
+    INVITATION_PATH, INVITATIONS_PATH, RESET_LINK_PATH, create_invitation, create_reset_link,
+    list_invitations, revoke_invitation,
+};
 use crate::middleware::{
     observe, panic_response, problems_for_bare_errors, security_headers, timeout,
 };
 use crate::problem::{Problem, ProblemKind};
 use crate::sessions::{SESSION_PATH, SESSIONS_PATH, delete_session, delete_sessions, get_session};
 use crate::settings::{
-    RESERVED_NAMES_PATH, delete_reserved_names, get_reserved_names, put_reserved_names,
+    RESERVED_NAMES_PATH, SIGNUP_PATH, delete_reserved_names, delete_signup, get_reserved_names,
+    get_signup, put_reserved_names, put_signup,
 };
 use crate::state::AppState;
 use crate::{auth, health, metrics, openapi};
@@ -44,8 +53,15 @@ fn v1(path: &str) -> String {
 /// LAN-only and these hold no secret, ADR 0010 decision 4); every write needs the permission
 /// of its area. A settings group that may hold anything private declares
 /// `admin:settings:read` for its `GET`.
+///
+/// Logging in, registering and redeeming a reset link are `public` (they are how a client gets
+/// an account or a session); they still pass the `Origin` and CSRF checks of every write.
 fn table(endpoints: Endpoints) -> Endpoints {
     let write_settings = Requirement::Permit(Permission::new(Area::AdminSettings, Level::Write));
+    let read_account = Requirement::Permit(Permission::new(Area::Account, Level::Read));
+    let write_account = Requirement::Permit(Permission::new(Area::Account, Level::Write));
+    let read_users = Requirement::Permit(Permission::new(Area::AdminUsers, Level::Read));
+    let write_users = Requirement::Permit(Permission::new(Area::AdminUsers, Level::Write));
     endpoints
         .get("/healthz", Requirement::Public, health::live)
         .get("/readyz", Requirement::Public, health::ready)
@@ -58,6 +74,15 @@ fn table(endpoints: Endpoints) -> Endpoints {
         .get(&v1(SESSION_PATH), Requirement::Public, get_session)
         .delete(&v1(SESSION_PATH), Requirement::Session, delete_session)
         .delete(&v1(SESSIONS_PATH), Requirement::Session, delete_sessions)
+        .post(&v1(LOGIN_PATH), Requirement::Public, login)
+        .post(&v1(REGISTER_PATH), Requirement::Public, register)
+        .post(&v1(RESET_PATH), Requirement::Public, reset_password)
+        .get(&v1(ACCOUNT_PATH), read_account, get_account)
+        .post(&v1(PASSWORD_PATH), write_account, change_password)
+        .post(&v1(INVITATIONS_PATH), write_users, create_invitation)
+        .get(&v1(INVITATIONS_PATH), read_users, list_invitations)
+        .delete(&v1(INVITATION_PATH), write_users, revoke_invitation)
+        .post(&v1(RESET_LINK_PATH), write_users, create_reset_link)
         .get(
             &v1(RESERVED_NAMES_PATH),
             Requirement::Public,
@@ -69,6 +94,9 @@ fn table(endpoints: Endpoints) -> Endpoints {
             write_settings,
             delete_reserved_names,
         )
+        .get(&v1(SIGNUP_PATH), Requirement::Public, get_signup)
+        .put(&v1(SIGNUP_PATH), write_settings, put_signup)
+        .delete(&v1(SIGNUP_PATH), write_settings, delete_signup)
 }
 
 /// The routes with a guard in front of each (what [`router`] serves).
@@ -110,9 +138,14 @@ pub async fn serve<F>(listener: TcpListener, router: Router, shutdown: F) -> std
 where
     F: Future<Output = ()> + Send + 'static,
 {
-    axum::serve(listener, router)
-        .with_graceful_shutdown(shutdown)
-        .await
+    // The peer address is the client address for the login throttles (or the proxy's, which
+    // `accounts::client_of` resolves through the trusted proxies).
+    axum::serve(
+        listener,
+        router.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown)
+    .await
 }
 
 /// Completes on SIGTERM (what `docker stop` sends) or Ctrl+C.

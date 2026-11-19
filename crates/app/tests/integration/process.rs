@@ -144,6 +144,9 @@ mod lifecycle {
     use super::*;
     use crate::common::{free_port, raw_http};
 
+    /// The first admin's password in the lifecycle test.
+    const ADMIN_PASSWORD: &str = "a root passphrase for the test";
+
     fn start(data: &Path, bootstrap: &Path, port: u16) -> Child {
         command()
             .arg("serve")
@@ -151,6 +154,11 @@ mod lifecycle {
             .env("STUFFCLOUD_DATA_DIR", data)
             .env("STUFFCLOUD_LISTEN", format!("127.0.0.1:{port}"))
             .env("STUFFCLOUD_BOOTSTRAP_CONFIG", bootstrap)
+            .env("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN", "root")
+            .env("STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD", ADMIN_PASSWORD)
+            // The cheapest parameters the configuration allows: the test is about the process.
+            .env("STUFFCLOUD_ARGON2_MEMORY_KIB", "7168")
+            .env("STUFFCLOUD_ARGON2_ITERATIONS", "1")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -258,10 +266,43 @@ mod lifecycle {
             !cookie_line.to_ascii_lowercase().contains("domain"),
             "{cookie_line}"
         );
+        // The first admin exists and logs in through the real socket, with the CSRF proof.
+        let csrf = cookie_line
+            .trim_start_matches("set-cookie: __Host-stuffcloud-csrf=")
+            .split(';')
+            .next()
+            .unwrap()
+            .to_owned();
+        let body = format!(r#"{{"login":"root","password":"{ADMIN_PASSWORD}"}}"#);
+        let login = raw_http(
+            address,
+            &format!(
+                "POST /api/v1/auth/login HTTP/1.1
+Host: stuff.localhost
+Origin: http://stuff.localhost:8080
+X-CSRF-Token: {csrf}
+Cookie: __Host-stuffcloud-csrf={csrf}
+Content-Type: application/json
+Content-Length: {}
+Connection: close
+
+{body}",
+                body.len()
+            ),
+        );
+        assert!(login.starts_with("HTTP/1.1 200"), "{login}");
+        assert!(login.contains(r#""role":"admin""#), "{login}");
+        assert!(
+            login
+                .to_ascii_lowercase()
+                .contains("set-cookie: __host-stuffcloud-session="),
+            "{login}"
+        );
         let (code, lines) = stop(child);
         assert_eq!(code, Some(0), "graceful shutdown exits with 0");
         let first = messages(&lines);
         for expected in [
+            "password hashing ready (one Argon2id hash took hash_ms; keep it well below a second)",
             "database ready",
             "first start: bootstrap applied",
             "expired sessions purged",

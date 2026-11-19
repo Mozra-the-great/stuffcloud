@@ -472,3 +472,61 @@ fn an_admin_scope_without_an_admin_owner_grants_nothing() {
         }
     }
 }
+
+/// Login names that impersonate another account: homographs, bidi controls, invisible
+/// characters, case variants, NUL truncation and path tricks (A-03). Every one is refused,
+/// none is folded into an existing name.
+const LOGIN_ATTACKS: &[&str] = &[
+    "\u{430}dmin",
+    "admin\u{202e}",
+    "\u{200b}admin",
+    "admin\u{feff}",
+    "ADMIN",
+    "Admin",
+    "admin\0",
+    "admin\0x",
+    "../admin",
+    "admin/",
+    "admin ",
+    " admin",
+    "admin\t",
+    "admin@",
+    "ad\u{0301}min",
+    "ａｄｍｉｎ",
+];
+
+#[test]
+fn impersonating_login_names_are_refused() {
+    for attack in LOGIN_ATTACKS {
+        assert!(
+            stuffcloud_core::account::Login::parse(attack).is_err(),
+            "{attack:?}"
+        );
+    }
+}
+
+/// E-mail addresses that smuggle something past a mail parser or a comparison: header
+/// injection, NUL, quoted local parts, IP literals, non-ASCII homographs (A-03).
+const EMAIL_ATTACKS: &[&str] = &[
+    "a@example.com\r\nBcc: x@example.com",
+    "a@example.com\nX: y",
+    "a@example.com\0",
+    "\"a b\"@example.com",
+    "a@[192.0.2.1]",
+    "a@ex\u{430}mple.com",
+    "a@example.com,b@example.com",
+    "a@example.com b@example.com",
+    "<a@example.com>",
+    "a@example.com.",
+    "a@-example.com",
+];
+
+#[test]
+fn smuggling_e_mail_addresses_are_refused() {
+    for attack in EMAIL_ATTACKS {
+        assert!(
+            stuffcloud_core::account::Email::parse(attack).is_err(),
+            "{attack:?}"
+        );
+    }
+}

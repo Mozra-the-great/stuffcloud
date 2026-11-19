@@ -11,21 +11,26 @@ same gates but not listed. WASM modules, ML models, fonts and data files that
 come from neither package manager are in
 [`THIRD-PARTY-ASSETS.md`](THIRD-PARTY-ASSETS.md).
 
-## Rust (108)
+## Rust (116)
 
 | Name | Version | License | Source |
 |---|---|---|---|
+| argon2 | 0.6.0 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/argon2/0.6.0) |
 | atomic-waker | 1.1.2 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/atomic-waker/1.1.2) |
 | axum | 0.8.9 | MIT | [crates.io](https://crates.io/crates/axum/0.8.9) |
 | axum-core | 0.5.6 | MIT | [crates.io](https://crates.io/crates/axum-core/0.5.6) |
+| base64ct | 1.8.3 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/base64ct/1.8.3) |
 | bitflags | 2.13.2 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/bitflags/2.13.2) |
+| blake2 | 0.11.0 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/blake2/0.11.0) |
 | block-buffer | 0.12.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/block-buffer/0.12.1) |
 | bytes | 1.12.1 | MIT | [crates.io](https://crates.io/crates/bytes/1.12.1) |
 | cc | 1.11.2 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/cc/1.11.2) |
 | cfg-if | 1.0.5 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/cfg-if/1.0.5) |
+| cmov | 0.5.4 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/cmov/0.5.4) |
 | const-oid | 0.10.3 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/const-oid/0.10.3) |
 | cpufeatures | 0.3.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/cpufeatures/0.3.1) |
 | crypto-common | 0.2.2 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/crypto-common/0.2.2) |
+| ctutils | 0.4.8 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/ctutils/0.4.8) |
 | deranged | 0.5.9 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/deranged/0.5.9) |
 | digest | 0.11.3 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/digest/0.11.3) |
 | dtoa | 1.0.11 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/dtoa/1.0.11) |
@@ -64,7 +69,9 @@ come from neither package manager are in
 | once_cell | 1.21.4 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/once_cell/1.21.4) |
 | parking_lot | 0.12.5 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/parking_lot/0.12.5) |
 | parking_lot_core | 0.9.12 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/parking_lot_core/0.9.12) |
+| password-hash | 0.6.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/password-hash/0.6.1) |
 | percent-encoding | 2.3.2 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/percent-encoding/2.3.2) |
+| phc | 0.6.1 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/phc/0.6.1) |
 | pin-project-lite | 0.2.17 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/pin-project-lite/0.2.17) |
 | pkg-config | 0.3.34 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/pkg-config/0.3.34) |
 | powerfmt | 0.2.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/powerfmt/0.2.1) |
@@ -122,6 +129,7 @@ come from neither package manager are in
 | wasi | 0.11.1+wasi-snapshot-preview1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/wasi/0.11.1+wasi-snapshot-preview1) |
 | windows-link | 0.2.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows-link/0.2.1) |
 | windows-sys | 0.61.2 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows-sys/0.61.2) |
+| zeroize | 1.9.2 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/zeroize/1.9.2) |
 | zmij | 1.0.23 | MIT | [crates.io](https://crates.io/crates/zmij/1.0.23) |
 
 ## npm (22)

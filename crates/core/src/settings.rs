@@ -83,6 +83,57 @@ impl Writable for ReservedNames {
     }
 }
 
+/// Who may create a local account (SPEC 6, ADR 0005 decision 5).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "kebab-case")]
+pub enum SignupMode {
+    /// Anyone who can reach the app may register.
+    Open,
+    /// Only holders of an invitation from an admin may register (the default).
+    #[default]
+    InviteOnly,
+    /// No local registration; accounts come from the identity provider (A-06). Admins still
+    /// create local accounts (the break-glass admin), and existing ones keep working.
+    OidcOnly,
+}
+
+impl SignupMode {
+    /// The name in documents and messages.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Open => "open",
+            Self::InviteOnly => "invite-only",
+            Self::OidcOnly => "oidc-only",
+        }
+    }
+}
+
+/// Settings group `signup`. A group that was never written means the default mode,
+/// `invite-only`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(deny_unknown_fields)]
+pub struct Signup {
+    /// The sign-up mode.
+    pub mode: SignupMode,
+}
+
+impl Signup {
+    /// Name of the settings group in URLs and configuration files.
+    pub const GROUP: &'static str = "signup";
+}
+
+impl Writable for Signup {
+    const FIELDS: &'static [&'static str] = &["mode"];
+
+    fn validate(&self) -> Vec<FieldError> {
+        // Every value of the enum is valid; serde refuses anything else.
+        Vec::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -185,6 +236,35 @@ mod tests {
             Err(BodyError::Invalid(errors)) => {
                 let pointers: Vec<&str> = errors.iter().map(|e| e.pointer.as_str()).collect();
                 assert_eq!(pointers, vec!["/extra", "/names/1"]);
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn signup_modes() {
+        assert_eq!(Signup::default().mode, SignupMode::InviteOnly);
+        assert_eq!(Signup::GROUP, "signup");
+        for (mode, name) in [
+            (SignupMode::Open, "open"),
+            (SignupMode::InviteOnly, "invite-only"),
+            (SignupMode::OidcOnly, "oidc-only"),
+        ] {
+            assert_eq!(mode.as_str(), name);
+            let parsed: Signup =
+                parse_writable(json!({ "mode": name }).to_string().as_bytes()).unwrap();
+            assert_eq!(parsed.mode, mode);
+            assert!(parsed.validate().is_empty());
+            assert_eq!(
+                serde_json::to_value(parsed).unwrap(),
+                json!({ "mode": name })
+            );
+        }
+        match parse_writable::<Signup>(br#"{"mode":"closed"}"#) {
+            Err(BodyError::Invalid(errors)) => {
+                assert_eq!(errors.len(), 1);
+                assert_eq!(errors[0].pointer.as_str(), "/mode");
+                assert_eq!(errors[0].code, FieldErrorCode::InvalidType);
             }
             other => panic!("{other:?}"),
         }

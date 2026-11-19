@@ -13,7 +13,7 @@ stuffcloud is, an ADR says *why* a core choice was made and what it costs.
 | [0002](0002-static-hosting-and-origin-isolation.md) | Static-only hosting and origin isolation | Partly superseded by ADR 0009 (sessions and CSRF: addendum 2026-11-19) | 2026-11-05 |
 | [0003](0003-storage-abstraction.md) | Storage abstraction with a filesystem default | Accepted | 2026-11-05 |
 | [0004](0004-client-side-tools.md) | Client-side-first tool execution and asset loading | Accepted | 2026-11-05 |
-| [0005](0005-auth-model.md) | Auth model: local accounts, passkeys, TOTP and OIDC | Partly superseded by ADR 0009 (sessions and CSRF, authorisation: addenda 2026-11-19) | 2026-11-05 |
+| [0005](0005-auth-model.md) | Auth model: local accounts, passkeys, TOTP and OIDC | Partly superseded by ADR 0009 (sessions and CSRF, authorisation, local accounts: addenda 2026-11-19) | 2026-11-05 |
 | [0006](0006-edge-and-core.md) | Public surface: the minimal `edge` process and the shared `core` crate | Accepted | 2026-11-14 |
 | [0007](0007-test-strategy.md) | Test strategy: err on the side of too many tests | Accepted | 2026-11-14 |
 | [0008](0008-pixel-art-animation-runtime.md) | Pixel-art animation runtime: CSS transform keyframes with `steps()` | Accepted | 2026-11-16 |

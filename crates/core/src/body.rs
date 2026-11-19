@@ -81,6 +81,78 @@ pub fn parse_writable<T: Writable>(body: &[u8]) -> Result<T, BodyError> {
 ///
 /// Every field problem, at most [`MAX_FIELD_ERRORS`].
 pub fn parse_writable_value<T: Writable>(value: Value) -> Result<T, Vec<FieldError>> {
+    parse_members(
+        value,
+        &Members {
+            required: T::FIELDS,
+            optional: &[],
+            ignore_meta: true,
+            missing_hint: " (PUT takes the full writable shape)",
+        },
+        T::validate,
+    )
+}
+
+/// The request document of an action (`POST`, SPEC 10.2: log in, register, reset a password,
+/// invite): a JSON object with required and optional members. Unlike a [`Writable`] resource
+/// it has no `meta` member, so `meta` is an unknown field like any other.
+pub trait Action: DeserializeOwned {
+    /// Members that must be present.
+    const REQUIRED: &'static [&'static str];
+    /// Members that may be left out (their Rust fields are `#[serde(default)]`).
+    const OPTIONAL: &'static [&'static str];
+
+    /// Checks the rules of the action and returns every violation, with pointers relative to
+    /// the document root. Empty when the value is valid.
+    fn validate(&self) -> Vec<FieldError>;
+}
+
+/// Parses a request body into the action document `T`, with the rules of [`parse_writable`]
+/// (every problem at once, pointers, at most [`MAX_FIELD_ERRORS`]) except that no member is
+/// ignored and only the [`Action::REQUIRED`] members must be present.
+///
+/// # Errors
+///
+/// [`BodyError::Malformed`] when the bytes are not JSON, [`BodyError::Invalid`] with every
+/// field problem otherwise.
+pub fn parse_action<T: Action>(body: &[u8]) -> Result<T, BodyError> {
+    let value: Value =
+        serde_json::from_slice(body).map_err(|error| BodyError::Malformed(error.to_string()))?;
+    parse_members(
+        value,
+        &Members {
+            required: T::REQUIRED,
+            optional: T::OPTIONAL,
+            ignore_meta: false,
+            missing_hint: "",
+        },
+        T::validate,
+    )
+    .map_err(BodyError::Invalid)
+}
+
+/// The member rules of a kind of document.
+struct Members {
+    required: &'static [&'static str],
+    optional: &'static [&'static str],
+    /// Whether a `meta` member is dropped before the checks.
+    ignore_meta: bool,
+    /// Added to the message of a missing member.
+    missing_hint: &'static str,
+}
+
+impl Members {
+    fn knows(&self, name: &str) -> bool {
+        self.required.contains(&name) || self.optional.contains(&name)
+    }
+}
+
+/// The checks shared by [`parse_writable_value`] and [`parse_action`].
+fn parse_members<T: DeserializeOwned>(
+    value: Value,
+    rules: &Members,
+    validate: impl FnOnce(&T) -> Vec<FieldError>,
+) -> Result<T, Vec<FieldError>> {
     let Value::Object(mut members) = value else {
         return Err(vec![FieldError::new(
             JsonPointer::root(),
@@ -88,11 +160,13 @@ pub fn parse_writable_value<T: Writable>(value: Value) -> Result<T, Vec<FieldErr
             format!("expected a JSON object, got {}", kind_of(&value)),
         )]);
     };
-    let _meta = members.remove(META_FIELD);
+    if rules.ignore_meta {
+        let _meta = members.remove(META_FIELD);
+    }
     let root = JsonPointer::root();
     let mut errors: Vec<FieldError> = members
         .keys()
-        .filter(|name| !T::FIELDS.contains(&name.as_str()))
+        .filter(|name| !rules.knows(name))
         .map(|name| {
             FieldError::new(
                 root.key(name),
@@ -102,20 +176,21 @@ pub fn parse_writable_value<T: Writable>(value: Value) -> Result<T, Vec<FieldErr
         })
         .collect();
     errors.extend(
-        T::FIELDS
+        rules
+            .required
             .iter()
             .filter(|name| !members.contains_key(**name))
             .map(|name| {
                 FieldError::new(
                     root.key(name),
                     FieldErrorCode::MissingField,
-                    format!("missing field {name:?} (PUT takes the full writable shape)"),
+                    format!("missing field {name:?}{}", rules.missing_hint),
                 )
             }),
     );
     let known: Map<String, Value> = members
         .into_iter()
-        .filter(|(name, _)| T::FIELDS.contains(&name.as_str()))
+        .filter(|(name, _)| rules.knows(name))
         .collect();
     if errors
         .iter()
@@ -123,7 +198,7 @@ pub fn parse_writable_value<T: Writable>(value: Value) -> Result<T, Vec<FieldErr
     {
         match serde_path_to_error::deserialize::<_, T>(Value::Object(known)) {
             Ok(parsed) => {
-                errors.extend(parsed.validate());
+                errors.extend(validate(&parsed));
                 if errors.is_empty() {
                     return Ok(parsed);
                 }
@@ -380,6 +455,103 @@ mod tests {
         let error = serde_path_to_error::deserialize::<_, Vec<Shape>>(json!([{"Square": "x"}]))
             .unwrap_err();
         assert_eq!(pointer_of(error.path()).as_str(), "/0");
+    }
+
+    /// An action with one required and one optional member and one rule.
+    #[derive(Debug, PartialEq, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Act {
+        name: String,
+        #[serde(default)]
+        note: Option<String>,
+    }
+
+    impl Action for Act {
+        const REQUIRED: &'static [&'static str] = &["name"];
+        const OPTIONAL: &'static [&'static str] = &["note"];
+
+        fn validate(&self) -> Vec<FieldError> {
+            if self.name.is_empty() {
+                vec![FieldError::new(
+                    JsonPointer::root().key("name"),
+                    FieldErrorCode::InvalidValue,
+                    "empty",
+                )]
+            } else {
+                Vec::new()
+            }
+        }
+    }
+
+    fn action_errors(body: &Value) -> Vec<(String, FieldErrorCode, String)> {
+        match parse_action::<Act>(body.to_string().as_bytes()) {
+            Err(BodyError::Invalid(errors)) => errors
+                .into_iter()
+                .map(|e| (e.pointer.as_str().to_owned(), e.code, e.detail))
+                .collect(),
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn actions_take_required_and_optional_members() {
+        let named = |note: Option<&str>| Act {
+            name: "a".to_owned(),
+            note: note.map(str::to_owned),
+        };
+        assert_eq!(
+            parse_action::<Act>(br#"{"name":"a"}"#).unwrap(),
+            named(None)
+        );
+        assert_eq!(
+            parse_action::<Act>(br#"{"name":"a","note":"n"}"#).unwrap(),
+            named(Some("n"))
+        );
+        assert_eq!(
+            parse_action::<Act>(br#"{"name":"a","note":null}"#).unwrap(),
+            named(None)
+        );
+    }
+
+    #[test]
+    fn actions_report_every_problem() {
+        let entry =
+            |pointer: &str, code, detail: &str| (pointer.to_owned(), code, detail.to_owned());
+        assert_eq!(
+            action_errors(&json!({"note": "n", "meta": {}})),
+            vec![
+                entry(
+                    "/meta",
+                    FieldErrorCode::UnknownField,
+                    "unknown field \"meta\""
+                ),
+                entry(
+                    "/name",
+                    FieldErrorCode::MissingField,
+                    "missing field \"name\""
+                ),
+            ]
+        );
+        assert_eq!(
+            action_errors(&json!({"name": ""})),
+            vec![entry("/name", FieldErrorCode::InvalidValue, "empty")]
+        );
+        let typed = action_errors(&json!({"name": "a", "note": 3}));
+        assert_eq!(typed.len(), 1);
+        assert_eq!(typed[0].0, "/note");
+        assert_eq!(typed[0].1, FieldErrorCode::InvalidType);
+        assert_eq!(
+            action_errors(&json!([])),
+            vec![entry(
+                "",
+                FieldErrorCode::InvalidType,
+                "expected a JSON object, got an array"
+            )]
+        );
+        match parse_action::<Act>(b"{") {
+            Err(BodyError::Malformed(message)) => assert!(message.contains("EOF"), "{message}"),
+            other => panic!("{other:?}"),
+        }
     }
 
     #[test]

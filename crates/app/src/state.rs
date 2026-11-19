@@ -1,5 +1,5 @@
-//! Shared state of the handlers: database, access policy, clock, metrics, limits and the
-//! authentication settings.
+//! Shared state of the handlers: database, access policy, clock, metrics, limits, the
+//! authentication settings and the account machinery (password hashing, throttles).
 
 use std::fmt;
 use std::sync::Arc;
@@ -8,6 +8,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use stuffcloud_db::{Database, DbError};
 
 use crate::access::{AccessPolicy, DenialKey};
+use crate::accounts::Accounts;
 use crate::auth::AuthSettings;
 use crate::config::Limits;
 use crate::metrics::Metrics;
@@ -62,6 +63,7 @@ struct Inner {
     auth: AuthSettings,
     rejection_log: LogSampler,
     denial_audit: KeyedLimiter<DenialKey>,
+    accounts: Accounts,
 }
 
 impl AppState {
@@ -73,6 +75,7 @@ impl AppState {
         clock: Arc<dyn Clock>,
         limits: Limits,
         auth: AuthSettings,
+        accounts: Accounts,
     ) -> Self {
         Self {
             inner: Arc::new(Inner {
@@ -84,6 +87,7 @@ impl AppState {
                 auth,
                 rejection_log: LogSampler::new(REJECTION_LOG_INTERVAL),
                 denial_audit: KeyedLimiter::new(DENIAL_AUDIT_INTERVAL, DENIAL_AUDIT_CAPACITY),
+                accounts,
             }),
         }
     }
@@ -92,6 +96,18 @@ impl AppState {
     #[must_use]
     pub fn auth(&self) -> &AuthSettings {
         &self.inner.auth
+    }
+
+    /// The database (for work outside a request, such as the command line and tests).
+    #[must_use]
+    pub fn database(&self) -> Arc<Database> {
+        Arc::clone(&self.inner.db)
+    }
+
+    /// Password hashing, the throttles and the trusted proxies.
+    #[must_use]
+    pub fn accounts(&self) -> &Accounts {
+        &self.inner.accounts
     }
 
     /// The rate limit of the log lines for refused requests.
@@ -164,7 +180,7 @@ impl AppState {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::access::MatrixPolicy;
     use crate::problem::ProblemKind;
@@ -173,7 +189,37 @@ mod tests {
         AuthSettings {
             app_origin: stuffcloud_core::csrf::Origin::parse(b"https://app.example.com").unwrap(),
             timeouts: stuffcloud_core::session::Timeouts::default(),
+            max_sessions: 10,
         }
+    }
+
+    /// The account machinery with the cheapest hashing parameters.
+    pub(crate) fn accounts() -> Accounts {
+        Accounts::new(
+            crate::password::Passwords::new(
+                crate::password::Argon2Settings::CHEAPEST,
+                stuffcloud_core::account::PasswordPolicy::default(),
+                crate::password::Blocklist::default(),
+                2,
+            )
+            .unwrap(),
+            stuffcloud_core::client_ip::ProxyList::default(),
+        )
+    }
+
+    /// A state on a fresh database (kept on disk until the process ends).
+    pub(crate) fn state() -> AppState {
+        let dir = tempfile::tempdir().unwrap().keep();
+        let db = Arc::new(Database::open(&dir.join("s.sqlite3")).unwrap());
+        let _ = db.migrate().unwrap();
+        AppState::new(
+            db,
+            Arc::new(MatrixPolicy),
+            Arc::new(SystemClock),
+            Limits::default(),
+            settings(),
+            accounts(),
+        )
     }
 
     #[test]
@@ -192,6 +238,7 @@ mod tests {
             Arc::new(SystemClock),
             Limits::default(),
             settings(),
+            accounts(),
         );
         assert_eq!(state.db(|_db| Ok(7)).await.unwrap(), 7);
         let failed = state
@@ -218,6 +265,7 @@ mod tests {
             Arc::new(SystemClock),
             Limits::default(),
             settings(),
+            accounts(),
         );
         let outcome = state
             .db_outcome(|_db| Err::<(), _>(DbError::Poisoned))

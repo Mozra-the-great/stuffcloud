@@ -10,6 +10,7 @@
     reason = "test code: a panic is a failed test, and the helpers outside #[test] functions are test code too"
 )]
 
+mod accounts;
 mod auth;
 mod authz;
 mod common;

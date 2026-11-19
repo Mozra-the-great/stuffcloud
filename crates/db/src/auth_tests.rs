@@ -36,6 +36,7 @@ fn login(db: &Database, user: &User, token: u8, now: i64) -> Session {
             token_hash: hash(token),
             csrf_hash: hash(token.wrapping_add(100)),
             replaces: None,
+            max_per_user: None,
         },
         &T,
         now,
@@ -349,6 +350,7 @@ fn login_replaces_the_presented_session_and_purges_expired_ones() {
                 token_hash: hash(2),
                 csrf_hash: hash(3),
                 replaces: Some(old.id),
+                max_per_user: None,
             },
             &T,
             T.idle_ms + 1,
@@ -378,6 +380,7 @@ fn login_replaces_the_presented_session_and_purges_expired_ones() {
                 token_hash: hash(4),
                 csrf_hash: hash(5),
                 replaces: Some(old.id),
+                max_per_user: None,
             },
             &T,
             T.idle_ms + 3,
@@ -416,6 +419,7 @@ fn sessions_need_a_person() {
         token_hash: hash(1),
         csrf_hash: hash(2),
         replaces: None,
+        max_per_user: None,
     };
     assert!(matches!(
         db.create_session(&new(robot.id), &T, 2),
@@ -655,4 +659,68 @@ fn stored_hashes_have_32_bytes() {
         [user.id],
     );
     assert!(short.is_err());
+}
+
+#[test]
+fn the_oldest_sessions_beyond_the_cap_end() {
+    let (_dir, db) = db();
+    let alice = person(&db, "alice", Role::User);
+    let bob = person(&db, "bob", Role::User);
+    let capped = |user: &User, token: u8, now: i64, max: usize| {
+        db.create_session(
+            &NewSession {
+                user_id: user.id,
+                token_hash: hash(token),
+                csrf_hash: hash(token.wrapping_add(100)),
+                replaces: None,
+                max_per_user: Some(max),
+            },
+            &T,
+            now,
+        )
+        .unwrap()
+    };
+    let first = capped(&alice, 1, 10, 2);
+    let second = capped(&alice, 2, 20, 2);
+    let _other = capped(&bob, 3, 25, 2);
+    assert_eq!(db.session_count(alice.id).unwrap(), 2);
+    let third = capped(&alice, 4, 30, 2);
+    assert_eq!(db.session_count(alice.id).unwrap(), 2);
+    assert_eq!(db.session_count(bob.id).unwrap(), 1);
+    assert_eq!(
+        db.find_session(&hash(1), &T, 31).unwrap(),
+        SessionLookup::Unknown
+    );
+    assert_eq!(
+        active(db.find_session(&hash(2), &T, 31).unwrap()).id,
+        second.id
+    );
+    assert_eq!(
+        active(db.find_session(&hash(4), &T, 31).unwrap()).id,
+        third.id
+    );
+    let evicted: Vec<Row> = security(&db)
+        .into_iter()
+        .filter(|row| row.1 == "session.evicted")
+        .collect();
+    assert_eq!(
+        evicted,
+        [row(
+            Some(&actor(alice.id)),
+            "session.evicted",
+            "session",
+            first.id
+        )]
+    );
+    // A cap of one keeps only the new session; the same instant orders by id.
+    let fourth = capped(&alice, 5, 30, 1);
+    assert_eq!(db.session_count(alice.id).unwrap(), 1);
+    assert_eq!(
+        active(db.find_session(&hash(5), &T, 31).unwrap()).id,
+        fourth.id
+    );
+    // Without a cap nothing is evicted.
+    let _ = login(&db, &alice, 6, 40);
+    let _ = login(&db, &alice, 7, 40);
+    assert_eq!(db.session_count(alice.id).unwrap(), 3);
 }

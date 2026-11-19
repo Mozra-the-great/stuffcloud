@@ -17,8 +17,15 @@
 //! | `STUFFCLOUD_REQUEST_TIMEOUT_SECS` | `30` | time limit per request (1 to 600) |
 //! | `STUFFCLOUD_SESSION_IDLE_MINUTES` | `480` | a session unused this long ends (5 to 10080) |
 //! | `STUFFCLOUD_SESSION_ABSOLUTE_HOURS` | `168` | a session ends this long after login (1 to 2160, at least the idle timeout) |
+//! | `STUFFCLOUD_SESSION_MAX_PER_USER` | `10` | sessions per account; a login beyond it ends the oldest (1 to 1000) |
+//! | `STUFFCLOUD_ARGON2_MEMORY_KIB` | `19456` | Argon2id memory per hash in KiB (7168 to 1048576) |
+//! | `STUFFCLOUD_ARGON2_ITERATIONS` | `2` | Argon2id iterations (1 to 10) |
+//! | `STUFFCLOUD_ARGON2_PARALLELISM` | `1` | Argon2id lanes (1 to 16) |
+//! | `STUFFCLOUD_PASSWORD_MIN_LENGTH` | `12` | shortest new password in characters (8 to 128) |
+//! | `STUFFCLOUD_PASSWORD_BLOCKLIST_FILE` | unset | offline list of breached passwords, one per line |
+//! | `STUFFCLOUD_TRUSTED_PROXIES` | unset | reverse proxies whose `X-Forwarded-For` is believed (addresses or CIDR blocks, comma-separated) |
 //! | `STUFFCLOUD_BOOTSTRAP_CONFIG` | unset | configuration file applied on the first start |
-//! | `STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN`, `_EMAIL`, `_PASSWORD[_FILE]` | unset | first admin (needs accounts, A-03) |
+//! | `STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN`, `_EMAIL`, `_PASSWORD[_FILE]` | unset | the first admin, created on the first start (login and password required, e-mail optional) |
 //! | `STUFFCLOUD_BOOTSTRAP_TOKEN_FILE` | unset | first service-account token (needs tokens, A-08) |
 
 use std::fmt;
@@ -27,8 +34,18 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use axum::http::Uri;
+use stuffcloud_core::account::{
+    DEFAULT_MIN_PASSWORD_CHARS, Email, Login, MAX_MIN_PASSWORD_CHARS, MIN_PASSWORD_FLOOR,
+    PasswordContext, PasswordPolicy,
+};
+use stuffcloud_core::client_ip::ProxyList;
 use stuffcloud_core::csrf::Origin;
 use stuffcloud_core::session::{HOUR_MS, MINUTE_MS, Timeouts};
+
+use crate::password::{
+    Argon2Settings, DEFAULT_ITERATIONS, DEFAULT_MEMORY_KIB, DEFAULT_PARALLELISM, MAX_ITERATIONS,
+    MAX_MEMORY_KIB, MAX_PARALLELISM, MIN_MEMORY_KIB,
+};
 
 /// Default listen address: loopback only. The container sets `0.0.0.0:8000`.
 pub const DEFAULT_LISTEN: &str = "127.0.0.1:8000";
@@ -52,6 +69,10 @@ pub const MAX_SESSION_IDLE_MINUTES: i64 = 10_080;
 pub const DEFAULT_SESSION_ABSOLUTE_HOURS: i64 = 168;
 /// Longest accepted absolute session lifetime in hours (90 days).
 pub const MAX_SESSION_ABSOLUTE_HOURS: i64 = 2160;
+/// Default number of sessions per account.
+pub const DEFAULT_SESSIONS_PER_USER: usize = 10;
+/// Largest accepted number of sessions per account.
+pub const MAX_SESSIONS_PER_USER: usize = 1000;
 
 /// Where configuration values come from: the process environment in production, a map in
 /// tests.
@@ -200,6 +221,34 @@ impl Default for Limits {
     }
 }
 
+/// The first admin, created on the first start with an empty database (SPEC 10.7).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BootstrapAdmin {
+    /// Login name.
+    pub login: Login,
+    /// E-mail address.
+    pub email: Option<Email>,
+    /// The password (checked against the password policy).
+    pub password: Secret,
+}
+
+/// The settings of local accounts.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AccountSettings {
+    /// Argon2id parameters.
+    pub argon2: Argon2Settings,
+    /// The password policy.
+    pub policy: PasswordPolicy,
+    /// The offline list of breached passwords (read at start).
+    pub blocklist: Option<PathBuf>,
+    /// Sessions per account.
+    pub max_sessions: usize,
+    /// Reverse proxies whose `X-Forwarded-For` is believed.
+    pub trusted_proxies: ProxyList,
+    /// The first admin.
+    pub bootstrap_admin: Option<BootstrapAdmin>,
+}
+
 /// The complete configuration.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Config {
@@ -219,6 +268,8 @@ pub struct Config {
     pub session: Timeouts,
     /// Bootstrap configuration file, applied on the first start (SPEC 10.7).
     pub bootstrap_config: Option<PathBuf>,
+    /// Local accounts.
+    pub accounts: AccountSettings,
 }
 
 impl Config {
@@ -396,6 +447,135 @@ fn session_timeouts<E: Environment + ?Sized>(reader: &mut Reader<'_, E>) -> Time
     session
 }
 
+/// The Argon2id parameters.
+fn argon2_settings<E: Environment + ?Sized>(reader: &mut Reader<'_, E>) -> Argon2Settings {
+    Argon2Settings {
+        memory_kib: reader.number(
+            "STUFFCLOUD_ARGON2_MEMORY_KIB",
+            DEFAULT_MEMORY_KIB,
+            MIN_MEMORY_KIB,
+            MAX_MEMORY_KIB,
+        ),
+        iterations: reader.number(
+            "STUFFCLOUD_ARGON2_ITERATIONS",
+            DEFAULT_ITERATIONS,
+            1,
+            MAX_ITERATIONS,
+        ),
+        parallelism: reader.number(
+            "STUFFCLOUD_ARGON2_PARALLELISM",
+            DEFAULT_PARALLELISM,
+            1,
+            MAX_PARALLELISM,
+        ),
+    }
+}
+
+/// The first admin: login name and password are required once any of the variables is set;
+/// every problem is reported, never the password itself.
+fn bootstrap_admin<E: Environment + ?Sized>(
+    reader: &mut Reader<'_, E>,
+    policy: PasswordPolicy,
+) -> Option<BootstrapAdmin> {
+    const LOGIN: &str = "STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN";
+    const EMAIL: &str = "STUFFCLOUD_BOOTSTRAP_ADMIN_EMAIL";
+    const PASSWORD: &str = "STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD";
+    let login_text = reader.var(LOGIN);
+    let email_text = reader.var(EMAIL);
+    let password = reader.secret(PASSWORD);
+    if login_text.is_none() && email_text.is_none() && password.is_none() {
+        return None;
+    }
+    let login = match login_text.as_deref().map(Login::parse) {
+        None => {
+            reader.fail(LOGIN, "is required to create the first admin");
+            None
+        }
+        Some(Err(error)) => {
+            reader.fail(LOGIN, error.to_string());
+            None
+        }
+        Some(Ok(login)) => Some(login),
+    };
+    let email = match email_text.as_deref().map(Email::parse) {
+        None => None,
+        Some(Err(error)) => {
+            reader.fail(EMAIL, error.to_string());
+            None
+        }
+        Some(Ok(email)) => Some(email),
+    };
+    if password.is_none()
+        && !reader
+            .errors
+            .iter()
+            .any(|error| error.variable.starts_with(PASSWORD))
+    {
+        reader.fail(
+            PASSWORD,
+            format!("(or {PASSWORD}_FILE) is required to create the first admin"),
+        );
+    }
+    if let (Some(login), Some(password)) = (&login, &password) {
+        let problems = policy.check(
+            password.expose(),
+            &PasswordContext {
+                login: login.as_str(),
+                email: email.as_ref().map(Email::as_str),
+            },
+            false,
+        );
+        for problem in problems {
+            reader.fail(PASSWORD, problem.to_string());
+        }
+    }
+    Some(BootstrapAdmin {
+        login: login?,
+        email,
+        password: password?,
+    })
+}
+
+/// The settings of local accounts.
+fn account_settings<E: Environment + ?Sized>(reader: &mut Reader<'_, E>) -> AccountSettings {
+    let argon2 = argon2_settings(reader);
+    let policy = PasswordPolicy::new(reader.number(
+        "STUFFCLOUD_PASSWORD_MIN_LENGTH",
+        DEFAULT_MIN_PASSWORD_CHARS,
+        MIN_PASSWORD_FLOOR,
+        MAX_MIN_PASSWORD_CHARS,
+    ))
+    .unwrap_or_default();
+    let blocklist = reader
+        .var("STUFFCLOUD_PASSWORD_BLOCKLIST_FILE")
+        .map(PathBuf::from);
+    let max_sessions = reader.number(
+        "STUFFCLOUD_SESSION_MAX_PER_USER",
+        DEFAULT_SESSIONS_PER_USER,
+        1,
+        MAX_SESSIONS_PER_USER,
+    );
+    let trusted_proxies =
+        match ProxyList::parse(&reader.var("STUFFCLOUD_TRUSTED_PROXIES").unwrap_or_default()) {
+            Ok(list) => list,
+            Err(error) => {
+                reader.fail("STUFFCLOUD_TRUSTED_PROXIES", error.to_string());
+                ProxyList::default()
+            }
+        };
+    // The first admin (the break-glass admin, SPEC 10.7); the password is checked against the
+    // policy here, so a weak one stops the start instead of creating the account.
+    let bootstrap_admin = bootstrap_admin(reader, policy);
+    AccountSettings {
+        argon2,
+        policy,
+        blocklist,
+        max_sessions,
+        trusted_proxies,
+        bootstrap_admin,
+    }
+}
+
 /// Reads and validates the whole configuration.
 ///
 /// # Errors
@@ -467,20 +647,9 @@ pub fn from_env<E: Environment + ?Sized>(env: &E) -> Result<Config, ConfigErrors
 
     let bootstrap_config = reader.var("STUFFCLOUD_BOOTSTRAP_CONFIG").map(PathBuf::from);
 
-    // The first admin and the first token need accounts (A-03, #33) and tokens (A-08, #38),
-    // which this version does not have. Refusing to start is safer than ignoring them: an
-    // operator who sets them expects an admin to exist afterwards. The password is read
-    // (so a broken `_FILE` path is reported too) and dropped at once.
-    let admin_login = reader.var("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN");
-    let admin_email = reader.var("STUFFCLOUD_BOOTSTRAP_ADMIN_EMAIL");
-    let admin_password = reader.secret("STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD");
-    if admin_login.is_some() || admin_email.is_some() || admin_password.is_some() {
-        reader.fail(
-            "STUFFCLOUD_BOOTSTRAP_ADMIN_*",
-            "creating the first admin needs accounts (A-03, #33), which this version does not have yet; unset these variables",
-        );
-    }
-    drop(admin_password);
+    let accounts = account_settings(&mut reader);
+    // The first token needs API tokens (A-08, #38), which this version does not have. Refusing
+    // to start is safer than ignoring it: an operator who sets it expects a token to exist.
     if reader.var("STUFFCLOUD_BOOTSTRAP_TOKEN_FILE").is_some() {
         reader.fail(
             "STUFFCLOUD_BOOTSTRAP_TOKEN_FILE",
@@ -498,6 +667,7 @@ pub fn from_env<E: Environment + ?Sized>(env: &E) -> Result<Config, ConfigErrors
             limits,
             session,
             bootstrap_config,
+            accounts,
         }),
         _ => Err(ConfigErrors(reader.errors)),
     }
@@ -824,26 +994,168 @@ mod tests {
     const PASSWORD: &str = "correct horse battery staple";
 
     #[test]
-    fn bootstrap_admin_is_refused_without_leaking_the_password() {
+    fn the_bootstrap_admin_is_read() {
         let dir = tempfile::tempdir().unwrap();
-        for env in [
-            base(dir.path()).with("STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD", PASSWORD),
-            base(dir.path())
+        let config = from_env(
+            &base(dir.path())
+                .with("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN", "root")
+                .with("STUFFCLOUD_BOOTSTRAP_ADMIN_EMAIL", "Root@Example.com")
                 .with(
                     "STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD_FILE",
                     "/run/secrets/admin",
                 )
                 .with_file("/run/secrets/admin", &format!("{PASSWORD}\n")),
-            base(dir.path()).with("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN", "admin"),
-            base(dir.path()).with("STUFFCLOUD_BOOTSTRAP_ADMIN_EMAIL", "admin@example.com"),
-        ] {
+        )
+        .unwrap();
+        let admin = config.accounts.bootstrap_admin.unwrap();
+        assert_eq!(admin.login.as_str(), "root");
+        assert_eq!(admin.email.unwrap().as_str(), "root@example.com");
+        assert_eq!(admin.password.expose(), PASSWORD);
+        let without_email = from_env(
+            &base(dir.path())
+                .with("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN", "root")
+                .with("STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD", PASSWORD),
+        )
+        .unwrap();
+        assert_eq!(without_email.accounts.bootstrap_admin.unwrap().email, None);
+        assert_eq!(
+            from_env(&base(dir.path()))
+                .unwrap()
+                .accounts
+                .bootstrap_admin,
+            None
+        );
+    }
+
+    #[test]
+    fn bootstrap_admin_problems_never_show_the_password() {
+        let dir = tempfile::tempdir().unwrap();
+        let cases = [
+            (
+                base(dir.path()).with("STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD", PASSWORD),
+                vec!["STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN: is required to create the first admin"],
+            ),
+            (
+                base(dir.path()).with("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN", "root"),
+                vec![
+                    "STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD: (or STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD_FILE) is required to create the first admin",
+                ],
+            ),
+            (
+                base(dir.path()).with("STUFFCLOUD_BOOTSTRAP_ADMIN_EMAIL", "nope"),
+                vec![
+                    "STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN: is required to create the first admin",
+                    "STUFFCLOUD_BOOTSTRAP_ADMIN_EMAIL: an e-mail address has exactly one '@'",
+                    "STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD: (or STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD_FILE) is required to create the first admin",
+                ],
+            ),
+            (
+                base(dir.path())
+                    .with("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN", "Root")
+                    .with("STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD", PASSWORD),
+                vec![
+                    "STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN: character 0 is not one of a-z, 0-9, '.', '_' or '-' (lowercase only)",
+                ],
+            ),
+            (
+                base(dir.path())
+                    .with("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN", "root")
+                    .with("STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD", "short"),
+                vec![
+                    "STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD: the password has 5 characters; it needs at least 12",
+                ],
+            ),
+            (
+                base(dir.path())
+                    .with("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN", "rootrootroot")
+                    .with("STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD", "RootRootRoot"),
+                vec![
+                    "STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD: the password must not be the login name",
+                ],
+            ),
+            (
+                base(dir.path())
+                    .with("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN", "root")
+                    .with("STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD_FILE", "/missing"),
+                vec![
+                    "STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD_FILE: cannot read the file \"/missing\": entity not found",
+                ],
+            ),
+        ];
+        for (env, expected) in cases {
             let found = errors(&env);
-            assert_eq!(found.len(), 1, "{found:?}");
-            assert!(found[0].starts_with(
-                "STUFFCLOUD_BOOTSTRAP_ADMIN_*: creating the first admin needs accounts (A-03, #33)"
-            ));
+            assert_eq!(found, expected);
             assert!(!format!("{found:?}").contains(PASSWORD));
         }
+    }
+
+    #[test]
+    fn account_settings() {
+        let dir = tempfile::tempdir().unwrap();
+        let defaults = from_env(&base(dir.path())).unwrap().accounts;
+        assert_eq!(defaults.argon2, Argon2Settings::default());
+        assert_eq!(defaults.policy, PasswordPolicy::default());
+        assert_eq!(defaults.blocklist, None);
+        assert_eq!(defaults.max_sessions, 10);
+        assert!(defaults.trusted_proxies.is_empty());
+        let set = from_env(
+            &base(dir.path())
+                .with("STUFFCLOUD_ARGON2_MEMORY_KIB", "7168")
+                .with("STUFFCLOUD_ARGON2_ITERATIONS", "10")
+                .with("STUFFCLOUD_ARGON2_PARALLELISM", "16")
+                .with("STUFFCLOUD_PASSWORD_MIN_LENGTH", "8")
+                .with("STUFFCLOUD_PASSWORD_BLOCKLIST_FILE", "/srv/breached.txt")
+                .with("STUFFCLOUD_SESSION_MAX_PER_USER", "1")
+                .with("STUFFCLOUD_TRUSTED_PROXIES", "192.0.2.10, 2001:db8::/32"),
+        )
+        .unwrap()
+        .accounts;
+        assert_eq!(
+            set.argon2,
+            Argon2Settings {
+                memory_kib: 7168,
+                iterations: 10,
+                parallelism: 16
+            }
+        );
+        assert_eq!(set.policy.min_chars(), 8);
+        assert_eq!(set.blocklist, Some(PathBuf::from("/srv/breached.txt")));
+        assert_eq!(set.max_sessions, 1);
+        assert!(set.trusted_proxies.contains("2001:db8::5".parse().unwrap()));
+        let upper = from_env(
+            &base(dir.path())
+                .with("STUFFCLOUD_ARGON2_MEMORY_KIB", "1048576")
+                .with("STUFFCLOUD_PASSWORD_MIN_LENGTH", "128")
+                .with("STUFFCLOUD_SESSION_MAX_PER_USER", "1000"),
+        )
+        .unwrap()
+        .accounts;
+        assert_eq!(upper.argon2.memory_kib, 1_048_576);
+        assert_eq!(upper.policy.min_chars(), 128);
+        assert_eq!(upper.max_sessions, 1000);
+        assert_eq!(
+            errors(
+                &base(dir.path())
+                    .with("STUFFCLOUD_ARGON2_MEMORY_KIB", "7167")
+                    .with("STUFFCLOUD_ARGON2_ITERATIONS", "11")
+                    .with("STUFFCLOUD_ARGON2_PARALLELISM", "0")
+                    .with("STUFFCLOUD_PASSWORD_MIN_LENGTH", "7")
+                    .with("STUFFCLOUD_SESSION_MAX_PER_USER", "1001")
+                    .with("STUFFCLOUD_TRUSTED_PROXIES", "proxy.example")
+            ),
+            vec![
+                "STUFFCLOUD_ARGON2_MEMORY_KIB: must be a whole number from 7168 to 1048576",
+                "STUFFCLOUD_ARGON2_ITERATIONS: must be a whole number from 1 to 10",
+                "STUFFCLOUD_ARGON2_PARALLELISM: must be a whole number from 1 to 16",
+                "STUFFCLOUD_PASSWORD_MIN_LENGTH: must be a whole number from 8 to 128",
+                "STUFFCLOUD_SESSION_MAX_PER_USER: must be a whole number from 1 to 1000",
+                "STUFFCLOUD_TRUSTED_PROXIES: \"proxy.example\" is not an IP address or a CIDR block (such as 192.0.2.10 or 198.51.100.0/24)",
+            ]
+        );
+        assert_eq!(
+            errors(&base(dir.path()).with("STUFFCLOUD_ARGON2_MEMORY_KIB", "1048577")),
+            vec!["STUFFCLOUD_ARGON2_MEMORY_KIB: must be a whole number from 7168 to 1048576"]
+        );
     }
 
     #[test]

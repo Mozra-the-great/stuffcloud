@@ -1,0 +1,215 @@
+<script lang="ts">
+  import { t, type MessageKey } from '../../i18n/index.ts';
+  import CopyButton from '../../app/CopyButton.svelte';
+  import ToolFrame from '../../app/ToolFrame.svelte';
+  import ToolStatus from '../../app/ToolStatus.svelte';
+  import Button from '../../ui/Button.svelte';
+  import Input from '../../ui/Input.svelte';
+  import {
+    MAX_USER_AGENT_LENGTH,
+    parseUserAgent,
+    type DeviceType,
+    type Named,
+    type UserAgentNote,
+  } from './user-agent.ts';
+
+  const TYPE_KEYS: Readonly<Record<DeviceType, MessageKey>> = {
+    desktop: 'ua.type.desktop',
+    mobile: 'ua.type.mobile',
+    tablet: 'ua.type.tablet',
+    tv: 'ua.type.tv',
+    console: 'ua.type.console',
+    wearable: 'ua.type.wearable',
+    bot: 'ua.type.bot',
+    library: 'ua.type.library',
+    unknown: 'ua.type.unknown',
+  };
+
+  const NOTE_KEYS: Readonly<Record<UserAgentNote, MessageKey>> = {
+    'windows-10-11': 'ua.note.windows',
+    'frozen-macos': 'ua.note.macos',
+    'reduced-device': 'ua.note.reduced',
+  };
+
+  let text = $state('');
+  let status = $state('');
+
+  const tooLong = $derived(text.length > MAX_USER_AGENT_LENGTH);
+  const problem = $derived(tooLong ? t('ua.tooLong', { max: MAX_USER_AGENT_LENGTH }) : '');
+  const info = $derived(text.trim() === '' || tooLong ? undefined : parseUserAgent(text));
+
+  function show(named: Named | undefined): string {
+    if (named === undefined) {
+      return t('ua.unknown');
+    }
+    return named.version === undefined ? named.name : `${named.name} ${named.version}`;
+  }
+
+  const rows = $derived.by(() => {
+    if (info === undefined) {
+      return [];
+    }
+    const device = [info.device.vendor, info.device.model].filter((part) => part !== undefined);
+    return [
+      { key: 'browser', label: t('ua.row.browser'), value: show(info.browser) },
+      { key: 'engine', label: t('ua.row.engine'), value: show(info.engine) },
+      { key: 'os', label: t('ua.row.os'), value: show(info.os) },
+      {
+        key: 'device',
+        label: t('ua.row.device'),
+        value: device.length > 0 ? device.join(' ') : t('ua.unknown'),
+      },
+      { key: 'type', label: t('ua.row.type'), value: t(TYPE_KEYS[info.device.type]) },
+      { key: 'cpu', label: t('ua.row.cpu'), value: info.cpu ?? t('ua.unknown') },
+    ];
+  });
+
+  /** The result as text for the clipboard: JSON with English names, whatever the language. */
+  const json = $derived(info === undefined ? '' : JSON.stringify(info, null, 2));
+
+  function summary(): string {
+    if (info === undefined) {
+      return problem;
+    }
+    const type = t(TYPE_KEYS[info.device.type]);
+    if (info.browser !== undefined && info.os !== undefined) {
+      return t('ua.announce.full', { browser: show(info.browser), os: show(info.os), type });
+    }
+    if (info.browser !== undefined) {
+      return t('ua.announce.browser', { browser: show(info.browser), type });
+    }
+    return info.os === undefined
+      ? t('ua.announce.none')
+      : t('ua.announce.os', { os: show(info.os), type });
+  }
+
+  function announce(): void {
+    status = text.trim() === '' ? '' : summary();
+  }
+
+  /** Opt-in: only when the button is pressed is the browser's own string read, and it goes nowhere. */
+  function useMine(): void {
+    text = globalThis.navigator.userAgent;
+    announce();
+  }
+
+  function clear(): void {
+    text = '';
+    status = '';
+  }
+</script>
+
+<!--
+  Candidate for kern (#121), already in kern, so no new issue: the result table is a DataTable. Until
+  the freeze lifts it is a plain <table> with row headers.
+-->
+<ToolFrame id="user-agent">
+  <div class="tool">
+    <section class="block">
+      <Input
+        label={t('ua.input')}
+        hint={t('ua.inputHint')}
+        bind:value={text}
+        error={problem}
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck={false}
+        onchange={announce}
+      />
+      <div class="actions">
+        <Button variant="ghost" size="compact" onclick={useMine}>{t('ua.use')}</Button>
+        <Button variant="ghost" size="compact" onclick={clear}>{t('ua.clear')}</Button>
+      </div>
+      <p class="note">{t('ua.useHint')}</p>
+      <ToolStatus message={status} />
+    </section>
+
+    <section class="block">
+      <h2 class="heading">{t('ua.result')}</h2>
+      {#if info === undefined}
+        <p class="note">{t('ua.empty')}</p>
+      {:else}
+        <table>
+          <tbody>
+            {#each rows as row (row.key)}
+              <tr>
+                <th scope="row">{row.label}</th>
+                <td>{row.value}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+        <div>
+          <CopyButton text={json} label={t('ua.copy')} value={t('ua.result')} />
+        </div>
+        <h2 class="heading">{t('ua.notes')}</h2>
+        <ul class="notes">
+          {#each info.notes as note (note)}
+            <li>{t(NOTE_KEYS[note])}</li>
+          {/each}
+          <li>{t('ua.note.spoofable')}</li>
+        </ul>
+      {/if}
+    </section>
+  </div>
+</ToolFrame>
+
+<style>
+  .tool {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-40);
+  }
+
+  .block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-16);
+    max-width: 760px;
+  }
+
+  .heading {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.4px;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-12);
+  }
+
+  .note {
+    margin: 0;
+    font: 13px var(--mono);
+    color: var(--mut);
+  }
+
+  .notes {
+    margin: 0;
+    padding-left: var(--space-20);
+    font: 14px/1.5 var(--mono);
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font: 14px var(--mono);
+  }
+
+  th,
+  td {
+    padding: var(--space-8) var(--space-12);
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    font-weight: 400;
+    overflow-wrap: anywhere;
+  }
+
+  th {
+    color: var(--mut);
+    width: 40%;
+  }
+</style>

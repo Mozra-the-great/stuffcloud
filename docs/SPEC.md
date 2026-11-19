@@ -318,8 +318,8 @@ Library candidates (license must be verified per version before adoption):
 | Convert | Base64 encode/decode | native |
 | Convert | colour picker + formats, contrast, palette from an image | own small functions (no dependency; T-18) |
 | Convert | unit converter | own unit tables (no dependency; T-18) |
-| Parse | CRON expression | cron-parser, cronstrue |
-| Parse | user-agent | ua-parser-js v1 (MIT) or uap-core |
+| Parse | CRON expression | own parser, explainer (de/en) and next-run search; time zones through `Intl` (no dependency; T-19) |
+| Parse | user-agent | own rules, tested on a corpus of real strings (no dependency; T-19; `ua-parser-js` v2 is AGPL) |
 | Network | subnet calculator | ipaddr.js / ip-address |
 | Network | MAC lookup | bundled IEEE OUI snapshot, updated by a CI job, offline |
 | Text | lorem ipsum, UUID (v4/v7), QR code | native / qrcode |

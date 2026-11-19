@@ -50,7 +50,10 @@ function walk(dir: string, extensions: readonly string[]): string[] {
   });
 }
 
-const toolSources = walk(join(appRoot, 'src', 'tools'), ['.ts', '.svelte']);
+// `src/pdf` is the code the PDF tools share (workers, engine, page grid): the same rule applies.
+const toolSources = ['tools', 'pdf'].flatMap((dir) =>
+  walk(join(appRoot, 'src', dir), ['.ts', '.svelte']),
+);
 const packageSources = walk(join(appRoot, '..', '..', 'packages', 'tools', 'src'), ['.ts']);
 
 describe('the rule "a tool never sends file content" (checker)', () => {
@@ -87,7 +90,7 @@ describe('the rule "a tool never sends file content" (checker)', () => {
 });
 
 describe('the rule "a tool never sends file content" (the sources)', () => {
-  it('holds for every file under src/tools', () => {
+  it('holds for every file under src/tools and src/pdf', () => {
     const found = toolSources.flatMap((path) =>
       networkUse(readFileSync(path, 'utf8')).map((name) => `${relative(appRoot, path)}: ${name}`),
     );

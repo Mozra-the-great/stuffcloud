@@ -30,6 +30,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   problem types `invalid-credentials`, `signup-closed`, `limit-reached`, `too-many-requests`,
   field error code `taken`, fuzz targets `account` and `forwarded_for`, migration
   `0003_accounts`; the `argon2` crate (MIT OR Apache-2.0) is the only new dependency. CodeQL: two query excludes with their reasons in `.github/codeql/codeql-config.yml` (`rust/hard-coded-cryptographic-value`: all hits are fixed test passwords; `rust/weak-sensitive-data-hashing`: SHA-256 is only the lookup key into the public offline breached-password list). `Writable` gets an associated `RULES` list (default: none) and a default `validate`, so a resource without rules (`signup`) needs no empty override. (#142)
+- Developer extras (T-22, #27): six client-side tools, no new dependency. **Hash and checksum**
+  hashes a text with WebCrypto (SHA-1, SHA-256, SHA-384, SHA-512) and a file of any size piece by
+  piece in a worker, with progress and cancel: WebCrypto cannot hash a stream, so a file goes
+  through incremental hashers of our own (constants derived from the FIPS 180-4 definition, every
+  digest tested against `node:crypto` and WebCrypto, also past 512 MiB); about 10 MiB/s for all
+  four at once. It compares the result with a pasted checksum and labels SHA-1 as a checksum for
+  accidents, not for tampering. **Password generator** uses `crypto.getRandomValues` only, with
+  rejection sampling (no modulo bias) and every chosen kind of character guaranteed; the entropy shown
+  is exact (inclusion and exclusion over the kinds). **Regex tester** runs the match in a worker that
+  is stopped after 2 seconds, so catastrophic backtracking cannot freeze the page, lists matches,
+  groups and named groups, marks them in the text and explains the pattern part by part in German
+  and English. **URL** encodes and decodes (component, whole URL, form data) with the position of a
+  broken percent sequence, and parses a URL into its parts and query parameters; nothing is opened.
+  **JWT decoder** shows header, payload and time claims, warns that nothing is verified and checks
+  the signature (HS, RS, PS and ES 256 to 512) with a pasted key in WebCrypto: the key kind must fit
+  the algorithm (a public key is never taken as an HMAC secret), `none` is never "valid", private
+  keys are refused; tokens and keys are never logged, stored or sent (a test scans the sources,
+  the Playwright privacy check watches them). **Timestamp converter** reads epoch seconds or
+  milliseconds and ISO 8601, shows seconds, milliseconds, ISO in UTC and in a zone, the date in words,
+  the HTTP date and the distance to now, resolving clock times in a zone (skipped hour is an error,
+  repeated hour takes the earlier moment). Fixed on the way: the shared time zone helper read years
+  below 100 as 19xx. New `TextArea` in `src/app` (kern candidate, #121). Tests: unit, property and
+  component tests per tool (JWT keys and signatures are generated at run time, signatures come from
+  `node:crypto`) and a Playwright spec per tool (axe gate in both browsers, keyboard routes, live
+  regions, German, 320 px; a runaway pattern is stopped and the page works again afterwards). (#149)
 - PDF merge, split and page tools (T-10, #15): three client-side tools (`pdf-merge`, `pdf-split`,
   `pdf-pages`) on pdf-lib 1.17.1 (MIT) for editing and pdf.js 6.5.438 (Apache-2.0) for page
   pictures, both in workers (two pools of two). Merge orders any number of files with

@@ -11,6 +11,7 @@
 )]
 
 mod auth;
+mod authz;
 mod common;
 mod conventions;
 mod operations;

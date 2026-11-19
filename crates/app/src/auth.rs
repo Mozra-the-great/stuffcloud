@@ -42,9 +42,12 @@ use stuffcloud_core::cookie::{HostCookie, Lookup, SameSite, SetCookie, lookup};
 use stuffcloud_core::csrf::{
     CSRF_HEADER, CsrfPass, CsrfRefusal, CsrfRequest, Origin, check, may_bind_token,
 };
+use stuffcloud_core::policy::{Account, Subject};
+use stuffcloud_core::scope::Scopes;
 use stuffcloud_core::session::Timeouts;
 use stuffcloud_core::token::{TOKEN_BYTES, Token, constant_time_eq};
-use stuffcloud_db::{NewSession, Session, SessionLookup, token_hash};
+use stuffcloud_db::auth::{LOGIN_REFUSED, USER_KIND, actor};
+use stuffcloud_db::{DbError, NewSession, Session, SessionLookup, User, token_hash};
 
 use crate::problem::{Problem, ProblemKind};
 use crate::state::AppState;
@@ -67,6 +70,9 @@ pub const CSRF_COOKIE: HostCookie =
 /// The metric label of a request refused for its `Authorization` header.
 pub const INVALID_AUTHORIZATION: &str = "invalid_authorization";
 
+/// The metric label of a login refused for a service account.
+pub const SERVICE_LOGIN: &str = "service_login";
+
 /// The `Sec-Fetch-Site` request header.
 const SEC_FETCH_SITE: HeaderName = HeaderName::from_static("sec-fetch-site");
 
@@ -79,8 +85,19 @@ pub struct AuthSettings {
     pub timeouts: Timeouts,
 }
 
+/// An API token that was accepted: its owner (as stored now, so a role change takes effect at
+/// once) and the scopes it was created with (A-07, A-08 #38).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApiCaller {
+    /// The account the token belongs to.
+    pub owner: User,
+    /// What the token was created with.
+    pub scopes: Scopes,
+}
+
 /// Who sent a request. Every request that passed [`authenticate`] carries one as an
-/// extension; a handler reads it with [`Authentication::of`].
+/// extension; a handler reads it with [`Authentication::of`], and the access policy turns it
+/// into a [`Subject`] ([`Authentication::subject`]).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Authentication {
     /// No valid session (and, until A-08, no token either).
@@ -88,6 +105,18 @@ pub enum Authentication {
     Anonymous,
     /// A valid browser session.
     Session(Session),
+    /// A valid API token. Nothing produces this before the token store of A-08 (#38); the
+    /// policy and its tests already treat it, so A-08 only has to look the token up.
+    Token(ApiCaller),
+}
+
+/// The account as the policy sees it.
+fn account_of(user: &User) -> Account<'_> {
+    Account {
+        login: &user.login,
+        kind: user.kind,
+        role: user.role,
+    }
 }
 
 impl Authentication {
@@ -102,8 +131,31 @@ impl Authentication {
     #[must_use]
     pub const fn session(&self) -> Option<&Session> {
         match self {
-            Self::Anonymous => None,
+            Self::Anonymous | Self::Token(_) => None,
             Self::Session(session) => Some(session),
+        }
+    }
+
+    /// The account behind the request: the owner of the session or of the token.
+    #[must_use]
+    pub const fn user(&self) -> Option<&User> {
+        match self {
+            Self::Anonymous => None,
+            Self::Session(session) => Some(&session.user),
+            Self::Token(caller) => Some(&caller.owner),
+        }
+    }
+
+    /// The request's sender as the access policy sees it.
+    #[must_use]
+    pub fn subject(&self) -> Subject<'_> {
+        match self {
+            Self::Anonymous => Subject::Anonymous,
+            Self::Session(session) => Subject::Session(account_of(&session.user)),
+            Self::Token(caller) => Subject::Token {
+                owner: account_of(&caller.owner),
+                scopes: &caller.scopes,
+            },
         }
     }
 }
@@ -226,7 +278,7 @@ fn csrf_verdict(parts: &Parts, app: &Origin) -> Result<CsrfPass, CsrfRefusal> {
 
 /// Counts a refusal and logs it, rate limited. The log line names the rule, never a header
 /// value or the client.
-fn note_rejection(state: &AppState, reason: &'static str, method: &str) {
+pub(crate) fn note_rejection(state: &AppState, reason: &'static str, method: &str) {
     state.metrics().record_rejection(reason);
     if let Some(suppressed) = state.rejection_log().admit() {
         tracing::warn!(
@@ -353,7 +405,7 @@ impl IssuedTokens {
 /// # Errors
 ///
 /// An internal problem when the random source or the database fails (also for an unknown
-/// or service account).
+/// account); forbidden (and audited) for a service account, which has no interactive login.
 pub async fn start_session(
     state: &AppState,
     parts: &Parts,
@@ -370,10 +422,38 @@ pub async fn start_session(
     };
     let timeouts = state.auth().timeouts;
     let now = state.now_millis();
-    let session = state
-        .db(move |db| db.create_session(&new, &timeouts, now))
+    let created = state
+        .db_outcome(move |db| db.create_session(&new, &timeouts, now))
         .await?;
-    Ok((session, tokens))
+    match created {
+        Ok(session) => Ok((session, tokens)),
+        Err(DbError::NoInteractiveLogin(id)) => {
+            refuse_service_login(state, id).await;
+            Err(Problem::with_detail(
+                ProblemKind::Forbidden,
+                "service accounts have no interactive login; use an API token",
+            ))
+        }
+        Err(error) => Err(Problem::internal(&error)),
+    }
+}
+
+/// Counts and audits a login that was refused because the account is a service account.
+async fn refuse_service_login(state: &AppState, user_id: i64) {
+    state.metrics().record_rejection(SERVICE_LOGIN);
+    let who = actor(user_id);
+    let now = state.now_millis();
+    let _audited = state
+        .db(move |db| {
+            db.record_security_event(
+                Some(&who),
+                LOGIN_REFUSED,
+                USER_KIND,
+                &user_id.to_string(),
+                now,
+            )
+        })
+        .await;
 }
 
 /// Gives a session new tokens after a change of its privilege (a second factor, A-05),

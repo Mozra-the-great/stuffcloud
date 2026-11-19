@@ -5,6 +5,9 @@
 //! - [`resource`]: the resource conventions of ADR 0010 (idempotent `PUT`, `ETag` and
 //!   preconditions, dry runs with a diff), built once for every resource; [`settings`] are
 //!   the first resources that use them.
+//! - [`access`]: the central authorisation: every route is registered with the requirement it
+//!   declares, the guard in front of it asks the permission matrix of `stuffcloud-core`, and the
+//!   table is checked against the OpenAPI document at startup (A-07).
 //! - [`auth`]: authentication of every request (the `__Host-` session cookie, the `Origin` and
 //!   CSRF checks of SPEC 5.5) and the session primitives the login flows use; [`sessions`]
 //!   are the session endpoints (current session and CSRF token, logout, logout everywhere).
@@ -19,6 +22,7 @@
 //! Database work runs on the blocking thread pool ([`state::AppState::db`]), never on an
 //! async worker.
 
+pub mod access;
 pub mod auth;
 pub mod bootstrap;
 pub mod cli;

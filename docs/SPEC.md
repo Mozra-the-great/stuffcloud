@@ -236,6 +236,40 @@ Roles
 - **Moderator**: handles abuse reports, takedowns, blocklist entries.
 - **Admin**: all of the above plus users, quotas, zones, tool toggles, settings.
 
+Authorisation (A-07, ADR 0005 addendum "Authorisation")
+- One function decides, `stuffcloud_core::policy::decide`: (subject) x (requirement) -> allow or
+  deny, deny by default. The subject is anonymous, an account with a session, or an API token
+  with its owner. Roles are ordered (`user` < `moderator` < `admin`); a higher role has
+  everything a lower one has.
+- A **permission** is an area of the API at a level, `<area>:<read|write>`, which is also the
+  token scope (SPEC 10.4); `write` includes `read`. The areas are `sites`, `account`, `tokens`,
+  `admin:zones`, `admin:users`, `admin:settings`, `admin:blocklist`, `admin:tokens` and
+  `moderation`. The matrix (the lowest role for each permission, and whether anonymous clients
+  have it) is data in `crates/core/src/policy.rs`; [`docs/api/permissions.md`](api/permissions.md)
+  is generated from it together with the route table, and a test fails when the file is stale.
+  In short: anonymous clients may create sites (`sites:write`, narrowed by the zone rules
+  below); `user` has `sites`, `account` and `tokens`; `moderator` adds `moderation` and
+  `admin:blocklist`; `admin` has everything.
+- Every route is registered together with its **requirement**: `public` (probes, the API
+  description, the CSRF token endpoint, settings groups the client needs before it logs in),
+  `session` (a browser session of a person, for example logout) or a permission. There is no
+  way to register a route without one; a startup check fails when an OpenAPI operation has no
+  declared policy, and a test enumerates every operation against every kind of caller.
+- A **token** has the permissions its scopes grant that its owner's role also has: it never
+  exceeds its owner, and its admin scopes stop working the moment the owner is no longer an
+  admin (the role is read at every request). A **service account** has no session, only
+  tokens.
+- **Zone rules** (SPEC 5.2) narrow `sites:write` per zone in one function,
+  `stuffcloud_core::hosting::may_host`: a disabled zone accepts nobody; anonymous clients host
+  only where the zone allows it, only internal, only temporary and without JavaScript; an
+  account hosts when its role is in the zone's "who may host" roles, or, when the zone has an
+  allow-list, only when it is listed (the allow-list replaces the role rule); public sites need
+  the zone to allow them. No zone is special.
+- A refusal is 401 for a client that is not logged in and 403 for one that is. Every refusal is
+  counted (`stuffcloud_auth_rejections_total{reason}`); a refusal of an authenticated account is
+  also written to the audit log (internal ids only, no login name or address, at most once a
+  minute per account and rule). A role change ends every session of the account.
+
 Authentication
 - Local accounts: e-mail + password (Argon2id), **passkeys (WebAuthn)**,
   **TOTP 2FA**, recovery codes.
@@ -651,6 +685,13 @@ Test layers and what each must cover:
   and CSRF rules: every `Set-Cookie` of every route has the `__Host-` prefix and no
   `Domain=` attribute, every state-changing route refuses a missing or foreign `Origin`
   and a missing CSRF token, and cookies tossed for the parent domain are ignored.
+- **Authorisation matrix test** (A-07): every declared route against every kind of caller
+  (anonymous, each role with a session, a service account's session, tokens of each role with
+  several scope sets) must answer what the hand-written matrix in the test says (401 for a client
+  that is not logged in, 403 otherwise), including a token with admin scopes owned by a
+  non-admin and a service account that tries to log in; every OpenAPI operation must have a
+  declared policy (the application refuses to start otherwise), `docs/api/permissions.md` must
+  equal the generated document, and property tests assert that a token never exceeds its owner.
 - **Cookie check** (since A-02): `scripts/ci/check_cookies.py` fails on any cookie with a
   `Domain=` attribute in any Rust file of the repository (sources, tests, `build.rs`, fuzz
   targets), Caddy file or script of `web/`, on `Set-Cookie` outside the cookie module, on cookie

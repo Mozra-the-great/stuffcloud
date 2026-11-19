@@ -594,6 +594,45 @@ fn audit_rows_hold_no_personal_data() {
 }
 
 #[test]
+fn security_events_are_audited_with_ids_only() {
+    let (_dir, db) = db();
+    let user = person(&db, "alice.secret", Role::User);
+    let who = actor(user.id);
+    db.record_security_event(
+        Some(&who),
+        ACCESS_DENIED,
+        "admin:settings",
+        "write:insufficient_role",
+        5,
+    )
+    .unwrap();
+    db.record_security_event(None, LOGIN_REFUSED, USER_KIND, "7", 6)
+        .unwrap();
+    let log: Vec<AuditEntry> = db
+        .audit_log()
+        .unwrap()
+        .into_iter()
+        .filter(|entry| entry.action.contains("denied") || entry.action.contains("refused"))
+        .collect();
+    assert_eq!(log.len(), 2);
+    assert_eq!(log[0].at, 5);
+    assert_eq!(log[0].actor.as_deref(), Some(who.as_str()));
+    assert_eq!(log[0].action, "access.denied");
+    assert_eq!(log[0].kind, "admin:settings");
+    assert_eq!(log[0].key, "write:insufficient_role");
+    assert_eq!(log[0].category, "security");
+    assert_eq!(log[1].at, 6);
+    assert_eq!(log[1].actor, None);
+    assert_eq!(log[1].action, "login.refused");
+    assert_eq!(log[1].kind, "user");
+    assert_eq!(log[1].key, "7");
+    assert_eq!(log[1].category, "security");
+    for entry in &log {
+        assert!(!format!("{entry:?}").contains("alice"));
+    }
+}
+
+#[test]
 fn deleting_a_user_deletes_the_sessions() {
     let (_dir, db) = db();
     let user = person(&db, "alice", Role::User);

@@ -469,8 +469,42 @@ async fn writes_need_an_admin_session() {
             .call(Method::PUT, SETTINGS, &browser.write_headers(), Some(&body))
             .await
             .problem(403, "forbidden");
-        assert_eq!(problem["detail"], "only an admin may change this");
+        assert_eq!(
+            problem["detail"],
+            "the role of this account does not have the permission admin:settings:write"
+        );
     }
+    // Each refusal of an authenticated account is audited with internal ids only: the account
+    // as `user:<id>`, the permission area and the rule, no login name.
+    let denied: Vec<(Option<String>, String, String, String, String)> = app
+        .db
+        .audit_log()
+        .unwrap()
+        .into_iter()
+        .filter(|entry| entry.action == "access.denied")
+        .map(|entry| {
+            (
+                entry.actor,
+                entry.action,
+                entry.kind,
+                entry.key,
+                entry.category,
+            )
+        })
+        .collect();
+    let expected: Vec<(Option<String>, String, String, String, String)> = [&user, &moderator]
+        .iter()
+        .map(|browser| {
+            (
+                Some(format!("user:{}", browser.session.user.id)),
+                "access.denied".to_owned(),
+                "admin:settings".to_owned(),
+                "write:insufficient_role".to_owned(),
+                "security".to_owned(),
+            )
+        })
+        .collect();
+    assert_eq!(denied, expected);
     let created = app
         .call(Method::PUT, SETTINGS, &admin.write_headers(), Some(&body))
         .await;
@@ -516,7 +550,10 @@ async fn logout_ends_the_session_and_clears_the_cookies() {
             .call(Method::DELETE, path, &csrf_headers(), None)
             .await
             .problem(401, "unauthenticated");
-        assert_eq!(problem["detail"], "there is no session");
+        assert_eq!(
+            problem["detail"],
+            "this needs a login or an API token (session)"
+        );
     }
     let actions: Vec<String> = app
         .db

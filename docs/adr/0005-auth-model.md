@@ -126,7 +126,7 @@ either record changes.
   record the acting account the same way.
 - **Interim authorisation:** until the permission matrix of A-07
   ([#37](https://github.com/Mozra-the-great/stuffcloud/issues/37)), reads stay open and writes
-  need an admin session (`AdminWritePolicy`).
+  need an admin session (`AdminWritePolicy`). A-07 replaced this, see "Addendum: authorisation".
 
 Alternatives considered:
 
@@ -227,3 +227,69 @@ decisions above changes; the paragraphs "CSRF" and "Cookies" are made precise.
 - **Browsers without `Sec-Fetch-Site`** still let a cross-site navigation rebind the CSRF token
   of a session whose CSRF cookie is missing, as before the fix (see above); the effect is a
   failed write that the client repeats with a fresh token.
+
+## Addendum: authorisation (2026-11-19, A-07)
+
+A-07 ([#37](https://github.com/Mozra-the-great/stuffcloud/issues/37)) gives the roles of
+decision 1 and the token scopes of
+[ADR 0010](0010-api-first-and-configuration-as-code.md) decision 5 their meaning and replaces
+the interim `AdminWritePolicy`. No decision above changes.
+
+- **One pure decision function in `core`** (`stuffcloud_core::policy::decide`): (subject,
+  requirement) to allow or deny, deny by default. The subject is anonymous, an account with a
+  session, or an API token with its owner; a route's requirement is `public`, `session` or a
+  permission. `app` only wires it to the router (`app::access`).
+- **The matrix is data**: `policy::grant` names for each permission the lowest role that has
+  it and whether anonymous clients do. It is a `match` without a wildcard, so a new area does
+  not compile until its row is written. The roles are ordered; a higher role has everything a
+  lower one has. `docs/api/permissions.md` is generated from the matrix and the route table
+  (`stuffcloud-app permissions`), and a test fails when it is stale.
+- **Permissions and scopes are one vocabulary**: `<area>:<read|write>`, areas as in SPEC 10.4.
+  `write` includes `read` of the same area. Scopes are parsed exactly (no trimming, no case
+  folding, no wildcards), with a fuzz target asserting the round trip.
+- **Token = scopes intersected with the owner's role**, evaluated at every request with the
+  owner's role as stored now. So a token never exceeds its owner, and an admin scope stops
+  working when the owner loses the admin role without touching the token. A token may create
+  tokens only within its own scopes (`Scopes::may_grant`, used by A-08).
+- **Service accounts** have no session: a session of a service account is refused by the policy
+  even if one existed (defence in depth), and `start_session` answers 403, counts the refusal
+  and audits it (`login.refused`, internal id only).
+- **Moderators** hold `moderation` and `admin:blocklist`, as SPEC 6 and 8.6 give them reports,
+  takedowns and blocklist entries; every other `admin:*` area is admin only. Anonymous clients
+  hold only `sites:write` (creating temporary internal sites where a zone allows it).
+- **Zone rules** are a second pure function, `hosting::may_host`, over a `ZonePolicy` (ADR 0009
+  decision 3): enabled flag, hosting roles or an allow-list of accounts that replaces them,
+  anonymous hosting, public sites. Anonymous sites are internal, temporary and without
+  JavaScript. The zone resource itself (H-02) only has to build the `ZonePolicy`.
+- **Every route declares its requirement.** Routes are registered through `app::access::Endpoints`
+  with the requirement next to the handler; a guard in front of the handler runs after
+  authentication and refuses with 401 (not logged in) or 403. `access::verify` (called at startup) compares the
+  table with the OpenAPI document at startup and fails the start for an operation without a
+  declared policy; tests enumerate every operation against every kind of caller and check that
+  `server.rs` registers no route another way. Handlers no longer authorise themselves: the
+  resource helpers (`resource::get/put/delete`) assume the guard has run.
+- **Audit of refusals**: an authenticated account that is refused gets an `access.denied` row
+  (actor `user:<id>`, kind the permission area, key `<level>:<rule>`), at most once a minute per
+  account, permission and rule (in-memory limiter, bounded), so a client that hammers a
+  forbidden route cannot turn requests into database writes. Anonymous refusals are not audited
+  (they could fill the log at will) but counted in `stuffcloud_auth_rejections_total{reason}`.
+- **Session routes**: logout and "logout everywhere" require a browser session of a person
+  (`session`); a token cannot end a session.
+- **Reads of settings groups** the client needs before it logs in stay `public` (ADR 0010
+  decision 4: the API is LAN-only and these hold no secret); a group that may hold anything
+  private declares `admin:settings:read` for its `GET`.
+- **Not yet decided here, left to the routes that need it**: object-level rules (an account may
+  touch only its own sites and tokens, a moderator any site) are checked by the handlers of
+  those routes next to the area permission; `Account` carries the login name so zone
+  allow-lists can be applied without a second lookup.
+
+Alternatives considered:
+
+- **Authorising inside each handler** (what the interim policy did): rejected; a forgotten call
+  is a hole, and nothing could enumerate the routes. The guard cannot be forgotten because the
+  route cannot be registered without one.
+- **A role column per route in the OpenAPI document**: the document describes the shape of the
+  API; the table that enforces it is the code, and the document is checked against it.
+- **Copying the scopes and the role into the token**: rejected; a role change would then need a
+  token sweep, and a demoted admin's token would keep working until it expired.
+

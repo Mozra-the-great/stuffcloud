@@ -31,9 +31,8 @@ pub const RESERVED_NAMES_PATH: &str = "/settings/reserved-names";
         (status = 404, description = "Never written; the defaults (no names) apply", body = ProblemBody, content_type = "application/problem+json"),
     ),
 )]
-pub async fn get_reserved_names(State(state): State<AppState>, request: Request<Body>) -> Response {
-    let (parts, _body) = request.into_parts();
-    resource::get::<ReservedNames>(&state, &parts, KIND, ReservedNames::GROUP)
+pub async fn get_reserved_names(State(state): State<AppState>) -> Response {
+    resource::get::<ReservedNames>(&state, KIND, ReservedNames::GROUP)
         .await
         .unwrap_or_else(IntoResponse::into_response)
 }
@@ -55,6 +54,7 @@ pub async fn get_reserved_names(State(state): State<AppState>, request: Request<
         (status = 201, description = "Created", body = WriteResult<ReservedNames>),
         (status = 400, description = "Malformed body, header or query", body = ProblemBody, content_type = "application/problem+json"),
         (status = 401, description = "Not authenticated", body = ProblemBody, content_type = "application/problem+json"),
+        (status = 403, description = "Authenticated, but the account or token lacks the permission admin:settings:write (docs/api/permissions.md)", body = ProblemBody, content_type = "application/problem+json"),
         (status = 412, description = "If-Match / If-None-Match failed", body = ProblemBody, content_type = "application/problem+json"),
         (status = 413, description = "Body too large", body = ProblemBody, content_type = "application/problem+json"),
         (status = 415, description = "Body is not JSON", body = ProblemBody, content_type = "application/problem+json"),
@@ -81,6 +81,7 @@ pub async fn put_reserved_names(State(state): State<AppState>, request: Request<
         (status = 200, description = "Deleted (or a dry run)", body = WriteResult<ReservedNames>),
         (status = 400, description = "Malformed header or query", body = ProblemBody, content_type = "application/problem+json"),
         (status = 401, description = "Not authenticated", body = ProblemBody, content_type = "application/problem+json"),
+        (status = 403, description = "Authenticated, but the account or token lacks the permission admin:settings:write (docs/api/permissions.md)", body = ProblemBody, content_type = "application/problem+json"),
         (status = 404, description = "Never written", body = ProblemBody, content_type = "application/problem+json"),
         (status = 412, description = "If-Match failed", body = ProblemBody, content_type = "application/problem+json"),
     ),

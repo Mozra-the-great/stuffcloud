@@ -16,12 +16,12 @@ use std::net::{SocketAddr, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use axum::http::request::Parts;
+use stuffcloud_app::access::AccessPolicy;
 use stuffcloud_app::config::{Limits, LogLevel};
-use stuffcloud_app::problem::Problem;
 use stuffcloud_app::server::{router, serve};
-use stuffcloud_app::state::{Access, AccessPolicy, AppState, SystemClock};
+use stuffcloud_app::state::{AppState, SystemClock};
 use stuffcloud_app::telemetry::targets;
+use stuffcloud_core::policy::{Decision, Requirement, Subject};
 use stuffcloud_db::Database;
 use tracing_subscriber::fmt::MakeWriter;
 use tracing_subscriber::layer::SubscriberExt;
@@ -60,8 +60,8 @@ impl Buffer {
 struct AllowAll;
 
 impl AccessPolicy for AllowAll {
-    fn authorize(&self, _request: &Parts, _access: Access, _kind: &str) -> Result<(), Problem> {
-        Ok(())
+    fn decide(&self, _subject: &Subject<'_>, _requirement: Requirement) -> Decision {
+        Decision::Allow
     }
 }
 

@@ -15,17 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   names of RFC 2606 / 6761 are always allowed; findings name file and line, never the domain. Without the
   list (pull requests from forks and Dependabot get no secrets) the step prints a notice and passes, a
   reduced check; a malformed entry fails it. Tests use reserved names only. How to set it:
-  CONTRIBUTING.md, "Operator-domain check".
+  CONTRIBUTING.md, "Operator-domain check". (#153)
 - ADR 0010 addendum "write-only secrets" (SF12, documentation only, implementation in #152): secret fields
   take a reference or a write-only value that is never returned and never in plain text in the database,
   audit log, export or `plan` output; stored AEAD-encrypted (XChaCha20-Poly1305) in the database under a key
   that only exists in deployment configuration (`STUFFCLOUD_SECRETS_KEY_FILE`, rotation with `secrets
   rewrap`); without a key the feature is off and references still work. SPEC 9, 10.2, 10.6, 10.7, 11, 14, 16.13
-  follow; the issues #36, #39, #40, #46, #60, #119 and #120 are updated.
+  follow; the issues #36, #39, #40, #46, #60, #119 and #120 are updated. (#153)
 - ADR 0009 addendum "visibility" (SF10, documentation only): anonymous sites are always internal in every zone;
   signed-in users choose internal or public per site, only where the zone's "public sites allowed" switch
   (default off) is on. `core::hosting::may_host` already implements it; SPEC 5.2, 5.3 and the issues #45, #46,
-  #54, #58, #61 and #111 are updated.
+  #54, #58, #61 and #111 are updated. (#153)
 - Crypto misuse gate (#148; #151): `scripts/ci/check_crypto.py` in `repo-checks` lets salted
   password hashes, keys or salts from literal bytes and SHA-2 appear in product code only at
   the reviewed call sites (listed with reason and exact count), and fails on MD5, MD4 and SHA-1

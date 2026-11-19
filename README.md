@@ -80,6 +80,21 @@ STUFFCLOUD_APP_URL=http://stuff.localhost:8000 STUFFCLOUD_DATA_DIR=target/dev-da
 curl -s http://127.0.0.1:8000/readyz
 ```
 
+**Reverse proxy.** Behind Caddy (or any proxy) the app sees the proxy's address, so the login
+throttles would count every client as one: 20 failed logins by anyone would slow down everyone.
+Set `STUFFCLOUD_TRUSTED_PROXIES` to the proxy's address or network in every such deployment;
+then the app reads the client from `X-Forwarded-For` (the right-most untrusted entry) and trusts
+nothing else. `compose.dev.yml` gives the stack network the fixed subnet `198.51.100.0/24` and
+lists it. Without the variable a private or loopback peer is taken for an unlisted proxy: no
+address is exempt from the per-account rule, and a request with forwarding headers logs the
+warning "STUFFCLOUD_TRUSTED_PROXIES is empty" (once an hour). The smoke test proves that a client
+inside the Caddy container is still checked while the host is throttled.
+
+**The first admin.** `STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN` and `STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD_FILE`
+(a file, for example a Docker secret, rather than `_PASSWORD` in the environment) create it on the
+first start; remove both from the deployment afterwards (later starts ignore them and say so). A
+reset link for an admin account comes only from the host: `stuffcloud-app reset-link <login>`.
+
 Every variable is listed in `crates/app/src/config.rs`; secrets are also read from a file with
 the `_FILE` suffix. After a handler change regenerate the OpenAPI document and the client
 (CI job `openapi` fails otherwise):

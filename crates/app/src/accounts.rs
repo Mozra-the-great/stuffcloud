@@ -5,8 +5,11 @@
 //!   account, a service account, an account without a password and a wrong password get the
 //!   same answer (401 `invalid-credentials`, byte for byte), after the same work: one Argon2
 //!   check, against a dummy hash when there is no stored one. The throttles
-//!   ([`crate::throttle`]) are consulted before anything is looked up and count by the typed
-//!   text, so they treat unknown and known accounts alike too. A success starts a new session
+//!   ([`crate::throttle`]) reserve the attempt before anything is looked up and count by the
+//!   typed text, so they treat unknown and known accounts alike too; once the lookup found an
+//!   account, its id is counted as well. An account throttled by its id (failures under its
+//!   other name) gets the same 401 after a check against the dummy hash, so the password is not
+//!   tried and the answer does not tell that the two names belong together. A success starts a new session
 //!   through [`crate::auth::start_session`] (the presented session ends: no fixation) and
 //!   answers with the session state and its new CSRF token.
 //! - `POST /api/v1/auth/register` (public): creates an account as the sign-up mode allows
@@ -35,7 +38,7 @@ use stuffcloud_core::account::{
     PasswordResetRequest, RegisterRequest,
 };
 use stuffcloud_core::body::{Action, BodyError, parse_action};
-use stuffcloud_core::client_ip::{Bucket, ProxyList, client_address};
+use stuffcloud_core::client_ip::{Bucket, ProxyList, client_address, unlisted_proxy};
 use stuffcloud_core::field::{FieldError, FieldErrorCode, JsonPointer};
 use stuffcloud_core::session::{MINUTE_MS, Role, UserKind};
 use stuffcloud_core::settings::{Signup, SignupMode};
@@ -48,11 +51,11 @@ use crate::auth::{Authentication, IssuedTokens, note_rejection, start_session};
 use crate::password::Passwords;
 use crate::problem::{Problem, ProblemBody, ProblemKind};
 use crate::resource::{read_body, require_json, rfc3339};
-use crate::sampler::KeyedLimiter;
+use crate::sampler::{KeyedLimiter, LogSampler};
 use crate::sessions::{SessionState, describe};
 use crate::settings::KIND as SETTINGS_KIND;
 use crate::state::AppState;
-use crate::throttle::{Throttles, account_key};
+use crate::throttle::{Reservation, Throttles, account_key, id_key};
 
 /// Route of the login below `/api/v1`.
 pub const LOGIN_PATH: &str = "/auth/login";
@@ -86,6 +89,11 @@ pub const INVALID_CREDENTIALS: &str = "the login name, e-mail address or passwor
 
 /// The `X-Forwarded-For` request header.
 const FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for");
+/// The `Forwarded` request header (RFC 7239).
+const FORWARDED: HeaderName = HeaderName::from_static("forwarded");
+
+/// The warning about an unlisted reverse proxy is logged at most once per this interval.
+pub const PROXY_WARNING_INTERVAL: Duration = Duration::from_hours(1);
 
 /// The account machinery of the running app: password hashing, throttles, the trusted proxies.
 #[derive(Debug)]
@@ -94,6 +102,7 @@ pub struct Accounts {
     throttles: Throttles,
     trusted_proxies: ProxyList,
     login_audit: KeyedLimiter<i64>,
+    proxy_warning: LogSampler,
 }
 
 impl Accounts {
@@ -105,6 +114,7 @@ impl Accounts {
             throttles: Throttles::default(),
             trusted_proxies,
             login_audit: KeyedLimiter::new(LOGIN_AUDIT_INTERVAL, crate::throttle::CAPACITY),
+            proxy_warning: LogSampler::new(PROXY_WARNING_INTERVAL),
         }
     }
 
@@ -160,11 +170,23 @@ pub async fn parse_body<T: Action>(
     })
 }
 
-/// The throttle key of the client that sent a request: the TCP peer, or behind a trusted
-/// proxy the address it forwarded ([`client_address`]). Without connection information (a
-/// request handed to the router directly) the unspecified address stands in.
+/// The client of a request, as the throttles see it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Client {
+    /// The throttle key: the TCP peer, or behind a trusted proxy the address it forwarded
+    /// ([`client_address`]).
+    pub bucket: Bucket,
+    /// Whether a known address may skip the account rule: not when the peer is probably a
+    /// reverse proxy nobody listed ([`unlisted_proxy`]), whose address stands for every client.
+    pub exemptions: bool,
+}
+
+/// The client of a request. Without connection information (a request handed to the router
+/// directly) the unspecified address stands in. A request from a private or loopback peer
+/// with forwarding headers and no `STUFFCLOUD_TRUSTED_PROXIES` logs a warning, at most once per
+/// [`PROXY_WARNING_INTERVAL`] (it names no address).
 #[must_use]
-pub fn client_of(state: &AppState, parts: &Parts) -> Bucket {
+pub fn client_of(state: &AppState, parts: &Parts) -> Client {
     let peer = parts
         .extensions
         .get::<ConnectInfo<SocketAddr>>()
@@ -175,11 +197,22 @@ pub fn client_of(state: &AppState, parts: &Parts) -> Bucket {
         .iter()
         .map(axum::http::HeaderValue::as_bytes)
         .collect();
-    Bucket::of(client_address(
-        peer,
-        &forwarded,
-        &state.accounts().trusted_proxies,
-    ))
+    let accounts = state.accounts();
+    let unlisted = unlisted_proxy(peer, &accounts.trusted_proxies);
+    if unlisted
+        && (!forwarded.is_empty() || parts.headers.contains_key(FORWARDED))
+        && let Some(suppressed) = accounts.proxy_warning.admit()
+    {
+        tracing::warn!(
+            target: "stuffcloud::security",
+            suppressed,
+            "a request with forwarding headers came from a private or loopback peer, but STUFFCLOUD_TRUSTED_PROXIES is empty: every client behind the reverse proxy shares one login throttle and no address is exempt from the account rule; set it to the proxy's address or network"
+        );
+    }
+    Client {
+        bucket: Bucket::of(client_address(peer, &forwarded, &accounts.trusted_proxies)),
+        exemptions: !unlisted,
+    }
 }
 
 /// The sign-up mode now (the default when the settings group was never written).
@@ -200,6 +233,26 @@ pub async fn signup_mode(state: &AppState) -> Result<SignupMode, Problem> {
 fn throttled(state: &AppState, wait_ms: i64, method: &str) -> Problem {
     note_rejection(state, REASON_THROTTLED, method);
     Problem::too_many_requests(wait_ms)
+}
+
+/// Checks a password with the reservation held: a refusal for a full hashing queue gives the
+/// reservation back (nothing was checked), any other error books it as a failure.
+async fn verify_reserved<'a>(
+    state: &AppState,
+    reservation: Reservation<'a>,
+    password: &str,
+    stored: Option<&str>,
+    method: &str,
+) -> Result<(Reservation<'a>, crate::password::Verified), Problem> {
+    match state.accounts().passwords().verify(password, stored).await {
+        Ok(verdict) => Ok((reservation, verdict)),
+        Err(problem) if problem.kind() == ProblemKind::TooManyRequests => {
+            reservation.refund();
+            note_rejection(state, REASON_THROTTLED, method);
+            Err(problem)
+        }
+        Err(problem) => Err(problem),
+    }
 }
 
 fn field(name: &str, code: FieldErrorCode, detail: &str) -> Problem {
@@ -276,30 +329,49 @@ async fn login_inner(state: &AppState, request: Request<Body>) -> Result<Respons
     let login: LoginRequest = parse_body(state, &parts, body).await?;
     let method = parts.method.as_str();
     let client = client_of(state, &parts);
-    let key = account_key(&login.login);
     let throttles = state.accounts().throttles();
     let now = state.now_millis();
-    if let Some(wait) = throttles.login_wait(client, key, now) {
-        return Err(throttled(state, wait, method));
-    }
+    let mut reservation = throttles
+        .reserve_login(
+            client.bucket,
+            account_key(&login.login),
+            client.exemptions,
+            now,
+        )
+        .map_err(|wait| throttled(state, wait, method))?;
     let record = match Identifier::from_input(&login.login) {
         Some(identifier) => state.db(move |db| db.password_record(&identifier)).await?,
         None => None,
     };
+    // The account's own count, whichever name was typed. When it refuses, the password is
+    // checked against the dummy hash only: the same work and the same answer as a wrong one.
+    let id_throttled = record.as_ref().is_some_and(|record| {
+        reservation
+            .add_account(id_key(record.user.id), now)
+            .is_err()
+    });
     let stored = record
         .as_ref()
-        .filter(|record| record.user.kind == UserKind::Person)
+        .filter(|record| record.user.kind == UserKind::Person && !id_throttled)
         .and_then(|record| record.hash.clone());
-    let verdict = state
-        .accounts()
-        .passwords()
-        .verify(&login.password, stored.as_deref())
-        .await?;
+    let (reservation, verdict) = verify_reserved(
+        state,
+        reservation,
+        &login.password,
+        stored.as_deref(),
+        method,
+    )
+    .await?;
     let user = match record {
         Some(record) if verdict.matches => record.user,
         other => {
-            throttles.login_failed(client, key, now);
-            note_rejection(state, REASON_LOGIN_FAILED, method);
+            reservation.failed(now);
+            let reason = if id_throttled {
+                REASON_THROTTLED
+            } else {
+                REASON_LOGIN_FAILED
+            };
+            note_rejection(state, reason, method);
             if let Some(record) = other {
                 audit_failed_login(state, record.user.id);
             }
@@ -309,7 +381,7 @@ async fn login_inner(state: &AppState, request: Request<Body>) -> Result<Respons
             ));
         }
     };
-    throttles.login_succeeded(client, key, now);
+    reservation.succeeded(now);
     let user_id = user.id;
     let rehash = verdict.rehash;
     state
@@ -384,7 +456,7 @@ async fn register_inner(state: &AppState, request: Request<Body>) -> Result<Resp
     if let Some(wait) = state
         .accounts()
         .throttles()
-        .register_attempt(client_of(state, &parts), state.now_millis())
+        .register_attempt(client_of(state, &parts).bucket, state.now_millis())
     {
         return Err(throttled(state, wait, method));
     }
@@ -488,21 +560,24 @@ async fn reset_inner(state: &AppState, request: Request<Body>) -> Result<Respons
     let (parts, body) = request.into_parts();
     let form: PasswordResetRequest = parse_body(state, &parts, body).await?;
     let client = client_of(state, &parts);
-    let throttles = state.accounts().throttles();
-    if let Some(wait) = throttles.client_wait(client, state.now_millis()) {
-        return Err(throttled(state, wait, parts.method.as_str()));
-    }
+    let now = state.now_millis();
+    let reservation = state
+        .accounts()
+        .throttles()
+        .reserve_client(client.bucket, now)
+        .map_err(|wait| throttled(state, wait, parts.method.as_str()))?;
     let hash = Token::parse(form.token.as_bytes())
         .map(|token| token_hash(&token))
         .map_err(|error| Problem::internal(&error))?;
-    let now = state.now_millis();
     let Some(profile) = state
         .db(move |db| db.password_reset_target(&hash, now))
         .await?
     else {
-        throttles.client_failed(client, now);
+        reservation.failed(now);
         return Err(invalid_reset_token());
     };
+    // A valid token is no guess: nothing counts against the address.
+    reservation.refund();
     let passwords = state.accounts().passwords();
     policy_errors(
         passwords,
@@ -611,11 +686,17 @@ async fn change_inner(state: &AppState, request: Request<Body>) -> Result<Respon
         ));
     };
     let client = client_of(state, &parts);
-    let key = account_key(&user.login);
-    let throttles = state.accounts().throttles();
-    if let Some(wait) = throttles.login_wait(client, key, state.now_millis()) {
-        return Err(throttled(state, wait, parts.method.as_str()));
-    }
+    let method = parts.method.as_str();
+    let reservation = state
+        .accounts()
+        .throttles()
+        .reserve_login(
+            client.bucket,
+            id_key(user.id),
+            client.exemptions,
+            state.now_millis(),
+        )
+        .map_err(|wait| throttled(state, wait, method))?;
     let user_id = user.id;
     let profile = state
         .db(move |db| db.profile(user_id))
@@ -626,19 +707,25 @@ async fn change_inner(state: &AppState, request: Request<Body>) -> Result<Respon
         .db(move |db| db.password_record(&Identifier::Login(login)))
         .await?
         .and_then(|record| record.hash);
-    let passwords = state.accounts().passwords();
-    let verdict = passwords
-        .verify(&form.current_password, stored.as_deref())
-        .await?;
+    let (reservation, verdict) = verify_reserved(
+        state,
+        reservation,
+        &form.current_password,
+        stored.as_deref(),
+        method,
+    )
+    .await?;
     if !verdict.matches {
-        throttles.login_failed(client, key, state.now_millis());
-        note_rejection(state, REASON_LOGIN_FAILED, parts.method.as_str());
+        reservation.failed(state.now_millis());
+        note_rejection(state, REASON_LOGIN_FAILED, method);
         return Err(field(
             "current_password",
             FieldErrorCode::InvalidValue,
             "the current password is wrong",
         ));
     }
+    reservation.refund();
+    let passwords = state.accounts().passwords();
     policy_errors(
         passwords,
         &form.new_password,
@@ -721,6 +808,72 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn a_login_that_finds_the_hashing_queue_full_is_refunded() {
+        let passwords = Passwords::new(
+            crate::password::Argon2Settings::CHEAPEST,
+            stuffcloud_core::account::PasswordPolicy::default(),
+            crate::password::Blocklist::default(),
+            1,
+        )
+        .unwrap()
+        // No queue at all; a mutant that lets it wait anyway waits only briefly (the bound itself
+        // is tested in `password`).
+        .with_queue(0, Duration::from_millis(100));
+        let state = crate::state::tests::state_with_accounts(Accounts::new(
+            passwords,
+            ProxyList::default(),
+        ));
+        let _held = state.accounts().passwords().hold_slots();
+        let request = Request::builder()
+            .method("POST")
+            .uri("/api/v1/auth/login")
+            .header("content-type", "application/json")
+            .body(Body::from(
+                r#"{"login":"alice","password":"a long enough passphrase"}"#,
+            ))
+            .unwrap();
+        let response = login(State(state.clone()), request).await;
+        assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(response.headers()["retry-after"], "1");
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let problem: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(
+            problem["detail"],
+            "the server is busy checking other passwords; try again in 1 second"
+        );
+        // Nothing was checked, so nothing counts: the reservation went back.
+        assert_eq!(state.accounts().passwords().verifications(), 0);
+        assert_eq!(state.accounts().throttles().sizes(), [0, 0, 0, 0]);
+    }
+
+    #[tokio::test]
+    async fn a_login_that_fails_with_an_error_counts_as_a_failure() {
+        let state = crate::state::tests::state();
+        let db = state.database();
+        let alice = db
+            .create_user("alice", UserKind::Person, Role::User, None, 0)
+            .unwrap();
+        // A stored hash that is no PHC string: the check is an internal error, not "busy".
+        let _ended = db
+            .set_password(alice.id, "not a phc string", None, 0)
+            .unwrap();
+        let request = Request::builder()
+            .method("POST")
+            .uri("/api/v1/auth/login")
+            .header("content-type", "application/json")
+            .body(Body::from(
+                r#"{"login":"alice","password":"a long enough passphrase"}"#,
+            ))
+            .unwrap();
+        let response = login(State(state.clone()), request).await;
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        // The reservation was not refunded: the address and both account keys count it.
+        assert_eq!(state.accounts().throttles().sizes(), [1, 2, 0, 0]);
+    }
+
     #[test]
     fn handlers_refuse_a_request_without_an_account() {
         let parts = Request::new(()).into_parts().0;
@@ -728,10 +881,26 @@ mod tests {
         assert_eq!(problem.kind(), ProblemKind::Unauthenticated);
     }
 
+    fn parts_from(peer: [u8; 4], headers: &[(&str, &str)]) -> Parts {
+        let mut builder = Request::builder();
+        for (name, value) in headers {
+            builder = builder.header(*name, *value);
+        }
+        let mut parts = builder.body(()).unwrap().into_parts().0;
+        let _previous = parts
+            .extensions
+            .insert(ConnectInfo(SocketAddr::from((peer, 4000))));
+        parts
+    }
+
+    fn bucket(octets: [u8; 4]) -> Bucket {
+        Bucket::of(IpAddr::V4(Ipv4Addr::from(octets)))
+    }
+
     #[test]
     fn the_client_is_the_peer_or_the_forwarded_address() {
         let state = crate::state::tests::state();
-        let mut parts = Request::builder()
+        let parts = Request::builder()
             .header("x-forwarded-for", "203.0.113.9")
             .body(())
             .unwrap()
@@ -739,14 +908,65 @@ mod tests {
             .0;
         assert_eq!(
             client_of(&state, &parts),
-            Bucket::of(IpAddr::V4(Ipv4Addr::UNSPECIFIED))
+            Client {
+                bucket: bucket([0, 0, 0, 0]),
+                exemptions: true
+            }
         );
-        let _previous = parts
-            .extensions
-            .insert(ConnectInfo(SocketAddr::from(([192, 0, 2, 4], 4000))));
+        let public = parts_from([192, 0, 2, 4], &[("x-forwarded-for", "203.0.113.9")]);
         assert_eq!(
-            client_of(&state, &parts),
-            Bucket::of(IpAddr::V4(Ipv4Addr::new(192, 0, 2, 4)))
+            client_of(&state, &public),
+            Client {
+                bucket: bucket([192, 0, 2, 4]),
+                exemptions: true
+            }
         );
+        // Nothing to warn about: the sampler still lets its first line through.
+        assert_eq!(state.accounts().proxy_warning.admit(), Some(0));
+    }
+
+    #[test]
+    fn an_unlisted_proxy_gets_no_exemptions_and_a_warning() {
+        let state = crate::state::tests::state();
+        let quiet = parts_from([172, 18, 0, 3], &[]);
+        assert_eq!(
+            client_of(&state, &quiet),
+            Client {
+                bucket: bucket([172, 18, 0, 3]),
+                exemptions: false
+            }
+        );
+        // Without forwarding headers there is nothing to warn about yet.
+        assert_eq!(state.accounts().proxy_warning.admit(), Some(0));
+        let state = crate::state::tests::state();
+        let forwarded = parts_from([127, 0, 0, 1], &[("x-forwarded-for", "203.0.113.9")]);
+        assert_eq!(
+            client_of(&state, &forwarded),
+            Client {
+                bucket: bucket([127, 0, 0, 1]),
+                exemptions: false
+            }
+        );
+        // The warning took the sampler's line.
+        assert_eq!(state.accounts().proxy_warning.admit(), None);
+        let state = crate::state::tests::state();
+        let rfc7239 = parts_from([10, 0, 0, 2], &[("forwarded", "for=203.0.113.9")]);
+        assert!(!client_of(&state, &rfc7239).exemptions);
+        assert_eq!(state.accounts().proxy_warning.admit(), None);
+        assert_eq!(PROXY_WARNING_INTERVAL.as_secs(), 3600);
+    }
+
+    #[test]
+    fn a_listed_proxy_forwards_the_client_with_exemptions() {
+        let state = crate::state::tests::state_with_proxies("172.16.0.0/12");
+        let forwarded = parts_from([172, 18, 0, 3], &[("x-forwarded-for", "203.0.113.9")]);
+        assert_eq!(
+            client_of(&state, &forwarded),
+            Client {
+                bucket: bucket([203, 0, 113, 9]),
+                exemptions: true
+            }
+        );
+        assert_eq!(state.accounts().proxy_warning.admit(), Some(0));
     }
 }

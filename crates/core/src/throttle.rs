@@ -12,6 +12,12 @@
 //! trade-off of the per-account rule (an attacker can keep an account waiting) is described in
 //! the ADR; the `app` crate exempts a client address that logged in to that account before.
 //!
+//! Attempts that are being checked right now count too ([`Rule::wait_in_flight`]): while the
+//! free failures are not used up, each running attempt takes one of them; beyond them, at most
+//! one attempt of a key runs at a time. So however many requests arrive at once, a key never
+//! gets more checks than one after another would (#145: without this, thousands of parallel
+//! requests all passed the check before the first failure was counted).
+//!
 //! Times are Unix milliseconds; the arithmetic saturates.
 
 /// The parameters of one throttle.
@@ -74,6 +80,24 @@ impl Rule {
             .last_at
             .saturating_add(self.delay_ms(failures.count));
         (failures.count > self.free && now < until).then(|| until.saturating_sub(now))
+    }
+
+    /// How long an attempt at `now` has to wait while `in_flight` earlier attempts of the key
+    /// are still being checked; `None` when it may be checked too.
+    ///
+    /// Each running attempt counts as a failure until it is decided. While the free failures
+    /// last, every attempt that still finds one free may run; beyond them, an attempt runs only
+    /// when nothing else of the key is running and the wait after the counted failures is over.
+    /// The refused one is told to wait the delay its running predecessors would cause if they
+    /// all failed (never shorter than the wait of the counted failures alone, as the delay
+    /// grows with the count).
+    #[must_use]
+    pub fn wait_in_flight(&self, failures: Failures, in_flight: u32, now: i64) -> Option<i64> {
+        if in_flight == 0 {
+            return self.wait(failures, now);
+        }
+        let effective = self.current(failures, now).count.saturating_add(in_flight);
+        (effective > self.free).then(|| self.delay_ms(effective))
     }
 
     /// The state after a failed attempt at `now`.
@@ -163,6 +187,34 @@ mod tests {
         assert_eq!(RULE.wait(state, 61_000), None);
         assert_eq!(RULE.fail(state, 61_000), after(1, 61_000));
         assert_eq!(RULE.fail(state, 60_999), after(11, 60_999));
+    }
+
+    #[test]
+    fn running_attempts_take_the_free_failures_first() {
+        // Nothing running: the plain rule.
+        assert_eq!(RULE.wait_in_flight(after(2, 100), 0, 100), None);
+        assert_eq!(RULE.wait_in_flight(after(4, 100), 0, 100), Some(1000));
+        // While free failures remain, every running attempt takes one: with 1 counted and 2
+        // running the third free one is still there, with 3 running it is not.
+        assert_eq!(RULE.wait_in_flight(after(1, 100), 2, 100), None);
+        assert_eq!(RULE.wait_in_flight(after(0, 100), 3, 100), None);
+        assert_eq!(RULE.wait_in_flight(after(1, 100), 3, 100), Some(1000));
+        assert_eq!(RULE.wait_in_flight(after(0, 0), 4, 100), Some(1000));
+        // Beyond them only one runs at a time, even after the wait of the counted failures.
+        assert_eq!(RULE.wait(after(4, 100), 1100), None);
+        assert_eq!(RULE.wait_in_flight(after(4, 100), 1, 1100), Some(2000));
+        assert_eq!(RULE.wait_in_flight(after(4, 100), 2, 1100), Some(4000));
+        // The answer is the delay after the running ones, which covers the remaining wait.
+        assert_eq!(RULE.wait(after(4, 0), 990), Some(10));
+        assert_eq!(RULE.wait_in_flight(after(4, 0), 1, 990), Some(2000));
+        assert_eq!(RULE.wait_in_flight(after(6, 100), 1, 200), Some(8000));
+        // A forgotten key starts again with its free failures.
+        assert_eq!(RULE.wait_in_flight(after(9, 100), 3, 60_100), None);
+        assert_eq!(RULE.wait_in_flight(after(9, 100), 4, 60_100), Some(1000));
+        assert_eq!(
+            RULE.wait_in_flight(after(u32::MAX, 0), u32::MAX, 10),
+            Some(8000)
+        );
     }
 
     #[test]

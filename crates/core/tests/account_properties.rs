@@ -99,6 +99,39 @@ proptest! {
     }
 
     #[test]
+    fn parallel_attempts_get_exactly_the_free_failures_plus_one_check(
+        steps in proptest::collection::vec(any::<bool>(), 0..120),
+    ) {
+        // `true`: an attempt arrives; `false`: a running one fails. The clock stands still, as
+        // it does for a burst of requests. However they interleave, the key gets at most
+        // `free + 1` checks, and exactly that many once one attempt had to wait.
+        let now = 5_000_000;
+        let mut failures = Failures::default();
+        let (mut in_flight, mut checked, mut refused) = (0_u32, 0_u32, false);
+        for arrives in steps {
+            if arrives {
+                match RULE.wait_in_flight(failures, in_flight, now) {
+                    None => {
+                        in_flight += 1;
+                        checked += 1;
+                    }
+                    Some(wait) => {
+                        prop_assert!(wait > 0 && wait <= RULE.max_ms);
+                        refused = true;
+                    }
+                }
+            } else if in_flight > 0 {
+                in_flight -= 1;
+                failures = RULE.fail(failures, now);
+            }
+            prop_assert!(checked <= RULE.free + 1);
+            if refused {
+                prop_assert_eq!(checked, RULE.free + 1);
+            }
+        }
+    }
+
+    #[test]
     fn an_untrusted_peer_cannot_choose_its_address(peer in ip(), header in "[0-9a-f.:, ]{0,60}") {
         let proxies = ProxyList::parse("192.0.2.0/24").unwrap();
         let client = client_address(peer, &[header.as_bytes()], &proxies);

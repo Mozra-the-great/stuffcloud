@@ -9,7 +9,9 @@
 #   app      the LAN API (crates/app, docker/app/Dockerfile): `/api/*` on the app address goes
 #            here; not published on the host, Caddy is the only way in. Its database lives in
 #            the named volume `app-data`; on the first start it applies
-#            docker/app/bootstrap.dev.json once (SPEC 10.7)
+#            docker/app/bootstrap.dev.json once (SPEC 10.7). It trusts the `X-Forwarded-For` of
+#            the stack network (STUFFCLOUD_TRUSTED_PROXIES), so the login throttles see each
+#            client behind Caddy instead of one shared address (#146)
 #   mailpit  mail catcher (A-10 uses it): SMTP on 1025, UI through Caddy
 #   Later: `edge` (H-19, #104) joins with its Dockerfile.
 #
@@ -90,6 +92,9 @@ services:
       STUFFCLOUD_DATA_DIR: /data
       STUFFCLOUD_LOG_FORMAT: text
       STUFFCLOUD_BOOTSTRAP_CONFIG: /etc/stuffcloud/bootstrap.json
+      # Caddy reaches the app from the stack network below; every deployment behind a reverse
+      # proxy sets this to the proxy's address or network (README, "Reverse proxy").
+      STUFFCLOUD_TRUSTED_PROXIES: 198.51.100.0/24
     volumes:
       # The only writable path: the database (reset with `docker compose down --volumes`).
       - type: volume
@@ -128,6 +133,15 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+
+# A fixed subnet, so STUFFCLOUD_TRUSTED_PROXIES of `app` can name it. It is a documentation
+# range (RFC 5737): it never collides with a real network on the host, and outbound traffic is
+# masqueraded like on any bridge. Change both places together if it ever has to move.
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 198.51.100.0/24
 
 volumes:
   app-data:

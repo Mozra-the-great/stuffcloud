@@ -375,6 +375,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   available; D6: workflows are copied per repo, no central reusable workflows).
 
 ### Fixed
+- **Login throttles hold under parallel requests and behind a proxy (#145, #146, #147; #150).**
+  Attempts are reserved before the password check, so a burst of parallel logins or password
+  changes gets exactly the free failures plus one check per key instead of one check per
+  request; the Argon2 queue is bounded (beyond 8 waiting requests per slot or 5 seconds: 429
+  "busy", not counted). An account is counted under all its names (login name and address share
+  10 free failures; the refusal is the usual 401). With an empty `STUFFCLOUD_TRUSTED_PROXIES` a
+  private or loopback peer is treated as an unlisted proxy: no address is exempt from the
+  account rule, and forwarding headers log a warning once an hour; `compose.dev.yml` now lists its
+  network and the dev-stack smoke test proves per-client throttling through Caddy. Full throttle
+  tables drop stale keys and the fewest failures first (never a running attempt, never by one
+  key per insert), are swept every 10 minutes, and known addresses are capped per account. A
+  password change deletes an open reset link, Argon2 parameters below OWASP's minimum pairs stop
+  the start, and reset links for admin accounts come only from `stuffcloud-app reset-link`.
 - Auth hardening after the security review of A-02 (#134 to #137): only a well-formed
   `Authorization: Bearer` header skips the Origin and CSRF checks, another scheme (`Basic`,
   `Digest`, `Negotiate`, ...) is ignored and a malformed `Bearer` header or several

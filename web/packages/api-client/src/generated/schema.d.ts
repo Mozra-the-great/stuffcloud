@@ -914,7 +914,7 @@ export interface operations {
                     readonly "application/problem+json": components["schemas"]["Problem"];
                 };
             };
-            /** @description The account or token lacks the permission admin:users:write, the account is a service account, or the Origin or CSRF check failed */
+            /** @description The account or token lacks the permission admin:users:write, the account is a service account or an admin account (their links come only from `stuffcloud-app reset-link`), or the Origin or CSRF check failed */
             readonly 403: {
                 headers: {
                     readonly [name: string]: unknown;

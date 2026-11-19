@@ -22,6 +22,9 @@ script, no DNS or hosts entry needed):
 - the tunnel listener (inside the container, it is not published) serves `public.<site base>`
   and answers every other name exactly like a name that does not exist (ADR 0009)
 - Mailpit takes a message over SMTP and shows it through the Caddy route
+- the login throttle counts each client behind Caddy on its own (#146): failed logins from the
+  host run into a wait, and while it lasts a login from another client (inside the Caddy
+  container) is still checked; runs last, because it leaves the host's address throttled
 
 Settings come from the same variables as the stack (`.env.example`). Exit code 0 when every
 check passed, 1 otherwise.
@@ -37,6 +40,7 @@ import smtplib
 import socket
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable
@@ -295,8 +299,89 @@ def mail() -> None:
     check("Mailpit stored the message sent over SMTP", subject in subjects, listing.body[:200])
 
 
+def anonymous_csrf() -> str:
+    """A CSRF token of the session endpoint (header and cookie of anonymous writes)."""
+    session = get(url(APP_HOST, "/api/v1/auth/session"))
+    try:
+        return str(json.loads(session.body).get("csrf_token", ""))
+    except json.JSONDecodeError:
+        return ""
+
+
+def login_from_host(token: str) -> Response:
+    body = json.dumps({"login": "nobody" + secrets.token_hex(4), "password": "a wrong passphrase"}).encode()
+    return request(
+        "POST",
+        url(APP_HOST, "/api/v1/auth/login"),
+        body=body,
+        headers={
+            "Content-Type": "application/json",
+            "Origin": f"http://{APP_HOST}:{HTTP_PORT}",
+            "X-CSRF-Token": token,
+            "Cookie": f"__Host-stuffcloud-csrf={token}",
+        },
+    )
+
+
+def login_from_inside_caddy(token: str) -> str:
+    """Status of a failed login sent from inside the Caddy container: another client address."""
+    body = json.dumps({"login": "nobody" + secrets.token_hex(4), "password": "a wrong passphrase"})
+    done = subprocess.run(
+        ["docker", "compose", "-f", COMPOSE_FILE, "exec", "-T", "caddy",
+         "curl", "--silent", "--output", "/dev/null", "--write-out", "%{http_code}",
+         "--header", f"Host: {APP_HOST}:{HTTP_PORT}",
+         "--header", f"Origin: http://{APP_HOST}:{HTTP_PORT}",
+         "--header", f"X-CSRF-Token: {token}",
+         "--header", f"Cookie: __Host-stuffcloud-csrf={token}",
+         "--header", "Content-Type: application/json",
+         "--data", body,
+         "http://127.0.0.1:8080/api/v1/auth/login"],
+        check=False, capture_output=True, text=True, timeout=60,
+    )
+    if done.returncode != 0:
+        raise RuntimeError(f"docker compose exec failed: {done.stderr.strip()}")
+    return done.stdout.strip()
+
+
+def throttles() -> None:
+    token = anonymous_csrf()
+    check("session endpoint hands out a CSRF token for the logins", len(token) == 64)
+    # 20 failures are free per address; the next ones wait 1, 2, 4, 8 seconds. Walk up to a wait
+    # of at least 8 seconds, long enough for the check from the other client below.
+    statuses: list[int] = []
+    wait = 0
+    for _ in range(40):
+        reply = login_from_host(token)
+        statuses.append(reply.status)
+        if reply.status == 429:
+            wait = int(reply.headers.get("retry-after", "0"))
+            if wait >= 8:
+                break
+            time.sleep(wait)
+        elif reply.status != 401:
+            break
+    check(
+        "failed logins from the host are throttled after the free ones",
+        statuses[:21] == [401] * 21 and statuses[-1] == 429 and wait >= 8,
+        f"{statuses} retry-after {wait}",
+    )
+    started = time.monotonic()
+    inside = login_from_inside_caddy(token)
+    check(
+        "another client behind Caddy is still checked while the host waits (per-client buckets)",
+        inside == "401",
+        inside,
+    )
+    still = login_from_host(token)
+    check(
+        "the host is still throttled after that check",
+        still.status == 429 and time.monotonic() - started < wait,
+        f"{still.status} after {time.monotonic() - started:.1f}s of {wait}s",
+    )
+
+
 def main() -> int:
-    for section in (web_app, api, sites, cookies, tunnel_listener, mail):
+    for section in (web_app, api, sites, cookies, tunnel_listener, mail, throttles):
         print(f"-- {section.__name__}")
         try:
             section()

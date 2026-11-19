@@ -12,6 +12,9 @@
 //!   admin hands the link over; the account sets its own password with
 //!   `POST /api/v1/auth/password-reset`. The operator's command line does the same without an
 //!   admin session (`stuffcloud-app reset-link <login>`), for the case that no admin can log in.
+//!   A link for an admin account comes only from the command line: through the API a stolen
+//!   admin session (or admin token) could otherwise take over every other admin account, and a
+//!   re-authentication step would not help an API token (#147).
 //!   With an SMTP server (A-10) the account will be able to ask for the link itself.
 //!
 //! Links put the token after `#`, so it never reaches a server log or a `Referer` header; the
@@ -42,6 +45,10 @@ pub const INVITATIONS_PATH: &str = "/admin/invitations";
 pub const INVITATION_PATH: &str = "/admin/invitations/{id}";
 /// Route of an admin-issued reset link below `/api/v1`.
 pub const RESET_LINK_PATH: &str = "/admin/users/{login}/password-reset";
+
+/// Why the API issues no reset link for an admin account.
+pub const ADMIN_RESET_REFUSED: &str =
+    "reset links for admin accounts are issued only on the host: stuffcloud-app reset-link <login>";
 
 /// The link of an invitation.
 #[must_use]
@@ -275,6 +282,8 @@ pub enum Issued {
     UnknownUser,
     /// A service account has no password.
     ServiceAccount,
+    /// An admin account: only the operator's command line issues its links.
+    AdminAccount,
 }
 
 /// Issues a password reset link for `login` (`actor`: the admin, `None` for the operator's
@@ -306,6 +315,7 @@ pub fn issue_reset_link(
         }),
         ResetIssue::UnknownUser => Issued::UnknownUser,
         ResetIssue::ServiceAccount => Issued::ServiceAccount,
+        ResetIssue::AdminAccount => Issued::AdminAccount,
     })
 }
 
@@ -339,6 +349,10 @@ async fn reset_inner(
             ProblemKind::Forbidden,
             "service accounts have no password; use an API token",
         )),
+        Issued::AdminAccount => Err(Problem::with_detail(
+            ProblemKind::Forbidden,
+            ADMIN_RESET_REFUSED,
+        )),
     }
 }
 
@@ -355,7 +369,7 @@ async fn reset_inner(
     responses(
         (status = 201, description = "The reset link; the token is shown only now and works once within 60 minutes", body = ResetLink),
         (status = 401, description = "Not authenticated", body = ProblemBody, content_type = "application/problem+json"),
-        (status = 403, description = "The account or token lacks the permission admin:users:write, the account is a service account, or the Origin or CSRF check failed", body = ProblemBody, content_type = "application/problem+json"),
+        (status = 403, description = "The account or token lacks the permission admin:users:write, the account is a service account or an admin account (their links come only from `stuffcloud-app reset-link`), or the Origin or CSRF check failed", body = ProblemBody, content_type = "application/problem+json"),
         (status = 404, description = "No account has this login name", body = ProblemBody, content_type = "application/problem+json"),
     ),
 )]

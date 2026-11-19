@@ -381,3 +381,87 @@ Alternatives considered:
   LAN and must not depend on an outside service. The offline list gives the same check.
 - **A timing test with a stopwatch:** rejected as flaky; counting the Argon2 checks proves the
   equal work deterministically.
+
+## Addendum: hardening after the security review of A-03 (2026-11-19, #145 to #147)
+
+The security review of the local accounts (PR #142) found a race in the throttles, a shared
+throttle behind an unlisted proxy and a handful of smaller gaps. No decision above changes; the
+throttling paragraph of the A-03 addendum is made precise as follows.
+
+- **Attempts are reserved, not just checked
+  ([#145](https://github.com/Mozra-the-great/stuffcloud/issues/145)).** The throttle used to
+  read the wait before the Argon2 check and count the failure after it, so thousands of parallel
+  requests (HTTP/2 multiplexing) all passed the check. Now `Throttles::reserve_login` takes the
+  attempt's place in the address and account counts under the same lock that reads them; an
+  attempt still being checked counts like a failure (`Rule::wait_in_flight`): while free failures
+  remain each running attempt takes one, beyond them at most one attempt per key runs at a time.
+  A key therefore gets exactly `free + 1` checks however the requests interleave (property test,
+  and integration tests that send 60 logins or 40 password changes at once against a frozen
+  clock and count the Argon2 checks: 11 per account, 21 per address). The reservation is
+  settled when the answer is known: a failure is booked, a success refunds the place, a request
+  that was never checked is refunded, and a reservation dropped unsettled (error, cancelled
+  request) counts as a failure. The same applies to password changes and reset tokens (address
+  only); registrations count at the check, under one lock.
+- **The hashing queue is bounded.** At most `QUEUE_PER_SLOT` (8) requests per hashing slot wait,
+  each for at most 5 seconds; beyond that the answer is 429 `too-many-requests` with
+  `Retry-After: 1` and the detail "the server is busy checking other passwords" at once. Such a
+  request was not checked and is not counted as a failure. A flood therefore costs legitimate
+  logins a quick retry instead of a time-out.
+- **One account, one count.** The account rule counted the typed text, so a login name and an
+  e-mail address had 10 free failures each. After the lookup the attempt now also counts on the
+  account's internal id. When that count refuses, the password is checked against the dummy
+  hash only and the answer is the usual 401 `invalid-credentials`: a 429 would tell that the two
+  names belong to one account. Unknown names keep their typed-text count only, as before.
+- **Unlisted reverse proxies
+  ([#146](https://github.com/Mozra-the-great/stuffcloud/issues/146)).** Without
+  `STUFFCLOUD_TRUSTED_PROXIES` every client behind Caddy has Caddy's address: 20 failures by
+  anyone throttle everybody, and one login made the proxy address "known" for the account.
+  When the list is empty and the peer is on a local network (`client_ip::is_internal`: loopback,
+  RFC 1918, RFC 6598, link-local, IPv6 ULA and link-local), the app now treats the peer as an
+  unlisted proxy: no address is exempt from the account rule and no login makes one known, and a
+  request that carries `X-Forwarded-For` or `Forwarded` logs a warning at most once an hour
+  (naming no address). The rule does not depend on the headers, because a proxy may send none;
+  a direct connection from a LAN address without a proxy is not a supported deployment (the app
+  listens on loopback, its container is reachable only through Caddy), so it costs nothing
+  there. `compose.dev.yml` gives the stack network a fixed subnet and lists it; the smoke test
+  of the dev stack proves that a client inside the Caddy container is still checked while the
+  host waits. The README tells every deployment behind a proxy to set the variable.
+- **Throttle tables cannot be flushed
+  ([#147](https://github.com/Mozra-the-great/stuffcloud/issues/147)).** A full table (50 000
+  keys) used to drop the key with the oldest failure, so a flood of fresh keys could push out
+  the counter of an account under attack. It now drops a sixteenth of the table at once (the scan
+  runs once per 3 125 new keys instead of on every one): keys whose window has passed first,
+  then the fewest failures, then the oldest, never a key with a running attempt. A flood with
+  one failure per key therefore never reaches a counter that is actually throttling; to push it
+  out an attacker would need 50 000 keys with more failures each. The periodic purge (every
+  10 minutes) sweeps forgotten keys, so the drop under the lock is rare. Known addresses are
+  capped at 16 per account (the account's own oldest one makes way), and when the table is full a
+  new address stays unknown instead of removing someone else's: an attacker with an account of
+  their own cannot log in often enough to strip another account's exemption.
+- **A password change voids an open reset link.** `set_password` deletes the account's
+  `password_resets` row in its transaction, so a link issued before the change (and perhaps
+  leaked) cannot undo it. Redeeming a link already deleted it.
+- **Argon2 floor.** The memory may no longer go below OWASP's minimum for the configured
+  iterations (47104 KiB x 1, 19456 x 2, 12288 x 3, 9216 x 4, 7168 KiB with 5 or more); a weaker
+  pair stops the start with the list of pairs. The defaults sit exactly on the second pair.
+- **Admin reset links come from the host only.** Through the API a stolen admin session or
+  admin token could issue a reset link for any other admin and take the account over for good.
+  `POST /api/v1/admin/users/{login}/password-reset` now answers 403 for an admin account
+  (including the caller's own; a password change is the way to change it); the operator's
+  `stuffcloud-app reset-link <login>` on the host still issues one. A re-authentication step was
+  considered and rejected: an API token has no password to repeat, and the host command is the
+  break-glass path anyway.
+- **Bootstrap secrets.** The docs recommend `STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD_FILE`, and the
+  log line of every later start asks to remove the variables and the file from the deployment.
+
+### Accepted residual risks
+
+- **The known-address exemption is per address, not per device.** Anyone sharing the owner's
+  address (the same NAT, CGNAT pool or IPv6 /64) inherits the owner's exemption from the account
+  rule. They still have the address rule, which is shared with the owner and throttles both of
+  them after 20 failures per hour, so the guesses stay bounded. Binding the exemption to a
+  long-lived signed "known device" cookie would close this, but adds a third cookie with its own
+  lifetime, revocation and privacy questions; it is left for the passkey work (A-04), where
+  devices become first-class.
+- **Throttles are per process and forgotten on restart**, as before: an attacker who can restart
+  the app has other options.

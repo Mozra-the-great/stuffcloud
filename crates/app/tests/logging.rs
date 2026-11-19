@@ -1,6 +1,7 @@
 //! Log redaction (acceptance criterion of A-01, SPEC 11): requests that carry tokens,
 //! cookies, forwarded client addresses and secrets in the query string go through a real
-//! TCP server, and none of it appears in the log, while the access lines are there.
+//! TCP server, and none of it appears in the log, while the access lines are there (and the
+//! warning about an unlisted reverse proxy, which names no address).
 //!
 //! A test binary of its own: it installs the process-wide subscriber, which a thread-local
 //! one in the shared integration binary cannot replace reliably (tests run on many threads
@@ -80,6 +81,8 @@ const TOKEN: &str = "stc_live_7f3a9b2c4d5e6f708192a3b4c5d6e7f8";
 const COOKIE: &str = "session-cookie-value-0c1d2e3f";
 const FORWARDED: &str = "203.0.113.77";
 const QUERY_SECRET: &str = "query-secret-5a6b7c8d";
+const CSRF: &str = "c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5";
+const LOGIN_BODY: &str = r#"{"login":"nobody","password":"a wrong passphrase"}"#;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn logs_contain_no_addresses_tokens_cookies_or_queries() {
@@ -143,6 +146,12 @@ async fn logs_contain_no_addresses_tokens_cookies_or_queries() {
         format!(
             "GET /nope/{QUERY_SECRET} HTTP/1.1\r\nHost: stuff.localhost\r\nForwarded: for={FORWARDED}\r\nConnection: close\r\n\r\n"
         ),
+        // A login through an unlisted proxy (loopback peer, forwarded address, no list): the
+        // warning names no address.
+        format!(
+            "POST /api/v1/auth/login HTTP/1.1\r\nHost: stuff.localhost\r\nOrigin: https://app.example.com\r\nCookie: __Host-stuffcloud-csrf={CSRF}\r\nX-CSRF-Token: {CSRF}\r\nX-Forwarded-For: {FORWARDED}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{LOGIN_BODY}",
+            LOGIN_BODY.len()
+        ),
     ];
     for request in requests {
         let answer = tokio::task::spawn_blocking(move || raw_http(address, &request))
@@ -159,6 +168,10 @@ async fn logs_contain_no_addresses_tokens_cookies_or_queries() {
             "{format}: {log}"
         );
         assert!(log.contains("unmatched"), "{format}: {log}");
+        assert!(
+            log.contains("STUFFCLOUD_TRUSTED_PROXIES is empty"),
+            "{format}: {log}"
+        );
         assert!(log.contains("422"), "{format}: {log}");
         assert!(log.contains("404"), "{format}: {log}");
         // Probes are named by position, so a failure message never repeats the value itself.

@@ -1,6 +1,8 @@
 //! Periodic housekeeping (A-03): expired sessions, invitations and reset tokens are deleted
 //! every [`PURGE_INTERVAL`], not only when a login or a lookup happens to see them, so the
-//! tables do not grow with sessions nobody returns to.
+//! tables do not grow with sessions nobody returns to. The same run sweeps the forgotten keys
+//! out of the login throttles ([`crate::throttle::Throttles::sweep`]), so a full throttle table
+//! rarely has to make room under its lock.
 
 use std::time::Duration;
 
@@ -16,11 +18,13 @@ const fn worth_logging(purged: usize) -> bool {
     purged > 0
 }
 
-/// One purge: expired sessions (one audit row each) and expired tokens. Returns how many rows
-/// went; a failure is logged and the next run tries again.
+/// One purge: expired sessions (one audit row each) and expired tokens, and the throttles'
+/// forgotten keys. Returns how many rows went; a failure is logged and the next run tries
+/// again.
 pub async fn purge_once(state: &AppState) -> usize {
     let timeouts = state.auth().timeouts;
     let now = state.now_millis();
+    let _swept = state.accounts().throttles().sweep(now);
     let purged = state
         .db(move |db| {
             let sessions = db.purge_expired_sessions(&timeouts, now)?;
@@ -98,8 +102,20 @@ mod tests {
                 0,
             )
             .unwrap();
+        state
+            .accounts()
+            .throttles()
+            .reserve_client(
+                stuffcloud_core::client_ip::Bucket::of(std::net::IpAddr::from([192, 0, 2, 1])),
+                0,
+            )
+            .unwrap()
+            .failed(0);
+        assert_eq!(state.accounts().throttles().sizes()[0], 1);
         assert_eq!(purge_once(&state).await, 2);
         assert_eq!(state_db(&state).session_count(user).unwrap(), 0);
+        // The failure of 1970 is long forgotten: the sweep took it out.
+        assert_eq!(state.accounts().throttles().sizes()[0], 0);
         assert_eq!(purge_once(&state).await, 0);
     }
 

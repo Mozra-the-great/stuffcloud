@@ -200,9 +200,10 @@ mod lifecycle {
             .env("STUFFCLOUD_BOOTSTRAP_CONFIG", bootstrap)
             .env("STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN", "root")
             .env("STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD", ADMIN_PASSWORD)
-            // The cheapest parameters the configuration allows: the test is about the process.
+            // The cheapest pair the configuration allows (OWASP's 7 MiB x 5): the test is about
+            // the process.
             .env("STUFFCLOUD_ARGON2_MEMORY_KIB", "7168")
-            .env("STUFFCLOUD_ARGON2_ITERATIONS", "1")
+            .env("STUFFCLOUD_ARGON2_ITERATIONS", "5")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()

@@ -211,7 +211,7 @@ pub fn run(
             tracing::info!(
                 target: "stuffcloud::bootstrap",
                 bootstrapped_at = at,
-                "the instance is already bootstrapped; STUFFCLOUD_BOOTSTRAP_ADMIN_* is ignored (the first admin exists)"
+                "the instance is already bootstrapped; STUFFCLOUD_BOOTSTRAP_ADMIN_* is ignored (the first admin exists): remove the variables (and the password file) from the deployment"
             );
         }
         if file.is_some() {

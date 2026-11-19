@@ -18,14 +18,14 @@
 //! | `STUFFCLOUD_SESSION_IDLE_MINUTES` | `480` | a session unused this long ends (5 to 10080) |
 //! | `STUFFCLOUD_SESSION_ABSOLUTE_HOURS` | `168` | a session ends this long after login (1 to 2160, at least the idle timeout) |
 //! | `STUFFCLOUD_SESSION_MAX_PER_USER` | `10` | sessions per account; a login beyond it ends the oldest (1 to 1000) |
-//! | `STUFFCLOUD_ARGON2_MEMORY_KIB` | `19456` | Argon2id memory per hash in KiB (7168 to 1048576) |
+//! | `STUFFCLOUD_ARGON2_MEMORY_KIB` | `19456` | Argon2id memory per hash in KiB (7168 to 1048576, and at least OWASP's minimum for the iterations: 47104 x 1, 19456 x 2, 12288 x 3, 9216 x 4, 7168 x 5 or more) |
 //! | `STUFFCLOUD_ARGON2_ITERATIONS` | `2` | Argon2id iterations (1 to 10) |
 //! | `STUFFCLOUD_ARGON2_PARALLELISM` | `1` | Argon2id lanes (1 to 16) |
 //! | `STUFFCLOUD_PASSWORD_MIN_LENGTH` | `12` | shortest new password in characters (8 to 128) |
 //! | `STUFFCLOUD_PASSWORD_BLOCKLIST_FILE` | unset | offline list of breached passwords, one per line |
-//! | `STUFFCLOUD_TRUSTED_PROXIES` | unset | reverse proxies whose `X-Forwarded-For` is believed (addresses or CIDR blocks, comma-separated) |
+//! | `STUFFCLOUD_TRUSTED_PROXIES` | unset | reverse proxies whose `X-Forwarded-For` is believed (addresses or CIDR blocks, comma-separated); set it whenever a proxy is in front (unset, every client shares the proxy's login throttle and the app warns) |
 //! | `STUFFCLOUD_BOOTSTRAP_CONFIG` | unset | configuration file applied on the first start |
-//! | `STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN`, `_EMAIL`, `_PASSWORD[_FILE]` | unset | the first admin, created on the first start (login and password required, e-mail optional) |
+//! | `STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN`, `_EMAIL`, `_PASSWORD[_FILE]` | unset | the first admin, created on the first start (login and password required, e-mail optional; prefer `_PASSWORD_FILE` and remove the variables after the first start) |
 //! | `STUFFCLOUD_BOOTSTRAP_TOKEN_FILE` | unset | first service-account token (needs tokens, A-08) |
 
 use std::fmt;
@@ -44,7 +44,7 @@ use stuffcloud_core::session::{HOUR_MS, MINUTE_MS, Timeouts};
 
 use crate::password::{
     Argon2Settings, DEFAULT_ITERATIONS, DEFAULT_MEMORY_KIB, DEFAULT_PARALLELISM, MAX_ITERATIONS,
-    MAX_MEMORY_KIB, MAX_PARALLELISM, MIN_MEMORY_KIB,
+    MAX_MEMORY_KIB, MAX_PARALLELISM, MIN_MEMORY_KIB, owasp_min_memory_kib,
 };
 
 /// Default listen address: loopback only. The container sets `0.0.0.0:8000`.
@@ -447,9 +447,11 @@ fn session_timeouts<E: Environment + ?Sized>(reader: &mut Reader<'_, E>) -> Time
     session
 }
 
-/// The Argon2id parameters.
+/// The Argon2id parameters; the memory must reach OWASP's minimum for the iterations (checked
+/// only when both are valid, so a bad value is reported once).
 fn argon2_settings<E: Environment + ?Sized>(reader: &mut Reader<'_, E>) -> Argon2Settings {
-    Argon2Settings {
+    let errors_before = reader.errors.len();
+    let settings = Argon2Settings {
         memory_kib: reader.number(
             "STUFFCLOUD_ARGON2_MEMORY_KIB",
             DEFAULT_MEMORY_KIB,
@@ -468,7 +470,19 @@ fn argon2_settings<E: Environment + ?Sized>(reader: &mut Reader<'_, E>) -> Argon
             1,
             MAX_PARALLELISM,
         ),
+    };
+    let floor = owasp_min_memory_kib(settings.iterations);
+    if reader.errors.len() == errors_before && settings.memory_kib < floor {
+        reader.fail(
+            "STUFFCLOUD_ARGON2_MEMORY_KIB",
+            format!(
+                "must be at least {floor} with {} iteration{} (OWASP's minimum Argon2id pairs: 47104 x 1, 19456 x 2, 12288 x 3, 9216 x 4, 7168 x 5 or more)",
+                settings.iterations,
+                if settings.iterations == 1 { "" } else { "s" }
+            ),
+        );
     }
+    settings
 }
 
 /// The first admin: login name and password are required once any of the variables is set;
@@ -1155,6 +1169,52 @@ mod tests {
         assert_eq!(
             errors(&base(dir.path()).with("STUFFCLOUD_ARGON2_MEMORY_KIB", "1048577")),
             vec!["STUFFCLOUD_ARGON2_MEMORY_KIB: must be a whole number from 7168 to 1048576"]
+        );
+    }
+
+    #[test]
+    fn argon2_parameters_keep_the_owasp_floor() {
+        let dir = tempfile::tempdir().unwrap();
+        let with = |memory: &str, iterations: &str| {
+            base(dir.path())
+                .with("STUFFCLOUD_ARGON2_MEMORY_KIB", memory)
+                .with("STUFFCLOUD_ARGON2_ITERATIONS", iterations)
+        };
+        // Each of OWASP's pairs is accepted exactly at its floor and refused just below it.
+        for (memory, iterations, floor) in [
+            (47_104_u32, 1_u32, "must be at least 47104 with 1 iteration"),
+            (19_456, 2, "must be at least 19456 with 2 iterations"),
+            (12_288, 3, "must be at least 12288 with 3 iterations"),
+            (9_216, 4, "must be at least 9216 with 4 iterations"),
+        ] {
+            let accepted = from_env(&with(&memory.to_string(), &iterations.to_string()))
+                .unwrap()
+                .accounts
+                .argon2;
+            assert_eq!(
+                (accepted.memory_kib, accepted.iterations),
+                (memory, iterations)
+            );
+            assert_eq!(
+                errors(&with(
+                    &memory.saturating_sub(1).to_string(),
+                    &iterations.to_string()
+                )),
+                vec![format!(
+                    "STUFFCLOUD_ARGON2_MEMORY_KIB: {floor} (OWASP's minimum Argon2id pairs: 47104 x 1, 19456 x 2, 12288 x 3, 9216 x 4, 7168 x 5 or more)"
+                )]
+            );
+        }
+        assert!(from_env(&with("7168", "5")).is_ok());
+        // The default memory with a single iteration is too weak.
+        assert_eq!(
+            errors(&base(dir.path()).with("STUFFCLOUD_ARGON2_ITERATIONS", "1")).len(),
+            1
+        );
+        // An invalid value is reported once, without the floor on top.
+        assert_eq!(
+            errors(&with("7168", "0")),
+            vec!["STUFFCLOUD_ARGON2_ITERATIONS: must be a whole number from 1 to 10"]
         );
     }
 

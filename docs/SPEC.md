@@ -280,8 +280,8 @@ Library candidates (license must be verified per version before adoption):
 | Image | background removal, pixel-art filter | **U²-Netp** (Apache-2.0 weights, about 5 MB) through ONNX Runtime Web (MIT) as default; **BiRefNet-lite** (MIT, about 114 MB) as an opt-in higher-quality download; own pixelate filter. Not used: `@imgly/background-removal` (GPL/AGPL, commercial dual license), MODNet (conflicting license statements). Exact weights are re-checked at adoption |
 | Convert | JSON / YAML / XML | js-yaml, fast-xml-parser |
 | Convert | Base64 encode/decode | native |
-| Convert | colour picker + formats | colord |
-| Convert | unit converter | convert-units or equivalent |
+| Convert | colour picker + formats, contrast, palette from an image | own small functions (no dependency; T-18) |
+| Convert | unit converter | own unit tables (no dependency; T-18) |
 | Parse | CRON expression | cron-parser, cronstrue |
 | Parse | user-agent | ua-parser-js v1 (MIT) or uap-core |
 | Network | subnet calculator | ipaddr.js / ip-address |

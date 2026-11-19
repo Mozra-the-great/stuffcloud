@@ -1,0 +1,83 @@
+<script lang="ts">
+  import { i18n, t } from '../../i18n/index.ts';
+  import Mascot from '../../ui/Mascot.svelte';
+  import TabLinks from '../../ui/TabLinks.svelte';
+  import Tile from '../../ui/Tile.svelte';
+  import TileGrid from '../../ui/TileGrid.svelte';
+  import type { TabLink } from '../../ui/types.ts';
+  import { getTools } from '../context.ts';
+  import type { RouteProps } from '../router/router.svelte.ts';
+  import { TOOLS_PATH } from '../routes.ts';
+  import {
+    CATEGORY_LABELS,
+    isToolCategory,
+    toolPath,
+    toolsInCategory,
+    usedCategories,
+  } from '../tools.ts';
+  import './page.css';
+
+  let { query }: RouteProps = $props();
+
+  const tools = getTools();
+  // An unknown `?category=` shows everything instead of an error.
+  const requested = $derived(query.get('category') ?? '');
+  const category = $derived(isToolCategory(requested) ? requested : undefined);
+  const visible = $derived(toolsInCategory(tools, category));
+  const links = $derived<readonly TabLink[]>([
+    { href: TOOLS_PATH, label: t('tools.all'), current: category === undefined },
+    ...usedCategories(tools).map((name) => ({
+      href: `${TOOLS_PATH}?category=${name}`,
+      label: t(CATEGORY_LABELS[name]),
+      current: category === name,
+    })),
+  ]);
+</script>
+
+<section class="page tools">
+  <h1 class="page-title">{t('tools.title')}</h1>
+  {#if tools.length > 0}
+    <TabLinks {links} label={t('tools.categories')} />
+  {/if}
+  {#if visible.length === 0}
+    <div class="empty">
+      <Mascot name="stuffy" scale={8} compactScale={6} />
+      <p class="note">{t('tools.empty')}</p>
+    </div>
+  {:else}
+    <p class="note">{t('tools.count', { count: visible.length })}</p>
+    <TileGrid>
+      {#each visible as tool (tool.id)}
+        <Tile href={toolPath(tool.id)}>
+          <span class="name">{tool.name[i18n.locale]}</span>
+          <span class="note">{t(CATEGORY_LABELS[tool.category])}</span>
+        </Tile>
+      {/each}
+    </TileGrid>
+  {/if}
+</section>
+
+<style>
+  .tools {
+    gap: var(--space-20);
+  }
+
+  .empty {
+    display: flex;
+    align-items: center;
+    gap: var(--space-20);
+    padding: var(--space-24) 0;
+  }
+
+  .note {
+    margin: 0;
+    font: 13px var(--mono);
+    color: var(--mut);
+  }
+
+  .name {
+    font-size: 22px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+</style>

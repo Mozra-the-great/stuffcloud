@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `web/`: app shell, router and i18n (T-03, #11). Header with tool navigation, search dialog
+  (Ctrl+K / Cmd+K) and language switch, footer, skip link, offline notice; a small History-API
+  router with lazy-loaded pages and one lazy route per tool (`/tools/<id>`, deep links), not-found
+  page with the ghost mascot, error state with retry (load and render failures); on every
+  navigation focus moves to the page heading, the title is announced in a live region and
+  `document.title` follows. German and English catalogues with typed keys, placeholders, CLDR
+  plurals, `Intl` number/date formatting, browser-language default and a manual switch that
+  applies without a reload; the `web` job fails on a missing, unused or inconsistent key and on
+  literal text in the shell. No new dependency. `docs/adr/0011-spa-routing-and-i18n.md`, addendum
+  to ADR 0001, SPEC 13. (#127)
 - `docs/adr/0010-api-first-and-configuration-as-code.md`: API-first and configuration as code
   (#116, SF9). No UI-only features; resources with natural keys, idempotent `PUT`,
   `ETag`/`If-Match`, dry-run and RFC 9457 errors; secrets only as references to deployment

@@ -563,8 +563,16 @@ zones:
 
 ## 13. Internationalisation and privacy
 
-- German and English from the start; default from the browser language; message
-  catalogues in the repo; code and docs in English.
+- German and English from the start; default from the browser language
+  (`navigator.languages`), a manual switch that applies at once without a reload and is
+  remembered in this browser (`localStorage`, no cookie); message catalogues in the repo with
+  typed keys, `{name}` placeholders, CLDR plural forms and `Intl` number and date formatting;
+  CI fails on a missing, unused or inconsistent key and on literal text in the app shell
+  ([ADR 0011](adr/0011-spa-routing-and-i18n.md)); code and docs in English.
+- App shell: header with the tool navigation, search (Ctrl+K / Cmd+K) and the language switch,
+  footer, skip link; path URLs with lazy-loaded routes and deep links per tool (the web server
+  falls back to `index.html`); focus moves to the page heading and the title is announced on
+  every navigation; 404, error and offline states (ADR 0011).
 - No third-party trackers or analytics; no IP storage; only technically necessary
   cookies (no consent banner); privacy-policy template included; data export and
   deletion on request.

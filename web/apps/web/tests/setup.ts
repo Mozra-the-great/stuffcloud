@@ -1,3 +1,5 @@
+import { configure } from '@testing-library/dom';
+
 /**
  * jsdom lacks the modal behaviour of `<dialog>`. This is a faithful stand-in for the two
  * methods the components use: `showModal()` opens it, `close()` closes it and fires `close`
@@ -26,3 +28,13 @@ function installDialogMethods(): void {
 }
 
 installDialogMethods();
+
+/** jsdom does not implement scrolling (it only logs "not implemented"); the router scrolls to the top. */
+Object.defineProperty(window, 'scrollTo', {
+  configurable: true,
+  writable: true,
+  value: (): void => undefined,
+});
+
+/** Routes load through dynamic imports, which are slow the first time on a busy machine. */
+configure({ asyncUtilTimeout: 5000 });

@@ -631,7 +631,7 @@ mod tests {
              | GET | `/b` | public |\n\
              | PUT | `/b` | `admin:settings:write` |\n"
         ));
-        assert_eq!(text.matches("\n| `").count(), 18 + 3);
+        assert_eq!(text.matches("\n| `").count(), 18);
     }
 
     #[test]

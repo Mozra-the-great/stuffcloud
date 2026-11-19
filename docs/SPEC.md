@@ -562,7 +562,8 @@ zones:
   shown as `000-000` over one real input.
 - Accessibility: WCAG 2.2 AA contrast, full keyboard use, visible focus,
   `prefers-reduced-motion` disables all animation, decorative mascots are
-  `aria-hidden`, touch targets >= 44 px.
+  `aria-hidden`, touch targets >= 44 px. The checks (axe on every state in CI, keyboard map,
+  focus and live-region rules) are in [`docs/ACCESSIBILITY.md`](ACCESSIBILITY.md).
 - Performance: mascot animations are CSS `transform` keyframes with `steps()` on the
   delivered SVG art (no canvas loop, no script per frame), drawn at integer scales
   with `image-rendering: pixelated`, paused when off-screen or when the tab is hidden
@@ -608,6 +609,7 @@ On every PR and push (`ci.yml`):
 | `coverage` | `cargo-llvm-cov`, fails below 95 % of lines and of regions |
 | `mutants` | `cargo-mutants` on the lines the PR changes (all mutants on `main`); a surviving mutant fails |
 | `fuzz` | every cargo-fuzz target for 2 minutes with AddressSanitizer, starting from the committed seeds and the nightly corpus |
+| `e2e` | Playwright in Chromium and Firefox against the built app: app shell, tool registry, worker pool in a real browser, and the privacy test (no request carries file content, no request leaves the own origin or is anything but a `GET` of an own asset); no retries; axe joins with T-05 |
 | `codeql` | CodeQL `security-extended` for Rust, Python and the workflows (JavaScript/TypeScript with `web/`); fails on any result, also weekly on `main` |
 | `supply-chain` | `cargo-deny`: RustSec advisories (incl. unmaintained, unsound, yanked), licenses (section 3), crates.io only, no wildcard versions |
 | `repo-checks` | label-script tests, design PDF is current |
@@ -652,8 +654,13 @@ Test layers and what each must cover:
   duplicate and case-colliding names, absolute names, zip bombs, nested
   archives, files that exceed quota in the middle of extraction).
 - **Frontend** (from phase 1): typecheck, unit tests, Playwright e2e for every
-  tool, axe accessibility checks, and a test that no tool sends a request with
-  file content.
+  tool, axe accessibility checks (zero violations of the WCAG 2.2 A/AA and best-practice rule
+  sets in both browsers, a keyboard-only walk of every tool, a reduced-motion test), and a test
+  that no tool sends a request with file content. The e2e job runs against the production build plus test-only tools
+  (`web/apps/web/e2e/`); every e2e test fails at its end when the page sent anything
+  but a `GET` of an own asset, and a test-only tool that leaks on purpose proves the
+  check can fail. Visual checks are smoke screenshots attached to the report, never
+  pixel comparisons.
 - **Container**: the image runs as non-root with a read-only root filesystem;
   an image scan runs before publishing (phase 3).
 

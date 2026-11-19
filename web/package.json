@@ -17,7 +17,8 @@
     "build": "pnpm -r build",
     "tokens": "pnpm --filter @stuffcloud/web tokens",
     "check-tools": "pnpm --filter @stuffcloud/web check-tools",
-    "new-tool": "pnpm --filter @stuffcloud/web new-tool"
+    "new-tool": "pnpm --filter @stuffcloud/web new-tool",
+    "e2e": "pnpm --filter @stuffcloud/web e2e:build && pnpm --filter @stuffcloud/web e2e"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

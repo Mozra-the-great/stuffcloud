@@ -15,18 +15,23 @@
     "tokens": "node scripts/gen-tokens.ts --write",
     "tokens:check": "node scripts/gen-tokens.ts --check",
     "check-tools": "node scripts/check-tools.ts",
-    "new-tool": "node scripts/new-tool.ts"
+    "new-tool": "node scripts/new-tool.ts",
+    "e2e:build": "vite build --config e2e/vite.config.ts",
+    "e2e": "playwright test --config e2e/playwright.config.ts"
   },
   "dependencies": {
     "@stuffcloud/tools": "workspace:*",
     "svelte": "^5.57.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "^1.65.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/svelte": "^5.4.2",
     "@testing-library/user-event": "^14.6.10",
     "@vitest/coverage-v8": "^5.1.0",
+    "axe-core": "4.14.0",
     "jsdom": "^31.0.1",
     "svelte-check": "^4.7.8",
     "vite": "^8.3.8",

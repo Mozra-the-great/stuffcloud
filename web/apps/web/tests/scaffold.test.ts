@@ -124,6 +124,7 @@ describe('renderTool', () => {
   it('describes a client tool: manifest, page, test, three texts', () => {
     const { files, messages } = renderTool(BASE);
     expect(Object.keys(files).toSorted()).toEqual([
+      'e2e/specs/merge-pdf.spec.ts',
       'src/tools/merge-pdf/Tool.svelte',
       'src/tools/merge-pdf/manifest.ts',
       'tests/tools/merge-pdf.test.ts',
@@ -154,9 +155,26 @@ describe('renderTool', () => {
     expect(page).not.toContain('<h1');
   });
 
+  it('brings a browser spec: one h1, the axe gate, and a keyboard-only walk', () => {
+    const spec = renderTool(BASE).files['e2e/specs/merge-pdf.spec.ts'] ?? '';
+    expect(spec).toContain("import { expect, test } from '../support/fixtures.ts';");
+    expect(spec).toContain("import { expectKeyboardOnly } from '../support/keyboard.ts';");
+    expect(spec).toContain("page.goto('/tools/merge-pdf')");
+    expect(spec).toContain("name: 'Merge PDFs', exact: true");
+    expect(spec).toContain("a11y.check(page, 'merge-pdf')");
+    expect(spec).toContain("expectKeyboardOnly(page, 'merge-pdf')");
+    expect(spec).toContain('net.watch(file)');
+  });
+
+  it('quotes the name in the browser spec', () => {
+    const spec = renderTool({ ...BASE, name: "Don't merge" }).files['e2e/specs/merge-pdf.spec.ts'];
+    expect(spec).toContain("name: 'Don\\'t merge', exact: true");
+  });
+
   it('adds task, worker, pool and their test for a worker tool and requires the capability', () => {
     const { files } = renderTool({ ...BASE, worker: true });
     expect(Object.keys(files).toSorted()).toEqual([
+      'e2e/specs/merge-pdf.spec.ts',
       'src/tools/merge-pdf/Tool.svelte',
       'src/tools/merge-pdf/manifest.ts',
       'src/tools/merge-pdf/pool.ts',
@@ -194,6 +212,7 @@ describe('scaffoldTool', () => {
       'src/tools/merge-pdf/manifest.ts',
       'src/tools/merge-pdf/Tool.svelte',
       'tests/tools/merge-pdf.test.ts',
+      'e2e/specs/merge-pdf.spec.ts',
     ]);
     for (const file of written) {
       expect(existsSync(join(target.root, file))).toBe(true);

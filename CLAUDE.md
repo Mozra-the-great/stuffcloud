@@ -31,7 +31,8 @@ web/            pnpm workspace (Node 24, own lockfile; the backend never depends
                 tool registry + `ToolFrame`), src/tools/<id>/ (one directory per tool: manifest.ts + Tool.svelte),
                 tools.config.json (disabled tools), scripts/ (tokens, check-tools, new-tool),
                 src/i18n (catalogues de/en, typed keys, CI check), src/gallery (component gallery),
-                src/assets/fonts (self-hosted), bench/ (animation benchmark: `node bench/run.ts bench|verify|size`)
+                src/assets/fonts (self-hosted), bench/ (animation benchmark: `node bench/run.ts bench|verify|size`),
+                e2e/ (Playwright: specs/, support/ privacy check + axe gate + keyboard helpers, app/ test-only tools; README.md)
   packages/tools/       manifest schema + `defineTool`, capabilities, stickers, worker pool (`createWorkerPool`, `serveWorker`)
   packages/api-client/  typed client + OpenAPI generation script (generated file comes with app)
   tests/        lint-config test (a deliberate `any` must fail lint)
@@ -46,8 +47,9 @@ scripts/ci/     label script (opt-in via LABELS_ENABLED), npm license gate (lice
                 (dev_stack_smoke.py), tests
 compose.dev.yml local dev stack (Caddy, app, Mailpit; `edge` joins with H-19); docker/caddy/
                 Caddyfile.dev, placeholder site, Dockerfile (web build baked in); .env.example
-docs/           SPEC.md, adr/ (architecture decision records), api/ (openapi.json generated from
-                `app`, problems.md: the problem types), THIRD-PARTY.md (generated),
+docs/           SPEC.md, ACCESSIBILITY.md (a11y gate, keyboard map), adr/ (architecture decision
+                records), api/ (openapi.json generated from `app`, problems.md: the problem types),
+                THIRD-PARTY.md (generated),
                 THIRD-PARTY-ASSETS.md, design/, TEMPLATE-SETUP.md
 ```
 
@@ -81,6 +83,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build   # coverage floor 95 % p
 pnpm tokens                                              # regenerate src/styles/tokens.css from docs/design (test fails when stale)
 pnpm new-tool <id> [--category c] [--sticker s] [--name "N"] [--worker]   # scaffold a tool (ADR 0012)
 pnpm check-tools                                         # validate all tool manifests (`vite build` runs the same check)
+pnpm e2e                                                 # Playwright (Chromium + Firefox) against the built app; once: `pnpm --filter @stuffcloud/web exec playwright install chromium firefox`
 CHROME_PATH=... node apps/web/bench/run.ts bench         # animation runtime benchmark (needs Chrome; ADR 0008)
 ```
 
@@ -102,8 +105,9 @@ Tests are part of the security design; err on the side of too many (SPEC section
 ## CI
 
 `ci.yml` job `build` is the required check: an aggregate over fmt, clippy, test,
-docs, coverage, mutants (6 shards), fuzz, web (lint, typecheck, test, build of `web/`), openapi
-(committed OpenAPI document and generated TS client match the handlers), licenses (npm
+docs, coverage, mutants (6 shards), fuzz, web (lint, typecheck, test, build of `web/`), e2e (Playwright +
+axe a11y gate, no retries), openapi (committed OpenAPI document and generated TS client match the
+handlers), licenses (npm
 license gate + THIRD-PARTY.md freshness), dev-stack (container hardening gate on every compose file
 and Dockerfile, Caddyfile check, smoke test of the dev stack), supply-chain, codeql and repo-checks (add new jobs to its `needs`; no job skips itself on changed
 paths, because the aggregate counts a skipped job as a failure). `deep-tests.yml` runs nightly: long fuzzing (grows the cached corpus),
@@ -142,7 +146,20 @@ which owns the one `<h1>`) and its test. Name, description and keywords are cata
 (`tool.<id>.name|description|keywords`, German and English), never literals. A tool never sends file
 content anywhere: `fileContent: 'stays-in-browser'`, no network API in tool sources (a test scans
 them). Heavy work runs in a worker through `createWorkerPool`/`serveWorker`. New generic pieces
-go to kern (#121), not into `src/ui`.
+go to kern (#121), not into `src/ui`. A tool gets an e2e spec in `web/apps/web/e2e/specs/` (import `test`
+from `../support/fixtures.ts`: it fails the test when the page sends anything but `GET`s of its own
+assets; call `net.watch(file)` so a piece of an uploaded file in any request fails it too, and
+`a11y.check(page, '<state>')` after each state: that runs axe).
+
+## Accessibility (gate for every tool and page)
+
+WCAG 2.2 AA is checked on every PR (`docs/ACCESSIBILITY.md`: gate, keyboard map, focus rules, live
+regions, motion). `a11y.check` fails the `e2e` job (and so `build`) on any axe violation of the
+WCAG A/AA and best-practice rule sets, in Chromium and Firefox, whatever the impact; never switch a
+rule off or lower the bar to get green. `pnpm new-tool` creates the spec with the axe check and a
+keyboard-only walk (`expectKeyboardOnly` from `e2e/support/keyboard.ts`). A tool or page PR extends it
+with `a11y.check` after every state, the keyboard route for each action, a live region for results
+that appear, and honours `prefers-reduced-motion`. Reviewers flag a tool PR without its a11y spec.
 
 ## API-first (no UI-only features)
 

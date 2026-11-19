@@ -12,6 +12,8 @@
 # GPL-3.0-only / AGPL-3.0 (they would bind the combined work to -only, SPEC 3 asks
 # for a per-case check), LGPL (same), CC-BY-*, proprietary and unlicensed code.
 allow = [
+    # 0BSD: Zero-Clause BSD, permissive, GPL-3.0-compatible; runtime via tslib (pdf-lib)
+    "0BSD",
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
     "BSD-2-Clause",
@@ -29,7 +31,6 @@ allow = [
 # (never shipped to users, never part of the build output). Each needs a reason.
 [dev_only]
 "BlueOak-1.0.0" = "Permissive license (Blue Oak Council, rated gold) with MIT-like terms and no copyleft, so GPLv3 compatible, but not on the FSF list and not in deny.toml; used by lru-cache and minimatch inside ESLint. Dev tooling only."
-"0BSD" = "Zero-clause BSD: permissive, no attribution duty, GPLv3 compatible, but not in deny.toml; used by tslib, which only the optional wasm32 fallback binding of rolldown (Vite) pulls in. Build tooling only."
 "Python-2.0" = "PSF license of the `argparse` 2.0.1 port (a dependency of ESLint); permissive, the PSF 2.0.1 terms are GPL-compatible per the FSF. Dev tooling only."
 
 # Packages whose declared license is not a valid SPDX expression, one entry per

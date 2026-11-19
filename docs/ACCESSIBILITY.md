@@ -85,6 +85,8 @@ key (WCAG 2.1.4); the one global shortcut uses a modifier.
 | Language switch | Two toggle buttons (`aria-pressed`); `Enter` / `Space` switch at once, focus stays on the button. |
 | File drop zone | The "Choose files" button is the keyboard route (`Enter` / `Space` open the file picker); drag and drop is an extra, never the only way. |
 | Toast | A dismiss button per toast; the toast pauses its timer while it is hovered or focused. |
+| Page grid (`role="listbox"`, PDF tools) | One Tab stop (the current page). Arrow keys move between pages (Up/Down by a row, `Home`/`End`, `PageUp`/`PageDown`); `Space` or `Enter` selects, `Shift`+arrow or `Shift`+`Space` extends the selection, `Ctrl+A` selects all, `Esc` clears. Where pages can be reordered, `Alt`+arrow moves the focused page; the buttons of the toolbar do the same for the selection. |
+| Reorderable list (`ReorderList`, merge) | Each item has "up", "down" and "remove" buttons with the item's name; the focus stays on the pressed button (or its partner when it is disabled at the end of the list). Drag and drop is an extra. |
 | Code block | The copy button; its result is announced. |
 | Progress bar | Not a control; read through its role, name and value. |
 
@@ -118,7 +120,7 @@ arrives together with its text is not announced by every screen reader).
 | Navigation announcer (`LiveAnnouncer`) | `status`, polite, atomic | "Navigated to ..." after each page change |
 | Toasts | `status` (info, success, warn) and `alert` (error) | Short messages that need no action |
 | Search result count | `status` | "3 tools found" / "No tools found" while typing |
-| Tool results | `status` or `alert` (the tool's own) | Done, failed, counts |
+| Tool results | `status` or `alert` (the tool's own) | Done, failed, counts; the PDF tools announce every page action ("Moved 1 page to position 3.") and every undo and redo |
 
 ## Motion
 

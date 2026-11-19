@@ -145,3 +145,13 @@ promise must also be something the build can check, not only a sentence in the U
 - [SPEC 7](../SPEC.md#7-toolbox), [12](../SPEC.md#12-design-and-ux), [13](../SPEC.md#13-internationalisation-and-privacy), [14](../SPEC.md#14-quality-ci-and-testing)
 - Issues [#12](https://github.com/Mozra-the-great/stuffcloud/issues/12) (T-04), [#14](https://github.com/Mozra-the-great/stuffcloud/issues/14) (T-06), [#29](https://github.com/Mozra-the-great/stuffcloud/issues/29) (T-25), [#39](https://github.com/Mozra-the-great/stuffcloud/issues/39) (A-09), [#121](https://github.com/Mozra-the-great/stuffcloud/issues/121) (design kit freeze)
 - [ADR 0004](0004-client-side-tools.md), [ADR 0011](0011-spa-routing-and-i18n.md)
+
+## Addendum: the shared asset loader (2026-11-19, T-10)
+
+The first tools that need heavy libraries, the PDF tools of
+[#15](https://github.com/Mozra-the-great/stuffcloud/issues/15), did not need the asset loader of
+decision 3 after all: their workers are bundled files of `/assets` and start each other with
+`new Worker(new URL(...))`, so no tool source calls `fetch` and the scan has no exception. The loader
+is still open for the first tool that downloads a WASM or model file at run time; see
+[ADR 0013](0013-pdf-tools.md).
+

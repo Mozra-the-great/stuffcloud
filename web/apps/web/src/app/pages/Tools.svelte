@@ -7,6 +7,7 @@
   import type { TabLink } from '../../ui/types.ts';
   import { getTools } from '../context.ts';
   import type { RouteProps } from '../router/router.svelte.ts';
+  import Sticker from '../Sticker.svelte';
   import { TOOLS_PATH } from '../routes.ts';
   import {
     CATEGORY_LABELS,
@@ -49,6 +50,7 @@
     <TileGrid>
       {#each visible as tool (tool.id)}
         <Tile href={toolPath(tool.id)}>
+          <Sticker name={tool.sticker} />
           <span class="name">{tool.name[i18n.locale]}</span>
           <span class="note">{t(CATEGORY_LABELS[tool.category])}</span>
         </Tile>

@@ -44,6 +44,12 @@ export const en = {
   'tools.empty': 'No tools yet',
   'tools.count': { one: '{count} tool', other: '{count} tools' },
 
+  'tool.localOnly': 'Your files stay in this browser. Nothing is uploaded.',
+  'tool.unsupported': 'This browser cannot run this tool. Missing: {features}.',
+  'capability.wasm': 'WebAssembly',
+  'capability.webcrypto': 'Web Crypto (needs a secure connection)',
+  'capability.worker': 'Web Workers',
+
   'category.pdf': 'PDF',
   'category.image': 'Images',
   'category.convert': 'Convert',

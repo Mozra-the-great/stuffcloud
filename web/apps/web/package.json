@@ -13,9 +13,12 @@
     "test": "vitest run --coverage",
     "build": "vite build",
     "tokens": "node scripts/gen-tokens.ts --write",
-    "tokens:check": "node scripts/gen-tokens.ts --check"
+    "tokens:check": "node scripts/gen-tokens.ts --check",
+    "check-tools": "node scripts/check-tools.ts",
+    "new-tool": "node scripts/new-tool.ts"
   },
   "dependencies": {
+    "@stuffcloud/tools": "workspace:*",
     "svelte": "^5.57.3"
   },
   "devDependencies": {

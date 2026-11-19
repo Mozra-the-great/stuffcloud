@@ -3,9 +3,11 @@
 Self-hosted toolbox (client-side tools) + one-click static hosting. Full spec: `docs/SPEC.md`.
 
 ## Type
+
 Greenfield project (public, GPL-3.0).
 
 ## Stack
+
 Rust backend (Cargo workspace: `axum`, `tokio`, SQLite) + Svelte/Vite frontend
 (TypeScript strict), Caddy, Docker Compose. See `docs/SPEC.md` sections 4 and 14.
 Exists so far: `crates/core` (validation, no I/O), `fuzz/` and the `web/` scaffold.
@@ -13,15 +15,18 @@ Exists so far: `crates/core` (validation, no I/O), `fuzz/` and the `web/` scaffo
 inherits `[workspace.lints]` (`[lints] workspace = true`).
 
 ## Structure
+
 ```
 crates/core/    domain types + validation (SafeRelPath, Subdomain), no I/O
   tests/        properties.rs (proptest), regression.rs (attack corpus)
 web/            pnpm workspace (Node 24, own lockfile; the backend never depends on it)
   apps/web/     Svelte + Vite SPA (static build): src/styles (generated tokens.css, fonts.css, theme.css),
-                src/ui (base components, `Mascot` + mascot catalogue), src/app (app shell, router, pages),
+                src/ui (base components, `Mascot` + mascot catalogue), src/app (app shell, router, pages,
+                tool registry + `ToolFrame`), src/tools/<id>/ (one directory per tool: manifest.ts + Tool.svelte),
+                tools.config.json (disabled tools), scripts/ (tokens, check-tools, new-tool),
                 src/i18n (catalogues de/en, typed keys, CI check), src/gallery (component gallery),
                 src/assets/fonts (self-hosted), bench/ (animation benchmark: `node bench/run.ts bench|verify|size`)
-  packages/tools/       tool modules (manifest type, id rules)
+  packages/tools/       manifest schema + `defineTool`, capabilities, stickers, worker pool (`createWorkerPool`, `serveWorker`)
   packages/api-client/  typed client + OpenAPI generation script (generated file comes with app)
   tests/        lint-config test (a deliberate `any` must fail lint)
 fuzz/           cargo-fuzz targets, seeds, dictionary (own workspace, nightly)
@@ -36,6 +41,7 @@ docs/           SPEC.md, adr/ (architecture decision records), THIRD-PARTY.md (g
 ```
 
 ## Commands
+
 ```sh
 cargo fmt --all && cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-targets          # unit, property, regression tests
@@ -48,19 +54,25 @@ python -m unittest discover -s scripts/ci -p "test_*.py"   # CI helper tests (Py
 python scripts/ci/license_gate.py             # npm license gate (needs pnpm; installs into a temp dir)
 python scripts/ci/third_party.py --write      # regenerate docs/THIRD-PARTY.md after a lockfile change
 ```
+
 Tools: `cargo install --locked cargo-llvm-cov cargo-mutants cargo-deny cargo-fuzz`
 (CI pins their versions in the workflows).
 
 Frontend, from `web/` (`corepack enable` once; Node per `.nvmrc`):
+
 ```sh
 pnpm install --frozen-lockfile
 pnpm lint && pnpm typecheck && pnpm test && pnpm build   # coverage floor 95 % per package
 pnpm tokens                                              # regenerate src/styles/tokens.css from docs/design (test fails when stale)
+pnpm new-tool <id> [--category c] [--sticker s] [--name "N"] [--worker]   # scaffold a tool (ADR 0012)
+pnpm check-tools                                         # validate all tool manifests (`vite build` runs the same check)
 CHROME_PATH=... node apps/web/bench/run.ts bench         # animation runtime benchmark (needs Chrome; ADR 0008)
 ```
 
 ## Tests (non-negotiable)
+
 Tests are part of the security design; err on the side of too many (SPEC section 14).
+
 - Every rule gets unit tests on both sides of every boundary, every error variant
   and message is asserted. Coverage floor 95 % lines and regions; never lower it to
   get green.
@@ -73,6 +85,7 @@ Tests are part of the security design; err on the side of too many (SPEC section
   to make CI pass; `#[expect(..., reason = "...")]` only where the reason is a proof.
 
 ## CI
+
 `ci.yml` job `build` is the required check: an aggregate over fmt, clippy, test,
 docs, coverage, mutants, fuzz, web (lint, typecheck, test, build of `web/`), licenses (npm
 license gate + THIRD-PARTY.md freshness), supply-chain, codeql and repo-checks (add new jobs to its `needs`; no job skips itself on changed
@@ -84,6 +97,7 @@ minor/patch grouped; semver-major `@types/node` is ignored, it follows the Node 
 `web/.nvmrc` and is bumped by hand together with it).
 
 ## Dependencies and licenses
+
 A new dependency must have a GPL-3.0-compatible license. Rust: `cargo deny` (`deny.toml`).
 npm: `scripts/ci/license_gate.py` against `scripts/ci/license-policy.toml` (prod and dev,
 all platform variants; unknown or missing license fails). The allow list there equals
@@ -94,14 +108,27 @@ each with a reason. After a lockfile change regenerate `docs/THIRD-PARTY.md` wit
 and data files go into `docs/THIRD-PARTY-ASSETS.md`. Details: CONTRIBUTING.md.
 
 ## Architecture decisions
+
 Decisions that are expensive to reverse go into `docs/adr/` (index, status values, template
 and numbering rule in `docs/adr/README.md`). Do not change an accepted ADR's decision: write a
 new one that supersedes it; a gap-filling addendum (SQLite driver, A-01) is appended to the
 original. Update the index and `docs/SPEC.md` in the same PR.
 
+## Tools
+
+A tool is a directory `web/apps/web/src/tools/<id>/` created with `pnpm new-tool <id>` (ADR 0012):
+`manifest.ts` (schema-checked; a bad one fails `vite build`), `Tool.svelte` (always a `<ToolFrame>`,
+which owns the one `<h1>`) and its test. Name, description and keywords are catalogue keys
+(`tool.<id>.name|description|keywords`, German and English), never literals. A tool never sends file
+content anywhere: `fileContent: 'stays-in-browser'`, no network API in tool sources (a test scans
+them). Heavy work runs in a worker through `createWorkerPool`/`serveWorker`. New generic pieces
+go to kern (#121), not into `src/ui`.
+
 ## API-first (no UI-only features)
+
 stuffcloud must be fully operable without the web UI (SPEC §10, ADR 0010). Flag every
 violation in review.
+
 - The web UI talks to the server only through the generated API client; no hand-built API
   calls, no server logic reachable only from the UI.
 - A PR that adds or changes a UI action on the instance (user or admin) adds or changes, in
@@ -117,6 +144,7 @@ violation in review.
   declarative file.
 
 ## Changelog
+
 Every PR with a visible change (code, docs, design, CI) adds an entry under
 `[Unreleased]` in `CHANGELOG.md` (Keep a Changelog: Added / Changed / Fixed /
 Removed), written in English, with the PR number in parentheses. Add it in the
@@ -124,6 +152,7 @@ same PR, not afterwards. Pure typo fixes and dependency bumps by Dependabot are
 exempt. A release moves `[Unreleased]` under the new version heading.
 
 ## Design PDF
+
 `docs/design/stuffcloud-design-system.pdf` is generated from `docs/design/`. Any PR
 that changes the design (mockups in `docs/design/prototypes/`, `stuff.css`, stickers,
 mascots, decorations, `THEME-TEXTS.md`, tokens or rules in `docs/design/README.md`)
@@ -137,6 +166,7 @@ Locally:
 `docs/design/tools/pdf/build_book.py` (unlisted stickers land in "Other").
 
 ## Notes
+
 - Merge gate: ruleset in `.github/rulesets/default.json` (required checks: build,
   workflow-lint, gitleaks, claude-review). CodeQL is the advanced setup
   (`codeql.yml`, called by `ci.yml` as job `codeql`, so `build` covers it); it fails
@@ -147,7 +177,9 @@ Locally:
 - Claude review needs the Actions secret `CLAUDE_CODE_OAUTH_TOKEN`; without it the job skips and stays green.
 
 ## Instance-neutral (open source)
+
 stuffcloud is open source and must work for any operator. Flag every violation in review.
+
 - No real domain, hostname, IP address, e-mail address or other operator-specific value
   in code, tests, fixtures, default config, docs, ADRs or issue templates. Zones and the
   app address come from admin settings or deployment configuration (SPEC §5), never
@@ -168,12 +200,14 @@ Claude Code configuration so this repo behaves consistently even if opened on a
 different machine or by a collaborator.
 
 ### Language
+
 - Chat responses: German
 - Everything that goes into the repo — code, comments, commit messages, branch
   names, PR descriptions, CHANGELOG: English (default, more compact)
 - Respect a project's already-established language convention if one exists
 
 ### Approach — get it right once instead of fixing it ten times
+
 1. Fully understand the task before starting
 2. Think through the solution: edge cases, error handling, dependencies, blast radius
 3. Only then implement it completely and correctly
@@ -186,22 +220,26 @@ unclear and would change the direction of the solution, ask once rather than
 building in the wrong direction.
 
 ### Coding rules
+
 - TypeScript: no `any`, explicit types
 - Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`
 - Follow the project's existing conventions over these defaults when they conflict
 
 ### Git workflow
+
 - Never commit directly to `main`/`master` — always a feature branch
 - Branch names in English, kebab-case (`feat/...`, `fix/...`)
 - Before every push: check `git status` and `git diff --staged`
 - No `git push --force` on main/master
 
 ### Security
+
 - `.env`, `.env.*`, `*.pem`, `*.key`, `*.secret` — never read, log, or commit
 - No credentials/tokens/passwords in code
 - Secrets via environment variables or a secrets manager, never in plaintext
 
 ### Subagents — delegate proactively
+
 Use these specialists without being asked each time, as soon as the situation fits:
 
 - **test-runner** → right after writing or changing application code

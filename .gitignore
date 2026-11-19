@@ -55,3 +55,6 @@ __pycache__/
 
 # Local queue prompts and work files (never committed)
 /Prompts & Claude/
+
+# Throw-away app trees the web tests create (removed after each run)
+/web/apps/web/.tmp-*/

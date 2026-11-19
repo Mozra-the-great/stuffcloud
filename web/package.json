@@ -15,7 +15,9 @@
     "typecheck": "tsc --noEmit && pnpm -r typecheck",
     "test": "vitest run --config tests/vitest.config.ts && pnpm -r --workspace-concurrency=1 test",
     "build": "pnpm -r build",
-    "tokens": "pnpm --filter @stuffcloud/web tokens"
+    "tokens": "pnpm --filter @stuffcloud/web tokens",
+    "check-tools": "pnpm --filter @stuffcloud/web check-tools",
+    "new-tool": "pnpm --filter @stuffcloud/web new-tool"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

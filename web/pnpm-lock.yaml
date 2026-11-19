@@ -208,6 +208,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@stuffcloud/tools':
+        specifier: workspace:*
+        version: link:../../packages/tools
       svelte:
         specifier: ^5.57.3
         version: 5.57.3(@typescript-eslint/types@8.72.2)

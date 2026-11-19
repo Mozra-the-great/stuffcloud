@@ -1,7 +1,18 @@
-import type { ToolEntry } from './tools.ts';
+import toolsConfig from '../../tools.config.json';
+import { buildRegistry, type ManifestModules } from './registry.ts';
 
 /**
- * The tools this build ships. The tool registry (T-04, #12) replaces this list with the entries
- * generated from the tool manifests; until a tool exists the shell shows its empty state.
+ * Every `src/tools/<id>/manifest.ts` (eager: the manifests are small data, the tools themselves
+ * load lazily through `load()`). Adding a tool is adding that directory; nothing else lists it.
  */
-export const TOOL_ENTRIES: readonly ToolEntry[] = [];
+const MANIFESTS: ManifestModules = import.meta.glob<{ default?: unknown }>(
+  '../tools/*/manifest.ts',
+  { eager: true },
+);
+
+/**
+ * The tools this build ships, built from the manifests and `tools.config.json`: navigation,
+ * search and routes all read this list. A broken manifest throws here, so the app does not start
+ * (and `vite build` already failed on it, see `scripts/check-tools.ts`).
+ */
+export const TOOL_ENTRIES = buildRegistry(MANIFESTS, { config: toolsConfig }).entries;

@@ -253,9 +253,12 @@ Authentication
 
 ## 7. Toolbox
 
-Each tool is a **module with a manifest** (id, name, category, icon/sticker,
-lazy-loaded entry, `runsIn: client|server`, required libs, a11y notes). Admins can
-disable tools. All v1 tools run **client-side**; nothing is uploaded.
+Each tool is a **module with a manifest** (id, category, i18n keys for name, description
+and search keywords, sticker, lazy-loaded entry, `runsIn: client|server`, required browser
+capabilities, size budget; ADR 0012). The registry builds navigation, search and routes from the
+manifests, and a manifest that breaks the schema fails the build. Admins can disable tools (a
+configuration file until the admin toggle of A-09). All v1 tools run **client-side**; nothing is
+uploaded: the schema requires `fileContent: "stays-in-browser"` and refuses `runsIn: "server"`.
 
 Library candidates (license must be verified per version before adoption):
 
@@ -287,6 +290,8 @@ Library candidates (license must be verified per version before adoption):
 Rules
 - Large WASM/ML assets load only when the tool opens, are self-hosted, and show
   progress. A size budget per tool is documented in its manifest.
+- Heavy work runs in Web Workers through the shared worker pool (progress and cancel built in);
+  cancelling stops the worker. New tools start from `pnpm new-tool <id>`.
 - Files never leave the browser for client-side tools. The UI says so.
 - Tools may work offline once loaded (service-worker caching is optional).
 

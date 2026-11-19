@@ -15,6 +15,8 @@ export default tseslint.config(
       'packages/api-client/src/generated/**',
       // Deliberately bad code; only the lint-config test lints it (with `ignore: false`).
       'tests/fixtures/**',
+      // Throw-away app trees the web tests create and remove.
+      '**/.tmp-*/**',
     ],
   },
   js.configs.recommended,

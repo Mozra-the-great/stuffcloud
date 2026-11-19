@@ -125,7 +125,11 @@ describe('no hard-coded UI strings in the app shell', () => {
     expect(violations('<input aria-label={t("a")} />')).toEqual([]);
   });
 
-  const components = sourceFiles(join(srcRoot, 'app'), ['.svelte']);
+  // The shell and every tool page: a tool's own text goes through the catalogues as well.
+  const components = [
+    ...sourceFiles(join(srcRoot, 'app'), ['.svelte']),
+    ...sourceFiles(join(srcRoot, 'tools'), ['.svelte']),
+  ];
 
   it('covers the shell components', () => {
     expect(components.length).toBeGreaterThanOrEqual(10);

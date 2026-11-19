@@ -1,13 +1,15 @@
 import { resolve } from 'node:path';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vite';
+import { toolManifestCheck } from './scripts/tool-check.ts';
 
 // The mascot art is read straight from `docs/design`, which sits outside the pnpm workspace root
 // the dev server serves by default.
 const repoRoot = resolve(import.meta.dirname, '../../..');
 
 export default defineConfig({
-  plugins: [svelte()],
+  // A tool manifest that breaks the schema fails the build (and the dev server start).
+  plugins: [toolManifestCheck(), svelte()],
   server: { fs: { allow: [repoRoot] } },
   build: {
     target: 'es2023',

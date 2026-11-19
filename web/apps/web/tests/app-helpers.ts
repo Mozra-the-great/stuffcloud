@@ -10,7 +10,16 @@ export function makeTool(
   de: string,
   load: ToolEntry['load'] = () => import('./ToolPage.svelte'),
 ): ToolEntry {
-  return { id, category, name: { en, de }, load };
+  return {
+    id,
+    category,
+    name: { en, de },
+    description: { en: `${en} description`, de: `${de} Beschreibung` },
+    keywords: { en: '', de: '' },
+    sticker: 'shield',
+    requires: [],
+    load,
+  };
 }
 
 export const TOOLS: readonly ToolEntry[] = [

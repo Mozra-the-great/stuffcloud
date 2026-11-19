@@ -67,6 +67,13 @@ jobs:
         if: ${{ hashFiles('scripts/ci/test_labels.py') != '' }}
         run: python3 -m unittest discover -s scripts/ci -p "test_*.py"
 
+      # Cookie scope gate (SPEC 5.5, ADR 0009): no Rust source of any crate may set a
+      # cookie with a Domain attribute, and only the cookie module names Set-Cookie. The
+      # runtime counterpart is the integration test that checks every Set-Cookie of every
+      # route (crates/app/tests/integration/auth.rs).
+      - name: No cookie with a Domain attribute
+        run: python3 scripts/ci/check_cookies.py
+
       # The hash of the design sources must match docs/design/pdf-source.sha256,
       # which build.py writes with the PDF. Fails when docs/design changed without
       # a PDF rebuild.
@@ -246,7 +253,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [safe_rel_path, subdomain, entity_tags, write_query, writable_body]
+        target: [safe_rel_path, subdomain, entity_tags, write_query, writable_body, cookie_header, origin, csrf_check]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -8,11 +8,15 @@ use axum::body::{Body, to_bytes};
 use axum::http::request::Parts;
 use axum::http::{HeaderMap, Method, Request, StatusCode};
 use serde_json::Value;
+use stuffcloud_app::auth::AuthSettings;
 use stuffcloud_app::config::Limits;
 use stuffcloud_app::problem::Problem;
 use stuffcloud_app::server::router;
-use stuffcloud_app::state::{Access, AccessPolicy, AppState, Clock, ReadOnlyPolicy};
-use stuffcloud_db::Database;
+use stuffcloud_app::state::{Access, AccessPolicy, AdminWritePolicy, AppState, Clock};
+use stuffcloud_core::csrf::Origin;
+use stuffcloud_core::session::{Role, Timeouts, UserKind};
+use stuffcloud_core::token::Token;
+use stuffcloud_db::{Database, NewSession, Session, token_hash};
 use tower::ServiceExt;
 
 /// Lets every request through: stands in for the authorisation of A-07 in tests of the
@@ -27,20 +31,91 @@ impl AccessPolicy for AllowAll {
 }
 
 /// A clock that moves one second forward on every read, so a write that touched a
-/// timestamp would show it.
+/// timestamp would show it. Tests move it further with [`SteppingClock::advance`].
 #[derive(Debug, Default)]
 pub(crate) struct SteppingClock(AtomicI64);
 
-impl Clock for SteppingClock {
-    fn now_millis(&self) -> i64 {
-        1_763_510_400_000 + self.0.fetch_add(1000, Ordering::SeqCst)
+/// The first reading of [`SteppingClock`].
+pub(crate) const EPOCH: i64 = 1_763_510_400_000;
+
+impl SteppingClock {
+    pub(crate) fn advance(&self, millis: i64) {
+        let _ = self.0.fetch_add(millis, Ordering::SeqCst);
     }
 }
+
+impl Clock for SteppingClock {
+    fn now_millis(&self) -> i64 {
+        EPOCH + self.0.fetch_add(1000, Ordering::SeqCst)
+    }
+}
+
+/// The app address of every test app: a name that a hosted site may share (RFC 2606).
+pub(crate) const APP_ORIGIN: &str = "https://app.example.com";
+
+/// A hosted site on the same registrable domain as the app.
+pub(crate) const SITE_ORIGIN: &str = "https://site.example.com";
+
+/// The CSRF token the helpers send by default (header and cookie) for anonymous writes.
+pub(crate) const CSRF: &str = "c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5";
+
+/// Headers that pass the CSRF checks without a session.
+pub(crate) fn csrf_headers() -> Vec<(String, String)> {
+    vec![
+        ("origin".to_owned(), APP_ORIGIN.to_owned()),
+        ("x-csrf-token".to_owned(), CSRF.to_owned()),
+        (
+            "cookie".to_owned(),
+            format!("__Host-stuffcloud-csrf={CSRF}"),
+        ),
+    ]
+}
+
+/// A logged-in browser: the session and the tokens its cookies hold.
+#[derive(Debug, Clone)]
+pub(crate) struct Browser {
+    pub(crate) session: Session,
+    pub(crate) token: Token,
+    pub(crate) csrf: Token,
+}
+
+impl Browser {
+    /// The `Cookie` header with both cookies.
+    pub(crate) fn cookie(&self) -> String {
+        format!(
+            "__Host-stuffcloud-session={}; __Host-stuffcloud-csrf={}",
+            self.token.to_hex(),
+            self.csrf.to_hex()
+        )
+    }
+
+    /// Headers of a read from this browser: both cookies.
+    pub(crate) fn read_headers(&self) -> Vec<(String, String)> {
+        vec![("cookie".to_owned(), self.cookie())]
+    }
+
+    /// Headers of a write from this browser: origin, CSRF header and both cookies.
+    pub(crate) fn write_headers(&self) -> Vec<(String, String)> {
+        vec![
+            ("origin".to_owned(), APP_ORIGIN.to_owned()),
+            ("x-csrf-token".to_owned(), self.csrf.to_hex()),
+            ("cookie".to_owned(), self.cookie()),
+        ]
+    }
+}
+
+/// Test timeouts: short enough to cross with [`SteppingClock::advance`].
+pub(crate) const TIMEOUTS: Timeouts = Timeouts {
+    idle_ms: 10 * 60_000,
+    absolute_ms: 60 * 60_000,
+};
 
 /// An app on a fresh temporary database.
 pub(crate) struct TestApp {
     pub(crate) dir: tempfile::TempDir,
     pub(crate) db: Arc<Database>,
+    pub(crate) clock: Arc<SteppingClock>,
+    pub(crate) state: AppState,
     pub(crate) router: Router,
 }
 
@@ -62,19 +137,82 @@ impl TestApp {
         let _ = db.migrate().unwrap();
         let policy: Arc<dyn AccessPolicy> = match policy {
             Policy::AllowAll => Arc::new(AllowAll),
-            Policy::Production => Arc::new(ReadOnlyPolicy),
+            Policy::Production => Arc::new(AdminWritePolicy),
         };
+        let clock = Arc::new(SteppingClock::default());
+        let shared_clock: Arc<dyn Clock> = Arc::<SteppingClock>::clone(&clock);
         let state = AppState::new(
             Arc::clone(&db),
             policy,
-            Arc::new(SteppingClock::default()),
+            shared_clock,
             limits,
+            AuthSettings {
+                app_origin: Origin::parse(APP_ORIGIN.as_bytes()).unwrap(),
+                timeouts: TIMEOUTS,
+            },
         );
         Self {
             dir,
             db,
-            router: router(state),
+            clock,
+            router: router(state.clone()),
+            state,
         }
+    }
+
+    /// Creates a person with `role` and a session for it, as a login would.
+    pub(crate) fn login(&self, login: &str, role: Role) -> Browser {
+        let user = self
+            .db
+            .create_user(login, UserKind::Person, role, None, EPOCH)
+            .unwrap();
+        self.session_for(user.id)
+    }
+
+    /// A new session for an existing account.
+    pub(crate) fn session_for(&self, user_id: i64) -> Browser {
+        let token = Token::from_bytes(random_bytes());
+        let csrf = Token::from_bytes(random_bytes());
+        let session = self
+            .db
+            .create_session(
+                &NewSession {
+                    user_id,
+                    token_hash: token_hash(&token),
+                    csrf_hash: token_hash(&csrf),
+                    replaces: None,
+                },
+                &TIMEOUTS,
+                self.clock.now_millis(),
+            )
+            .unwrap();
+        Browser {
+            session,
+            token,
+            csrf,
+        }
+    }
+
+    /// Sends `method path` with `headers` and an optional JSON body.
+    pub(crate) async fn call(
+        &self,
+        method: Method,
+        path: &str,
+        headers: &[(String, String)],
+        body: Option<&Value>,
+    ) -> Reply {
+        let mut builder = Request::builder().method(method).uri(path);
+        for (name, value) in headers {
+            builder = builder.header(name.as_str(), value.as_str());
+        }
+        let body = match body {
+            Some(json) => {
+                builder = builder.header("content-type", "application/json");
+                Body::from(json.to_string())
+            }
+            None => Body::empty(),
+        };
+        self.send(builder.body(body).unwrap()).await
     }
 
     pub(crate) async fn send(&self, request: Request<Body>) -> Reply {
@@ -101,6 +239,9 @@ impl TestApp {
         headers: &[(&str, &str)],
     ) -> Reply {
         let mut builder = Request::put(path).header("content-type", "application/json");
+        for (name, value) in csrf_headers() {
+            builder = builder.header(name, value);
+        }
         for (name, value) in headers {
             builder = builder.header(*name, *value);
         }
@@ -110,6 +251,9 @@ impl TestApp {
 
     pub(crate) async fn delete(&self, path: &str, headers: &[(&str, &str)]) -> Reply {
         let mut builder = Request::builder().method(Method::DELETE).uri(path);
+        for (name, value) in csrf_headers() {
+            builder = builder.header(name, value);
+        }
         for (name, value) in headers {
             builder = builder.header(*name, *value);
         }
@@ -124,6 +268,17 @@ impl TestApp {
             .map(|entry| entry.action)
             .collect()
     }
+}
+
+/// 32 bytes that differ on every call (tests need uniqueness, not secrecy).
+fn random_bytes() -> [u8; 32] {
+    static NEXT: AtomicI64 = AtomicI64::new(1);
+    let seed = NEXT.fetch_add(1, Ordering::SeqCst).to_le_bytes();
+    let mut bytes = [0x5a_u8; 32];
+    for (index, slot) in bytes.iter_mut().enumerate() {
+        *slot ^= seed[index % 8].wrapping_add(u8::try_from(index).unwrap());
+    }
+    bytes
 }
 
 /// A response with its body read.
@@ -146,6 +301,15 @@ impl Reply {
 
     pub(crate) fn header(&self, name: &str) -> Option<&str> {
         self.headers.get(name).and_then(|value| value.to_str().ok())
+    }
+
+    /// Every `Set-Cookie` value.
+    pub(crate) fn set_cookies(&self) -> Vec<String> {
+        self.headers
+            .get_all("set-cookie")
+            .iter()
+            .map(|value| value.to_str().unwrap().to_owned())
+            .collect()
     }
 
     /// Asserts a problem document of the given type slug and status.

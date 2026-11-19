@@ -110,6 +110,10 @@ async fn logs_contain_no_addresses_tokens_cookies_or_queries() {
         Arc::new(AllowAll),
         Arc::new(SystemClock),
         Limits::default(),
+        stuffcloud_app::auth::AuthSettings {
+            app_origin: stuffcloud_core::csrf::Origin::parse(b"https://app.example.com").unwrap(),
+            timeouts: stuffcloud_core::session::Timeouts::default(),
+        },
     );
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();

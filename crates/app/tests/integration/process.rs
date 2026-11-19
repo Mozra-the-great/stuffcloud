@@ -232,12 +232,39 @@ mod lifecycle {
             answer.contains(r#""names":["intranet","wiki"]"#),
             "{answer}"
         );
+        // The real binary refuses a write without Origin (CSRF, SPEC 5.5) and hands out a
+        // `__Host-` CSRF cookie without a Domain attribute.
+        let refused = raw_http(
+            address,
+            "PUT /api/v1/settings/reserved-names HTTP/1.1\r\nHost: stuff.localhost\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}",
+        );
+        assert!(refused.starts_with("HTTP/1.1 403"), "{refused}");
+        assert!(refused.contains("csrf-rejected"), "{refused}");
+        let session = raw_http(
+            address,
+            "GET /api/v1/auth/session HTTP/1.1\r\nHost: stuff.localhost\r\nConnection: close\r\n\r\n",
+        );
+        assert!(session.starts_with("HTTP/1.1 200"), "{session}");
+        let cookie_line = session
+            .lines()
+            .find(|line| line.to_ascii_lowercase().starts_with("set-cookie:"))
+            .unwrap_or_default()
+            .to_owned();
+        assert!(
+            cookie_line.starts_with("set-cookie: __Host-stuffcloud-csrf="),
+            "{cookie_line}"
+        );
+        assert!(
+            !cookie_line.to_ascii_lowercase().contains("domain"),
+            "{cookie_line}"
+        );
         let (code, lines) = stop(child);
         assert_eq!(code, Some(0), "graceful shutdown exits with 0");
         let first = messages(&lines);
         for expected in [
             "database ready",
             "first start: bootstrap applied",
+            "expired sessions purged",
             "listening",
             "stopped cleanly",
         ] {

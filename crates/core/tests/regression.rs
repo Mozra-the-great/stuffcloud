@@ -217,3 +217,102 @@ fn query_errors_stay_short_for_control_characters() {
         assert!(message.len() < 300, "{} bytes: {message}", message.len());
     }
 }
+
+/// `Origin` values that must never count as the app origin `https://app.example.com`: lookalike
+/// hosts, user information, paths, whitespace, encodings and opaque origins (ADR 0009, CSRF).
+const ORIGIN_ATTACKS: &[&str] = &[
+    "null",
+    "NULL",
+    "",
+    " https://app.example.com",
+    "https://app.example.com ",
+    "https://app.example.com\t",
+    "https://app.example.com.",
+    "https://app.example.com.site.example.com",
+    "https://site.example.com",
+    "https://app-example.com",
+    "https://app.example.com@site.example.com",
+    "https://site.example.com@app.example.com",
+    "https://site.example.com/https://app.example.com",
+    "https://app.example.com/",
+    "https://app.example.com:443/",
+    "https://app.example.com:0443x",
+    "https://app.example.com%2f",
+    "https://app%2eexample.com",
+    "https://xn--pp-8ka.example.com",
+    "http://app.example.com",
+    "https://app.example.com:8443",
+    "https://app.example.com:443:443",
+    "https://app\u{2024}example.com",
+    "https://\u{430}pp.example.com",
+    "https://app.example.com\0",
+    "https://app.example.com\r\nx: y",
+    "ws://app.example.com",
+    "//app.example.com",
+    "app.example.com",
+];
+
+#[test]
+fn origin_attacks_are_not_the_app_origin() {
+    use stuffcloud_core::csrf::Origin;
+    let app = Origin::parse(b"https://app.example.com").unwrap();
+    for input in ORIGIN_ATTACKS {
+        assert_ne!(
+            Origin::parse(input.as_bytes()).as_ref(),
+            Ok(&app),
+            "{input:?} counted as the app origin"
+        );
+    }
+}
+
+/// `Cookie` headers in which a hosted site on the same registrable domain tries to plant or
+/// shadow the session cookie `__Host-stuffcloud-session` (cookie tossing, ADR 0009). None of
+/// them may yield a session value.
+const COOKIE_TOSSING: &[&str] = &[
+    "stuffcloud-session=0000000000000000000000000000000000000000000000000000000000000000",
+    "__host-stuffcloud-session=0000000000000000000000000000000000000000000000000000000000000000",
+    "__HOST-stuffcloud-session=0000000000000000000000000000000000000000000000000000000000000000",
+    "__Secure-stuffcloud-session=0000000000000000000000000000000000000000000000000000000000000000",
+    "__Host-stuffcloud-session=1111111111111111111111111111111111111111111111111111111111111111; __Host-stuffcloud-session=0000000000000000000000000000000000000000000000000000000000000000",
+    "=__Host-stuffcloud-session=0000000000000000000000000000000000000000000000000000000000000000",
+    "__Host-stuffcloud-session",
+    "__Host-stuffcloud-sessionx=0000000000000000000000000000000000000000000000000000000000000000",
+    "x__Host-stuffcloud-session=0000000000000000000000000000000000000000000000000000000000000000",
+];
+
+#[test]
+fn tossed_cookies_yield_no_session() {
+    use stuffcloud_core::cookie::lookup;
+    for input in COOKIE_TOSSING {
+        assert_eq!(
+            lookup([input.as_bytes()], "__Host-stuffcloud-session").value(),
+            None,
+            "{input:?} yielded a session value"
+        );
+    }
+}
+
+/// Token texts that must not parse: other cases, padding, encodings and lengths.
+const TOKEN_ATTACKS: &[&str] = &[
+    "",
+    "00",
+    "000000000000000000000000000000000000000000000000000000000000000",
+    "00000000000000000000000000000000000000000000000000000000000000000",
+    "000000000000000000000000000000000000000000000000000000000000000A",
+    " 000000000000000000000000000000000000000000000000000000000000000",
+    "000000000000000000000000000000000000000000000000000000000000000 ",
+    "\"00000000000000000000000000000000000000000000000000000000000000\"",
+    "%30000000000000000000000000000000000000000000000000000000000000",
+    "0x00000000000000000000000000000000000000000000000000000000000000",
+    "00000000000000000000000000000000000000000000000000000000000000\u{0}0",
+];
+
+#[test]
+fn token_attacks_are_rejected() {
+    for input in TOKEN_ATTACKS {
+        assert!(
+            stuffcloud_core::token::Token::parse(input.as_bytes()).is_err(),
+            "accepted attack token {input:?}"
+        );
+    }
+}

@@ -56,3 +56,24 @@ path = "fuzz_targets/writable_body.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "cookie_header"
+path = "fuzz_targets/cookie_header.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "origin"
+path = "fuzz_targets/origin.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "csrf_check"
+path = "fuzz_targets/csrf_check.rs"
+test = false
+doc = false
+bench = false

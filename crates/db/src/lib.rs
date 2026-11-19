@@ -6,12 +6,15 @@
 //! - [`store`] is the resource store behind the API conventions of ADR 0010 (idempotent
 //!   create-or-replace, strong entity tags, preconditions, dry runs, audit rows) and the
 //!   one-time bootstrap.
+//! - [`auth`] holds accounts and sessions (A-02): hashed session and CSRF tokens, timeouts,
+//!   rotation, logout, and the security events of the audit log.
 //!
 //! The crate is synchronous (`rusqlite`). One connection is shared behind a mutex: SQLite
 //! has a single writer anyway, and the `app` crate calls every method from
 //! `tokio::task::spawn_blocking`, never on an async worker. The crate reads no clock: every
 //! write takes the time as an argument, which keeps it deterministic under test.
 
+pub mod auth;
 pub mod migrate;
 pub mod store;
 
@@ -21,6 +24,9 @@ use std::time::Duration;
 
 use rusqlite::{Connection, OpenFlags};
 
+pub use auth::{
+    NewSession, RoleChange, Session, SessionLookup, TOUCH_INTERVAL_MS, TokenHash, User, token_hash,
+};
 pub use migrate::{MIGRATIONS, Migration, MigrationReport};
 pub use store::{
     AuditEntry, BootstrapOutcome, Change, DeleteOutcome, Preconditions, PutOutcome, Stored,
@@ -84,6 +90,15 @@ pub enum DbError {
         /// Version expected.
         expected: u32,
     },
+    /// No account has this id.
+    #[error("there is no account with id {0}")]
+    UnknownUser(i64),
+    /// A service account cannot have a browser session (SPEC 10.4).
+    #[error("account {0} is a service account and cannot log in interactively")]
+    NoInteractiveLogin(i64),
+    /// A stored value is impossible for this build (the file was edited by hand).
+    #[error("the database holds an invalid value: {0}")]
+    Corrupt(&'static str),
     /// A thread panicked while it held the connection.
     #[error("the database connection is unusable after a panic")]
     Poisoned,
@@ -186,10 +201,10 @@ mod tests {
             db.check_schema(),
             Err(DbError::SchemaOutdated {
                 found: 0,
-                expected: 1
+                expected: 2
             })
         ));
-        assert_eq!(db.migrate().unwrap().applied, vec![1]);
+        assert_eq!(db.migrate().unwrap().applied, vec![1, 2]);
         db.check_schema().unwrap();
         assert_eq!(db.migrate().unwrap().applied, Vec::<u32>::new());
         let conn = db.lock().unwrap();
@@ -256,6 +271,18 @@ mod tests {
 
     #[test]
     fn error_messages() {
+        assert_eq!(
+            DbError::UnknownUser(4).to_string(),
+            "there is no account with id 4"
+        );
+        assert_eq!(
+            DbError::NoInteractiveLogin(5).to_string(),
+            "account 5 is a service account and cannot log in interactively"
+        );
+        assert_eq!(
+            DbError::Corrupt("unknown role").to_string(),
+            "the database holds an invalid value: unknown role"
+        );
         assert_eq!(
             DbError::NotWal("delete".to_owned()).to_string(),
             "the journal mode is \"delete\", expected \"wal\""

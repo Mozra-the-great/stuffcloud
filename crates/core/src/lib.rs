@@ -13,14 +13,22 @@
 //! fuzz targets reach them without a database: entity tags and preconditions
 //! ([`etag`]), the write query string ([`query`]), writable resource documents with
 //! field errors ([`body`], [`field`]) and the settings groups ([`settings`]).
+//!
+//! The auth building blocks of A-02 (ADR 0005 addendum) are pure as well: secret tokens
+//! ([`token`]), the `__Host-` cookies and the `Cookie` header ([`cookie`]), the `Origin` and
+//! CSRF checks ([`csrf`]) and session lifetimes, roles and account kinds ([`session`]).
 
 pub mod body;
+pub mod cookie;
+pub mod csrf;
 pub mod etag;
 pub mod field;
 pub mod path;
 pub mod query;
+pub mod session;
 pub mod settings;
 pub mod subdomain;
+pub mod token;
 
 pub use path::{PathError, SafeRelPath};
 pub use subdomain::{Subdomain, SubdomainError};

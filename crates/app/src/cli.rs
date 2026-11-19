@@ -17,8 +17,9 @@ use std::time::Duration;
 
 use stuffcloud_db::Database;
 
+use crate::auth::AuthSettings;
 use crate::config::{self, Config, Environment};
-use crate::state::{AppState, Clock, ReadOnlyPolicy, SystemClock};
+use crate::state::{AdminWritePolicy, AppState, Clock, SystemClock};
 use crate::{bootstrap, openapi, server, telemetry};
 
 /// Success.
@@ -169,11 +170,19 @@ pub fn start(config: &Config) -> Result<(), String> {
     let clock = SystemClock;
     let _bootstrap = bootstrap::run(&db, config.bootstrap_config.as_deref(), clock.now_millis())
         .map_err(|error| error.to_string())?;
+    let purged = db
+        .purge_expired_sessions(&config.session, clock.now_millis())
+        .map_err(|error| format!("cannot purge expired sessions: {error}"))?;
+    tracing::info!(target: "stuffcloud::server", purged, "expired sessions purged");
     let state = AppState::new(
         Arc::new(db),
-        Arc::new(ReadOnlyPolicy),
+        Arc::new(AdminWritePolicy),
         Arc::new(clock),
         config.limits,
+        AuthSettings {
+            app_origin: config.app_url.origin().clone(),
+            timeouts: config.session,
+        },
     );
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

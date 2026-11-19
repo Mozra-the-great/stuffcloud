@@ -317,6 +317,9 @@ async fn request_problems() {
     let app = TestApp::new(Policy::AllowAll);
     let send = |content_type: Option<&'static str>, body: &'static str| {
         let mut builder = axum::http::Request::put(PATH);
+        for (name, value) in crate::common::csrf_headers() {
+            builder = builder.header(name, value);
+        }
         if let Some(value) = content_type {
             builder = builder.header("content-type", value);
         }

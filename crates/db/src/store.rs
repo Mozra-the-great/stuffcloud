@@ -157,12 +157,15 @@ pub struct AuditEntry {
     pub at: i64,
     /// Who acted (`None` until accounts exist).
     pub actor: Option<String>,
-    /// `created`, `updated`, `deleted` or `bootstrap`.
+    /// `created`, `updated`, `deleted` or `bootstrap` for resources; `session.*` and
+    /// `user.*` for security events ([`crate::auth`]).
     pub action: String,
     /// Resource kind.
     pub kind: String,
-    /// Resource key.
+    /// Resource key (for security events: the internal id of the session or account).
     pub key: String,
+    /// `resource` (a change of a resource) or `security` (an auth event).
+    pub category: String,
 }
 
 /// Result of [`Database::bootstrap`].
@@ -375,8 +378,9 @@ impl Database {
     /// [`DbError::Sqlite`] or [`DbError::Poisoned`].
     pub fn audit_log(&self) -> Result<Vec<AuditEntry>, DbError> {
         let conn = self.lock()?;
-        let mut statement =
-            conn.prepare("SELECT id, at, actor, action, kind, key FROM audit_log ORDER BY id")?;
+        let mut statement = conn.prepare(
+            "SELECT id, at, actor, action, kind, key, category FROM audit_log ORDER BY id",
+        )?;
         let rows = statement.query_map([], |row| {
             Ok(AuditEntry {
                 id: row.get(0)?,
@@ -385,6 +389,7 @@ impl Database {
                 action: row.get(3)?,
                 kind: row.get(4)?,
                 key: row.get(5)?,
+                category: row.get(6)?,
             })
         })?;
         Ok(rows.collect::<Result<_, _>>()?)

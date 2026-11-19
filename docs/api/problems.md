@@ -37,8 +37,33 @@ The request body is not JSON. `detail` carries the parser's message.
 <a id="unauthenticated"></a>
 ## unauthenticated (401)
 
-The request needs authentication. Until accounts exist (A-02, #32) every write answers this;
-configure the instance with the bootstrap file (`STUFFCLOUD_BOOTSTRAP_CONFIG`, SPEC 10.7).
+The request needs authentication: there is no valid session (the session cookie is missing,
+unknown, expired or ended), or the operation needs an account. Until accounts can log in (A-03,
+#33) every write answers this; configure the instance with the bootstrap file
+(`STUFFCLOUD_BOOTSTRAP_CONFIG`, SPEC 10.7).
+
+<a id="forbidden"></a>
+## forbidden (403)
+
+The client is authenticated but its role may not do this (for example a write to a settings
+group by an account that is not an admin). The permission matrix is A-07 (#37).
+
+<a id="csrf-rejected"></a>
+## csrf-rejected (403)
+
+A state-changing request (any method other than `GET`, `HEAD`, `OPTIONS`) without an
+`Authorization` header failed the cross-site request checks of SPEC 5.5:
+
+- the `Origin` header must be present once and equal the app address
+  (`STUFFCLOUD_APP_URL`); `null`, a foreign or a malformed origin is refused;
+- `Sec-Fetch-Site`, when the browser sends it, must be `same-origin`;
+- the `X-CSRF-Token` header must equal the `__Host-stuffcloud-csrf` cookie, and for a logged-in
+  session it must be the token bound to that session.
+
+`detail` names the rule. Clients get the token from `GET /api/v1/auth/session` (field
+`csrf_token`; the response also sets the cookie) and send it on every write; the generated client
+does this when given the token. API clients that authenticate with a token in the `Authorization`
+header (A-08, #38) are not subject to these checks.
 
 <a id="not-found"></a>
 ## not-found (404)

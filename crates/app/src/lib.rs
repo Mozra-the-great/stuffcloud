@@ -5,6 +5,9 @@
 //! - [`resource`]: the resource conventions of ADR 0010 (idempotent `PUT`, `ETag` and
 //!   preconditions, dry runs with a diff), built once for every resource; [`settings`] are
 //!   the first resources that use them.
+//! - [`auth`]: authentication of every request (the `__Host-` session cookie, the `Origin` and
+//!   CSRF checks of SPEC 5.5) and the session primitives the login flows use; [`sessions`]
+//!   are the session endpoints (current session and CSRF token, logout, logout everywhere).
 //! - [`problem`]: RFC 9457 problem details, the only error format.
 //! - [`health`], [`metrics`], [`telemetry`]: probes, Prometheus metrics, structured logs
 //!   without client addresses or tokens.
@@ -15,6 +18,7 @@
 //! Database work runs on the blocking thread pool ([`state::AppState::db`]), never on an
 //! async worker.
 
+pub mod auth;
 pub mod bootstrap;
 pub mod cli;
 pub mod config;
@@ -25,6 +29,7 @@ pub mod openapi;
 pub mod problem;
 pub mod resource;
 pub mod server;
+pub mod sessions;
 pub mod settings;
 pub mod state;
 pub mod telemetry;

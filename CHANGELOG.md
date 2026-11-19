@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   decimal (kB) and binary (KiB) data units kept apart, temperature offsets and absolute zero
   refused. Results are announced in live regions, copying is confirmed in the toast region, and both
   tools have table-driven tests, a Playwright spec with the axe gate and a keyboard route, and a
-  German state. App-local `CopyButton` and `ToolStatus` are candidates for kern (kern#72). (#PR)
+  German state. App-local `CopyButton` and `ToolStatus` are candidates for kern (kern#72). (#140)
 - Auth data model, sessions and CSRF protection (A-02, #32; ADR 0005 addendum): migration
   `0002_auth` adds `users`, `credentials`, `oidc_identities`, `recovery_codes`, `sessions` and a
   `category` for security events in `audit_log`. Sessions use random tokens stored only as

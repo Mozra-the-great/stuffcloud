@@ -258,4 +258,108 @@ export const de: Readonly<Record<MessageKey, Message>> = {
   'unit.volume.gal': 'Gallone (US)',
   'unit.volume.ptimp': 'Pint (imperial)',
   'unit.volume.galimp': 'Gallone (imperial)',
+
+  'tool.cron.name': 'CRON-Ausdruck',
+  'tool.cron.description':
+    'CRON-Ausdruck (5, 6 oder 7 Felder) prüfen, in Klartext lesen und sehen, wann er als Nächstes läuft, in jeder Zeitzone.',
+  'tool.cron.keywords':
+    'cron crontab zeitplan ausdruck quartz erklären nächste ausführung zeitzone scheduler',
+  'tool.user-agent.name': 'User-Agent-Parser',
+  'tool.user-agent.description':
+    'Einen User-Agent-String in Browser, Engine, Betriebssystem und Gerät zerlegen oder den eigenen auslesen.',
+  'tool.user-agent.keywords':
+    'user agent useragent ua browser betriebssystem gerät engine parser bot crawler',
+  'cron.expression': 'CRON-Ausdruck',
+  'cron.expressionHint':
+    'Fünf Felder (Minute Stunde Tag Monat Wochentag), sechs mit Sekunden vorn, sieben mit Jahr hinten oder ein Name wie @daily.',
+  'cron.timeZone': 'Zeitzone',
+  'cron.count': 'Anzahl der Ausführungen',
+  'cron.countHint': 'Von 1 bis 50',
+  'cron.countError': 'Gib eine ganze Zahl von 1 bis 50 ein.',
+  'cron.explanation': 'In Klartext',
+  'cron.copy': 'Erklärung kopieren',
+  'cron.equivalent': 'Ausgeschrieben: {expression}',
+  'cron.runs': 'Nächste Ausführungen',
+  'cron.runs.caption': 'Die nächsten Ausführungen des Zeitplans',
+  'cron.runs.number': 'Nr.',
+  'cron.runs.local': 'Zeit in {zone}',
+  'cron.runs.utc': 'UTC',
+  'cron.runs.none': 'Dieser Zeitplan läuft nie wieder.',
+  'cron.runs.fewer': {
+    one: 'Es bleibt nur {count} Ausführung; danach endet der Zeitplan.',
+    other: 'Es bleiben nur {count} Ausführungen; danach endet der Zeitplan.',
+  },
+  'cron.note.dayOr':
+    'Tag des Monats und Wochentag sind beide gesetzt, daher läuft cron an jedem Tag, auf den eines von beiden passt.',
+  'cron.note.dayAnd':
+    'Eines der beiden Tagesfelder beginnt mit *, daher muss ein Tag auf beide passen.',
+  'cron.note.numbers':
+    'Wochentagszahlen folgen dem Unix-cron: 0 und 7 sind Sonntag, 1 ist Montag. Quartz zählt den Sonntag als 1; nimm dort Namen (MON, TUE).',
+  'cron.note.dst':
+    'Zeitumstellung: Eine Zeit, die die Uhr überspringt, läuft nicht. Eine Zeit, die doppelt vorkommt, läuft einmal, außer der Zeitplan läuft in jeder Stunde.',
+  'cron.announce.runs': '{explanation}. Nächste Ausführung: {next}.',
+  'cron.error.empty': 'Gib einen CRON-Ausdruck ein.',
+  'cron.error.tooLong':
+    'Dieser Text ist zu lang für einen CRON-Ausdruck (höchstens {max} Zeichen).',
+  'cron.error.fieldCount':
+    'Ein CRON-Ausdruck hat 5, 6 oder 7 Felder, getrennt durch Leerzeichen; dieser hat {count}.',
+  'cron.error.unknownMacro':
+    '„{token}“ ist kein bekannter Name. Nimm @yearly, @annually, @monthly, @weekly, @daily, @midnight oder @hourly.',
+  'cron.error.reboot': '@reboot läuft einmal beim Start und hat daher keine Ausführungszeiten.',
+  'cron.error.emptyItem':
+    '{field}: Ein Teil ist leer (prüfe auf ein doppeltes oder abschließendes Komma).',
+  'cron.error.syntax': '{field}: „{token}“ ist kein Wert, kein Bereich und kein Schritt.',
+  'cron.error.outOfRange': '{field}: „{token}“ liegt außerhalb von {min} bis {max}.',
+  'cron.error.rangeOrder':
+    '{field}: „{token}“ beginnt nach seinem Ende. Bereiche laufen nicht über das Ende hinaus; schreibe zwei Bereiche.',
+  'cron.error.stepZero': '{field}: Der Schritt von „{token}“ muss mindestens 1 sein.',
+  'cron.error.stepTooLarge': '{field}: Der Schritt von „{token}“ ist größer als das Feld ({max}).',
+  'cron.error.unsupportedSpecial':
+    '{field}: „{token}“ gibt es nur mit sechs oder sieben Feldern (die Quartz-Form).',
+  'cron.error.badNth': '{field}: In „{token}“ muss die Zahl nach # von 1 bis 5 gehen.',
+  'cron.field.second': 'Sekunde',
+  'cron.field.minute': 'Minute',
+  'cron.field.hour': 'Stunde',
+  'cron.field.dayOfMonth': 'Tag des Monats',
+  'cron.field.month': 'Monat',
+  'cron.field.dayOfWeek': 'Wochentag',
+  'cron.field.year': 'Jahr',
+  'ua.input': 'User-Agent-String',
+  'ua.inputHint': 'Füge den User-Agent-Header einer Anfrage ein oder lies deinen eigenen aus.',
+  'ua.use': 'Meinen Browser verwenden',
+  'ua.useHint': 'Liest den User-Agent-String dieses Browsers aus. Er bleibt auf dieser Seite.',
+  'ua.clear': 'Leeren',
+  'ua.tooLong': 'Dieser Text ist zu lang für einen User-Agent-String (höchstens {max} Zeichen).',
+  'ua.result': 'Ergebnis',
+  'ua.empty': 'Füge einen User-Agent-String ein, um zu sehen, was er sagt.',
+  'ua.unknown': 'Nicht erkannt',
+  'ua.row.browser': 'Browser',
+  'ua.row.engine': 'Engine',
+  'ua.row.os': 'Betriebssystem',
+  'ua.row.device': 'Gerät',
+  'ua.row.type': 'Art',
+  'ua.row.cpu': 'CPU-Architektur',
+  'ua.type.desktop': 'Computer',
+  'ua.type.mobile': 'Smartphone',
+  'ua.type.tablet': 'Tablet',
+  'ua.type.tv': 'Fernseher',
+  'ua.type.console': 'Spielkonsole',
+  'ua.type.wearable': 'Wearable',
+  'ua.type.bot': 'Crawler oder Bot',
+  'ua.type.library': 'Programm oder Bibliothek',
+  'ua.type.unknown': 'Unbekannt',
+  'ua.notes': 'Hinweise',
+  'ua.note.windows':
+    'Windows 10 und Windows 11 senden dieselbe Version (10.0) und sehen daher gleich aus.',
+  'ua.note.macos':
+    'Browser melden macOS 10.15.7, egal welche Version wirklich läuft; die macOS-Version ist daher unbekannt.',
+  'ua.note.reduced':
+    'Dieser Browser sendet einen verkürzten User-Agent-String: Das Gerätemodell ist verborgen.',
+  'ua.note.spoofable':
+    'Ein User-Agent-String kann alles sagen, was sein Absender will: Nimm das Ergebnis als Hinweis.',
+  'ua.copy': 'Ergebnis kopieren',
+  'ua.announce.full': '{browser} auf {os}, {type}',
+  'ua.announce.browser': '{browser}, {type}',
+  'ua.announce.os': '{os}, {type}',
+  'ua.announce.none': 'In diesem String wird nichts erkannt.',
 };

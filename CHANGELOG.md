@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- CRON expression and user-agent parser (T-19, #24): two client-side tools, no new dependency
+  (own code instead of cron-parser, cronstrue and ua-parser-js; v2 of that library is AGPL). The CRON
+  tool reads the 5-field, 6-field (seconds first) and 7-field (year last) forms, the macros
+  (`@daily` and friends) and the Quartz extras (`?`, `L`, `L-n`, `LW`, `nW`, `nL`, `n#k`), reports every
+  wrong field with its range, explains the schedule in plain German and English, and lists the next
+  1 to 50 runs in any time zone the browser knows (through `Intl`, no tz database): a time the clock
+  skips is not run, a time that happens twice runs once unless the schedule runs in every hour, and
+  the day-of-month and day-of-week fields combine as in Vixie cron (either, or both when one starts
+  with `*`). The user-agent tool names browser, engine, operating system, device (type, maker,
+  model) and CPU architecture, tells crawlers and HTTP tools apart, notes what browsers hide
+  (Windows 10 and 11, macOS 10.15.7, reduced Android strings), reads the visitor's own string only
+  when a button is pressed and copies the result as JSON. Tests: a corpus of 69 real user-agent
+  strings and 108 CRON expressions with German and English text, seeded random inputs for both
+  parsers, DST and half-hour zones, component tests and a Playwright spec per tool (axe gate in both
+  browsers, keyboard routes, live regions, German, 320 px). (#PR)
 - Colour picker and unit converter (T-18, #23): two client-side tools, no new dependency. The
   colour picker reads and writes HEX, RGB, HSL, OKLCH and CMYK (an OKLCH colour outside sRGB loses
   chroma until it fits, and says so), copies each format, checks the WCAG 2.2 contrast of two

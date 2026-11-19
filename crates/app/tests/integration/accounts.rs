@@ -455,6 +455,13 @@ async fn invite_only_refuses_open_registration() {
     // open takes anyone.
     set_mode(&app, &admin, "open").await;
     assert_eq!(app.get(SIGNUP).await.json()["mode"], "open");
+    // Deleting the setting goes back to the default: invite-only again.
+    let reset = app
+        .call(Method::DELETE, SIGNUP, &admin.write_headers(), None)
+        .await;
+    assert_eq!(reset.status.as_u16(), 200, "{}", reset.text());
+    app.get(SIGNUP).await.assert_problem(404, "not-found");
+    set_mode(&app, &admin, "open").await;
     let dave = register(
         &app,
         &json!({"login": "dave", "email": "dave@example.com", "password": "dave's own passphrase"}),

@@ -247,6 +247,87 @@ mod tests {
     }
 
     #[test]
+    fn the_rules_have_their_documented_values() {
+        assert_eq!(
+            CLIENT_RULE,
+            Rule {
+                free: 20,
+                base_ms: 1000,
+                max_ms: 900_000,
+                window_ms: 3_600_000,
+            }
+        );
+        assert_eq!(
+            ACCOUNT_RULE,
+            Rule {
+                free: 10,
+                base_ms: 1000,
+                max_ms: 900_000,
+                window_ms: 3_600_000,
+            }
+        );
+        assert_eq!(
+            REGISTER_RULE,
+            Rule {
+                free: 5,
+                base_ms: 60_000,
+                max_ms: 3_600_000,
+                window_ms: 21_600_000,
+            }
+        );
+        assert_eq!(KNOWN_FOR_MS, 2_592_000_000);
+    }
+
+    #[test]
+    fn a_failure_of_a_key_in_a_full_table_drops_nothing() {
+        let throttles = Throttles::with_capacity(2);
+        let (a, b) = (client("192.0.2.1"), client("192.0.2.2"));
+        throttles.client_failed(a, 0);
+        throttles.client_failed(b, 10);
+        throttles.client_failed(a, 20);
+        let entries = throttles.clients.entries.lock().unwrap();
+        assert_eq!(
+            entries.get(&a),
+            Some(&Failures {
+                count: 2,
+                last_at: 20
+            })
+        );
+        assert_eq!(
+            entries.get(&b),
+            Some(&Failures {
+                count: 1,
+                last_at: 10
+            })
+        );
+    }
+
+    #[test]
+    fn a_repeated_login_in_a_full_known_table_drops_nothing() {
+        let throttles = Throttles::with_capacity(2);
+        let key = account_key("alice");
+        let (a, b) = (client("192.0.2.1"), client("192.0.2.2"));
+        throttles.login_succeeded(a, key, 10);
+        throttles.login_succeeded(b, key, 0);
+        throttles.login_succeeded(a, key, 20);
+        assert_eq!(throttles.sizes()[3], 2);
+        assert!(throttles.is_known(key, a, 20));
+        assert!(throttles.is_known(key, b, 20));
+    }
+
+    #[test]
+    fn a_known_address_expires_exactly_after_thirty_days() {
+        let throttles = Throttles::with_capacity(2);
+        let key = account_key("alice");
+        throttles.login_succeeded(client("192.0.2.1"), key, 0);
+        throttles.login_succeeded(client("192.0.2.2"), key, 0);
+        // Both are exactly 30 days old: a new pair in the full table purges both.
+        throttles.login_succeeded(client("192.0.2.3"), key, KNOWN_FOR_MS);
+        assert_eq!(throttles.sizes()[3], 1);
+        assert!(throttles.is_known(key, client("192.0.2.3"), KNOWN_FOR_MS));
+    }
+
+    #[test]
     fn account_keys_ignore_case_and_whitespace() {
         assert_eq!(account_key(" Alice "), account_key("alice"));
         assert_ne!(account_key("alice"), account_key("bob"));

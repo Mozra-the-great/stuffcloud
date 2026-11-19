@@ -768,15 +768,6 @@ async fn an_admin_reset_link_works_once_within_the_hour() {
         login(&app, "alice", NEW_PASSWORD).await.status.as_u16(),
         200
     );
-    // An hour later a link no longer works.
-    let late = issue("alice").await.json()["token"]
-        .as_str()
-        .unwrap()
-        .to_owned();
-    app.clock.advance(60 * 60_000);
-    redeem("yet another passphrase", late)
-        .await
-        .assert_problem(422, "validation-failed");
     // Unknown and service accounts.
     issue("nobody").await.assert_problem(404, "not-found");
     issue("{login}").await.assert_problem(404, "not-found");
@@ -785,6 +776,16 @@ async fn an_admin_reset_link_works_once_within_the_hour() {
         .create_user("robot", UserKind::Service, Role::User, None, EPOCH)
         .unwrap();
     issue("robot").await.assert_problem(403, "forbidden");
+    // An hour later a link no longer works (the admin's own session is long idle by then, so
+    // this comes last).
+    let late = issue("alice").await.json()["token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    app.clock.advance(60 * 60_000);
+    redeem("yet another passphrase", late)
+        .await
+        .assert_problem(422, "validation-failed");
 }
 
 #[tokio::test]

@@ -10,6 +10,754 @@
     "version": "0.0.0"
   },
   "paths": {
+    "/api/v1/account": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "summary": "`GET /api/v1/account`.",
+        "operationId": "getAccount",
+        "responses": {
+          "200": {
+            "description": "The own account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountProfile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope account:read",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/password": {
+      "post": {
+        "tags": [
+          "account"
+        ],
+        "summary": "`POST /api/v1/account/password`.",
+        "operationId": "changePassword",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "The CSRF token from GET /api/v1/auth/session (required for browser sessions)",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The current and the new password",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The password is changed; every other session of the account has ended"
+          },
+          "400": {
+            "description": "Malformed body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The token lacks the scope account:write, or the Origin or CSRF check failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Body is not JSON",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields: a wrong current password, the password policy",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many wrong passwords; see Retry-After",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 0
+                },
+                "description": "Seconds until the next attempt is checked"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invitations": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "`GET /api/v1/admin/invitations`.",
+        "operationId": "listInvitations",
+        "responses": {
+          "200": {
+            "description": "The pending invitations (without tokens)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account or token lacks the permission admin:users:read",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "`POST /api/v1/admin/invitations`.",
+        "operationId": "createInvitation",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "The CSRF token from GET /api/v1/auth/session (required for browser sessions)",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Optionally the e-mail address it is for and its lifetime",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created; the token is shown only now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account or token lacks the permission admin:users:write, or the Origin or CSRF check failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Too many invitations are pending",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Body is not JSON",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/invitations/{id}": {
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "`DELETE /api/v1/admin/invitations/{id}`.",
+        "operationId": "revokeInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The id of the invitation",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "The CSRF token from GET /api/v1/auth/session (required for browser sessions)",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account or token lacks the permission admin:users:write, or the Origin or CSRF check failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No pending invitation has this id",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{login}/password-reset": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "`POST /api/v1/admin/users/{login}/password-reset`.",
+        "operationId": "createPasswordResetLink",
+        "parameters": [
+          {
+            "name": "login",
+            "in": "path",
+            "description": "The login name of the account",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "The CSRF token from GET /api/v1/auth/session (required for browser sessions)",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The reset link; the token is shown only now and works once within 60 minutes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetLink"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The account or token lacks the permission admin:users:write, the account is a service account, or the Origin or CSRF check failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No account has this login name",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "`POST /api/v1/auth/login`.",
+        "operationId": "login",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "The CSRF token from GET /api/v1/auth/session (browsers; API clients use a token instead of logging in)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Login name or e-mail address, and the password",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Logged in: the new session and its CSRF token (sets both cookies; the previous session of the browser has ended)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Wrong login or password (the same answer for an unknown account)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF check failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Body is not JSON",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields (empty or too long)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many failed attempts; see Retry-After",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 0
+                },
+                "description": "Seconds until the next attempt is checked"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password-reset": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "`POST /api/v1/auth/password-reset`.",
+        "operationId": "resetPassword",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "The CSRF token from GET /api/v1/auth/session",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The token of the reset link and the new password",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The password is set; every session of the account has ended (log in with the new password)"
+          },
+          "400": {
+            "description": "Malformed body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF check failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Body is not JSON",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields: an unknown, used or expired token, the password policy",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many failures from this client; see Retry-After",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 0
+                },
+                "description": "Seconds until the next attempt"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "`POST /api/v1/auth/register`.",
+        "operationId": "register",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "The CSRF token from GET /api/v1/auth/session",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The new account; `invitation` is required in the sign-up mode invite-only",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Registered and logged in: the new session and its CSRF token (sets both cookies)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The sign-up mode does not allow this registration (signup-closed), or the Origin or CSRF check failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Body is not JSON",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields: the rules of login name and e-mail address, the password policy, a taken login name or address, an unknown, used or expired invitation",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many registrations from this client; see Retry-After",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 0
+                },
+                "description": "Seconds until the next attempt"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/session": {
       "get": {
         "tags": [
@@ -429,6 +1177,282 @@
         }
       }
     },
+    "/api/v1/settings/signup": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "`GET /api/v1/settings/signup`.",
+        "operationId": "getSignup",
+        "responses": {
+          "200": {
+            "description": "The sign-up mode",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Strong entity tag, for If-Match"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Signup"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Never written; the default mode invite-only applies",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "`PUT /api/v1/settings/signup`.",
+        "operationId": "putSignup",
+        "parameters": [
+          {
+            "name": "dry_run",
+            "in": "query",
+            "description": "Validate and report the diff, change nothing",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Write only if the current ETag matches",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "`*`: create only",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The full writable shape; a `meta` member is ignored",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Signup"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated or unchanged (or a dry run)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WriteResult_Signup"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WriteResult_Signup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed body, header or query",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated, but the account or token lacks the permission admin:settings:write (docs/api/permissions.md)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "If-Match / If-None-Match failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Body is not JSON",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields, all of them listed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "`DELETE /api/v1/settings/signup` (reset to the defaults).",
+        "operationId": "deleteSignup",
+        "parameters": [
+          {
+            "name": "dry_run",
+            "in": "query",
+            "description": "Report what would be deleted, change nothing",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Delete only if the current ETag matches",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted (or a dry run)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WriteResult_Signup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed header or query",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated, but the account or token lacks the permission admin:settings:write (docs/api/permissions.md)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Never written",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "If-Match failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/healthz": {
       "get": {
         "tags": [
@@ -505,6 +1529,46 @@
   },
   "components": {
     "schemas": {
+      "AccountProfile": {
+        "type": "object",
+        "description": "`GET /api/v1/account`.",
+        "required": [
+          "login",
+          "role",
+          "kind",
+          "created_at",
+          "has_password"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "description": "Creation time (RFC 3339, UTC)."
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "E-mail address."
+          },
+          "has_password": {
+            "type": "boolean",
+            "description": "Whether the account has a password (accounts of the identity provider may not)."
+          },
+          "kind": {
+            "$ref": "#/components/schemas/UserKind",
+            "description": "Account kind."
+          },
+          "login": {
+            "type": "string",
+            "description": "Login name."
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role",
+            "description": "Role."
+          }
+        }
+      },
       "EndedSessions": {
         "type": "object",
         "description": "`DELETE /api/v1/auth/sessions`.",
@@ -539,6 +1603,37 @@
                   "intranet",
                   "wiki"
                 ]
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "meta"
+            ],
+            "properties": {
+              "meta": {
+                "$ref": "#/components/schemas/ResourceMeta",
+                "description": "Read-only facts; ignored when the document is sent back with `PUT`."
+              }
+            }
+          }
+        ],
+        "description": "A resource as `GET` returns it: the writable shape plus `meta`."
+      },
+      "Envelope_Signup": {
+        "allOf": [
+          {
+            "type": "object",
+            "description": "Settings group `signup`. A group that was never written means the default mode,\n`invite-only`.",
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "$ref": "#/components/schemas/SignupMode",
+                "description": "The sign-up mode."
               }
             },
             "additionalProperties": false
@@ -610,7 +1705,8 @@
           "invalid_type",
           "invalid_value",
           "duplicate",
-          "too_many"
+          "too_many",
+          "taken"
         ]
       },
       "HealthStatus": {
@@ -625,6 +1721,161 @@
             "description": "`ok` (liveness) or `ready` (readiness)."
           }
         }
+      },
+      "InvitationCreated": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/InvitationView",
+            "description": "The invitation."
+          },
+          {
+            "type": "object",
+            "required": [
+              "token",
+              "link"
+            ],
+            "properties": {
+              "link": {
+                "type": "string",
+                "description": "The registration link with the token."
+              },
+              "token": {
+                "type": "string",
+                "description": "The token for `POST /api/v1/auth/register` (`invitation`)."
+              }
+            }
+          }
+        ],
+        "description": "`POST /api/v1/admin/invitations`: the only time the token is shown."
+      },
+      "InvitationList": {
+        "type": "object",
+        "description": "`GET /api/v1/admin/invitations`.",
+        "required": [
+          "invitations"
+        ],
+        "properties": {
+          "invitations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvitationView"
+            },
+            "description": "The pending invitations, oldest first."
+          }
+        }
+      },
+      "InvitationRequest": {
+        "type": "object",
+        "description": "`POST /api/v1/admin/invitations`.",
+        "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Only this e-mail address may register with the invitation (any address when absent).",
+            "example": "bob@example.com"
+          },
+          "expires_in_hours": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Lifetime in hours (1 to 720, default 168).",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "InvitationView": {
+        "type": "object",
+        "description": "A pending invitation (`GET`, never with its token).",
+        "required": [
+          "id",
+          "created_at",
+          "expires_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "description": "Creation time (RFC 3339, UTC)."
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The only e-mail address that may use it, if any."
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "Expiry (RFC 3339, UTC)."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Id (to revoke it)."
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "description": "`POST /api/v1/auth/login`.",
+        "required": [
+          "login",
+          "password"
+        ],
+        "properties": {
+          "login": {
+            "type": "string",
+            "description": "The login name or the e-mail address of the account.",
+            "example": "alice"
+          },
+          "password": {
+            "type": "string",
+            "description": "The password."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PasswordChangeRequest": {
+        "type": "object",
+        "description": "`POST /api/v1/account/password`.",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "description": "The password now."
+          },
+          "new_password": {
+            "type": "string",
+            "description": "The new password."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PasswordResetRequest": {
+        "type": "object",
+        "description": "`POST /api/v1/auth/password-reset`: redeem a reset token.",
+        "required": [
+          "token",
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "The new password."
+          },
+          "token": {
+            "type": "string",
+            "description": "The token from the reset link."
+          }
+        },
+        "additionalProperties": false
       },
       "Problem": {
         "type": "object",
@@ -665,6 +1916,39 @@
           }
         }
       },
+      "RegisterRequest": {
+        "type": "object",
+        "description": "`POST /api/v1/auth/register`. The password policy is checked after these rules, by the\nserver (its minimum length and the offline list are deployment configuration).",
+        "required": [
+          "login",
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "The e-mail address.",
+            "example": "alice@example.com"
+          },
+          "invitation": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The invitation token (required in the sign-up mode `invite-only`)."
+          },
+          "login": {
+            "type": "string",
+            "description": "The login name (the natural key of the account).",
+            "example": "alice"
+          },
+          "password": {
+            "type": "string",
+            "description": "The password."
+          }
+        },
+        "additionalProperties": false
+      },
       "ReservedNames": {
         "type": "object",
         "description": "Settings group `reserved-names`: site names nobody may claim in any zone, on top of the\nnames stuffcloud reserves itself ([`crate::subdomain::RESERVED`]) and those a zone\nreserves (ADR 0009).\n\nEach name must be a valid site name in canonical form (lowercase, see [`Subdomain`]),\nmay appear only once, and the list keeps the order it was written in, so a `GET` returns\nexactly what the last `PUT` sent.",
@@ -685,6 +1969,29 @@
           }
         },
         "additionalProperties": false
+      },
+      "ResetLink": {
+        "type": "object",
+        "description": "A password reset link: the only time the token is shown.",
+        "required": [
+          "token",
+          "link",
+          "expires_at"
+        ],
+        "properties": {
+          "expires_at": {
+            "type": "string",
+            "description": "Expiry (RFC 3339, UTC)."
+          },
+          "link": {
+            "type": "string",
+            "description": "The reset link with the token."
+          },
+          "token": {
+            "type": "string",
+            "description": "The token for `POST /api/v1/auth/password-reset`."
+          }
+        }
       },
       "ResourceMeta": {
         "type": "object",
@@ -812,6 +2119,29 @@
           }
         }
       },
+      "Signup": {
+        "type": "object",
+        "description": "Settings group `signup`. A group that was never written means the default mode,\n`invite-only`.",
+        "required": [
+          "mode"
+        ],
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/SignupMode",
+            "description": "The sign-up mode."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SignupMode": {
+        "type": "string",
+        "description": "Who may create a local account (SPEC 6, ADR 0005 decision 5).",
+        "enum": [
+          "open",
+          "invite-only",
+          "oidc-only"
+        ]
+      },
       "UserKind": {
         "type": "string",
         "description": "Kind of an account (SPEC 10.4).",
@@ -866,6 +2196,43 @@
             "description": "What happened."
           }
         }
+      },
+      "WriteResult_Signup": {
+        "type": "object",
+        "description": "The answer to a write.",
+        "required": [
+          "result",
+          "dry_run",
+          "diff"
+        ],
+        "properties": {
+          "diff": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldChange"
+            },
+            "description": "Every field that changed (or would change)."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Whether this was a dry run (then nothing was changed)."
+          },
+          "resource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Envelope_Signup",
+                "description": "The resource after the write; absent after a delete."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result": {
+            "$ref": "#/components/schemas/WriteChange",
+            "description": "What happened."
+          }
+        }
       }
     }
   },
@@ -876,7 +2243,15 @@
     },
     {
       "name": "auth",
-      "description": "Sessions and the CSRF token (SPEC 5.5 and 6)"
+      "description": "Sessions, the CSRF token, login, registration and password reset (SPEC 5.5 and 6)"
+    },
+    {
+      "name": "account",
+      "description": "The caller's own account (SPEC 6)"
+    },
+    {
+      "name": "admin",
+      "description": "Administration: invitations and reset links (SPEC 6)"
     },
     {
       "name": "settings",

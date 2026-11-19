@@ -203,6 +203,41 @@ mod lifecycle {
         (status.code(), lines)
     }
 
+    /// The first admin exists and logs in through the real socket, with the CSRF proof.
+    fn login_through_the_socket(address: SocketAddr, cookie_line: &str) {
+        let csrf = cookie_line
+            .trim_start_matches("set-cookie: __Host-stuffcloud-csrf=")
+            .split(';')
+            .next()
+            .unwrap()
+            .to_owned();
+        let body = format!(r#"{{"login":"root","password":"{ADMIN_PASSWORD}"}}"#);
+        let login = raw_http(
+            address,
+            &format!(
+                "POST /api/v1/auth/login HTTP/1.1
+Host: stuff.localhost
+Origin: http://stuff.localhost:8080
+X-CSRF-Token: {csrf}
+Cookie: __Host-stuffcloud-csrf={csrf}
+Content-Type: application/json
+Content-Length: {}
+Connection: close
+
+{body}",
+                body.len()
+            ),
+        );
+        assert!(login.starts_with("HTTP/1.1 200"), "{login}");
+        assert!(login.contains(r#""role":"admin""#), "{login}");
+        assert!(
+            login
+                .to_ascii_lowercase()
+                .contains("set-cookie: __host-stuffcloud-session="),
+            "{login}"
+        );
+    }
+
     fn messages(lines: &[serde_json::Value]) -> Vec<String> {
         lines
             .iter()
@@ -266,38 +301,7 @@ mod lifecycle {
             !cookie_line.to_ascii_lowercase().contains("domain"),
             "{cookie_line}"
         );
-        // The first admin exists and logs in through the real socket, with the CSRF proof.
-        let csrf = cookie_line
-            .trim_start_matches("set-cookie: __Host-stuffcloud-csrf=")
-            .split(';')
-            .next()
-            .unwrap()
-            .to_owned();
-        let body = format!(r#"{{"login":"root","password":"{ADMIN_PASSWORD}"}}"#);
-        let login = raw_http(
-            address,
-            &format!(
-                "POST /api/v1/auth/login HTTP/1.1
-Host: stuff.localhost
-Origin: http://stuff.localhost:8080
-X-CSRF-Token: {csrf}
-Cookie: __Host-stuffcloud-csrf={csrf}
-Content-Type: application/json
-Content-Length: {}
-Connection: close
-
-{body}",
-                body.len()
-            ),
-        );
-        assert!(login.starts_with("HTTP/1.1 200"), "{login}");
-        assert!(login.contains(r#""role":"admin""#), "{login}");
-        assert!(
-            login
-                .to_ascii_lowercase()
-                .contains("set-cookie: __host-stuffcloud-session="),
-            "{login}"
-        );
+        login_through_the_socket(address, &cookie_line);
         let (code, lines) = stop(child);
         assert_eq!(code, Some(0), "graceful shutdown exits with 0");
         let first = messages(&lines);

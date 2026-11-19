@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   are purged every 10 minutes. `STUFFCLOUD_BOOTSTRAP_ADMIN_*` now creates the first admin. New
   problem types `invalid-credentials`, `signup-closed`, `limit-reached`, `too-many-requests`,
   field error code `taken`, fuzz targets `account` and `forwarded_for`, migration
-  `0003_accounts`; the `argon2` crate (MIT OR Apache-2.0) is the only new dependency. (#PRNUM)
+  `0003_accounts`; the `argon2` crate (MIT OR Apache-2.0) is the only new dependency. (#142)
 - Colour picker and unit converter (T-18, #23): two client-side tools, no new dependency. The
   colour picker reads and writes HEX, RGB, HSL, OKLCH and CMYK (an OKLCH colour outside sRGB loses
   chroma until it fits, and says so), copies each format, checks the WCAG 2.2 contrast of two

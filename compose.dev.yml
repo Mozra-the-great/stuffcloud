@@ -1,0 +1,95 @@
+# Local development stack: `docker compose -f compose.dev.yml up --build`
+# (or `export COMPOSE_FILE=compose.dev.yml` once per shell). How to use it, the zones, how to
+# reset the data and the manual checks: README, section "Local development stack".
+#
+# Services
+#   caddy    reverse proxy and static web server: the web app on the app address with the index
+#            fallback for deep links, a placeholder site on every name below the site base, the
+#            Mailpit UI; two listeners (docker/caddy/Caddyfile.dev, ADR 0009)
+#   mailpit  mail catcher (A-10 uses it): SMTP on 1025, UI through Caddy
+#   Later: `app` (A-01, #31) and `edge` (H-19, #104) join with their Dockerfiles.
+#
+# Every service is hardened the same way and CI enforces it for every service in this file
+# and every Dockerfile in the repository (scripts/ci/check_container_hardening.py):
+#   - an unprivileged numeric user, read-only root filesystem, `cap_drop: ALL`, no added
+#     capabilities, `no-new-privileges`
+#   - a health check, images pinned by tag and digest (built images: in their Dockerfile)
+#   - published ports bound to the loopback address only (published ports bypass host
+#     firewall INPUT rules), bind mounts read-only, only tmpfs or named volumes writable
+# A new service copies the `x-hardened` anchor below; CI fails when one part is missing.
+#
+# Variables: `.env.example` documents them, all have defaults; a `.env` file is optional and
+# git-ignored. Only RFC 6761 / RFC 2606 names (`*.localhost`) appear here.
+
+name: stuffcloud-dev
+
+x-hardened: &hardened
+  user: "65532:65532"
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
+
+services:
+  caddy:
+    <<: *hardened
+    build:
+      context: .
+      dockerfile: docker/caddy/Dockerfile
+    image: stuffcloud-dev-caddy:local
+    environment:
+      STUFFCLOUD_APP_HOST: ${STUFFCLOUD_APP_HOST:-stuff.localhost}
+      STUFFCLOUD_SITES_BASE: ${STUFFCLOUD_SITES_BASE:-sites.localhost}
+      STUFFCLOUD_MAIL_HOST: ${STUFFCLOUD_MAIL_HOST:-mail.localhost}
+    ports:
+      # LAN listener. The tunnel listener (8090) is deliberately not published.
+      - target: 8080
+        published: "${STUFFCLOUD_HTTP_PORT:-8080}"
+        host_ip: ${STUFFCLOUD_BIND:-127.0.0.1}
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: ./docker/caddy/Caddyfile.dev
+        target: /etc/caddy/Caddyfile
+        read_only: true
+      - type: bind
+        source: ./docker/caddy/sites
+        target: /srv/sites
+        read_only: true
+    tmpfs:
+      # Caddy's storage and config directories; nothing in this stack needs them to persist.
+      - /data
+      - /config
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:8081/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    depends_on:
+      mailpit:
+        condition: service_healthy
+
+  mailpit:
+    <<: *hardened
+    image: axllent/mailpit:v1.33.1@sha256:aef2aacc11f075ec0fb6874275ee4a421e688e11a96ebb296134d1735c7761ce
+    environment:
+      # The message store lives on the tmpfs below and is gone with the container.
+      MP_DATABASE: /tmp/mailpit.db
+      MP_MAX_MESSAGES: "500"
+      MP_DISABLE_VERSION_CHECK: "true"
+    ports:
+      - target: 1025
+        published: "${STUFFCLOUD_SMTP_PORT:-1025}"
+        host_ip: ${STUFFCLOUD_BIND:-127.0.0.1}
+        protocol: tcp
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s

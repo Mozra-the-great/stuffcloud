@@ -1,0 +1,13 @@
+# Allow-list for every build with the repository root as context: nothing gets in unless it is
+# named below. Keeps `.git`, `target/`, node_modules, local `.env` files and the like out of
+# the build context (and out of image layers).
+*
+
+!web/
+!docs/design/prototypes/
+
+# Never copy installed or built output from the host into an image.
+**/node_modules
+**/dist
+**/coverage
+**/.tmp-*

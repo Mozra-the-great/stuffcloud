@@ -1,0 +1,136 @@
+# Caddy configuration of the local development stack (compose.dev.yml).
+#
+# Plain HTTP only: the names below end in `.localhost` (RFC 6761), which browsers treat as a
+# secure context and resolve to the loopback address without any DNS or hosts-file entry.
+# Production uses real certificates and the zones from the admin settings (SPEC section 5,
+# ADR 0009); nothing here is meant to be reused as it is.
+#
+# Two listeners as in ADR 0009 decision 5. Which listener a request came in on decides what
+# it may reach, never a header:
+#   :8080  LAN listener     the app address, the mail UI and every site of the site base
+#   :8090  tunnel listener  public sites only; not published on the host, reach it from inside
+#                           the container (README, "Local development stack")
+# Host names come from the environment (compose.dev.yml, `.env.example`).
+
+{
+	admin off
+	auto_https off
+	persist_config off
+}
+
+(headers_common) {
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+}
+
+# Response headers of hosted sites (SPEC 8.5), here for the placeholder site: no scripts, no
+# framing, no indexing.
+(headers_site) {
+	header {
+		Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+		Cross-Origin-Opener-Policy same-origin
+		X-Content-Type-Options nosniff
+		X-Robots-Tag noindex
+		Referrer-Policy no-referrer
+		-Server
+	}
+}
+
+# Shows which cookies a request carried; dev-only helper for the cookie isolation check.
+(echo_cookie) {
+	handle /__dev/echo-cookie {
+		header Content-Type "text/plain; charset=utf-8"
+		header Cache-Control no-store
+		respond "Cookie header received by {host}: [{http.request.header.Cookie}]" 200
+	}
+}
+
+# Health endpoint for the container health check; bound to the container's own loopback.
+http://127.0.0.1:8081 {
+	bind 127.0.0.1
+	respond /healthz "ok" 200
+}
+
+# ── LAN listener ──────────────────────────────────────────────────────────────────────────
+
+# The app: the static web build, with the index fallback for deep links (ADR 0011 decision 3).
+http://{$STUFFCLOUD_APP_HOST}:8080 {
+	import headers_common
+	import echo_cookie
+
+	# Sets a host-only cookie on this origin; the site origin must never receive it.
+	handle /__dev/set-cookie {
+		header Set-Cookie "stuffcloud_dev_probe=app; Path=/; HttpOnly; SameSite=Lax"
+		header Content-Type "text/plain; charset=utf-8"
+		header Cache-Control no-store
+		respond "A host-only cookie was set on {host}. Open /__dev/echo-cookie here and on a site origin to compare." 200
+	}
+
+	# Placeholder until `app` exists (A-01, #31): the API answers with a problem document
+	# (RFC 9457, ADR 0010). Replace by `reverse_proxy app:<port>` together with the service.
+	handle /api/* {
+		header Content-Type application/problem+json
+		header Cache-Control no-store
+		respond `{"type":"about:blank","title":"Not Implemented","status":501,"detail":"The API does not exist yet; this is the development placeholder."}` 501
+	}
+
+	handle {
+		root * /srv/app
+		encode zstd gzip
+
+		# Hashed build output: cache for good, and never fall back to the index (a missing
+		# asset is a 404, not a page of HTML).
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+
+		# Everything else is a route of the single-page app.
+		@spa {
+			not path /assets/*
+		}
+		header @spa Cache-Control no-cache
+		try_files @spa {path} /index.html
+		file_server
+	}
+}
+
+# Mail catcher (Mailpit). SMTP is reachable as mailpit:1025 inside the stack.
+http://{$STUFFCLOUD_MAIL_HOST}:8080 {
+	import headers_common
+	reverse_proxy mailpit:8025
+}
+
+# Every name below the site base is a site. Until sites exist (H-04) each one shows the
+# placeholder page, so any random name works.
+http://*.{$STUFFCLOUD_SITES_BASE}:8080 {
+	import headers_site
+	import echo_cookie
+
+	handle {
+		root * /srv/sites/placeholder
+		file_server
+	}
+}
+
+# Any other name, including the site base itself, is unknown.
+http://:8080 {
+	respond "Not found" 404
+}
+
+# ── Tunnel listener ───────────────────────────────────────────────────────────────────────
+
+# Stand-in for "a public site" until zones and per-site visibility exist (H-02, H-18):
+# `public.<site base>` is served here, every other name (internal sites, the app address,
+# unknown names) gets the same answer as a name that does not exist.
+http://public.{$STUFFCLOUD_SITES_BASE}:8090 {
+	import headers_site
+
+	root * /srv/sites/placeholder
+	file_server
+}
+
+http://:8090 {
+	respond "Not found" 404
+}

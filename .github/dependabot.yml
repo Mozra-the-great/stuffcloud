@@ -2,7 +2,7 @@ version: 2
 
 # Dependabot keeps the SHA-pinned actions in .github/workflows fresh (convention C5),
 # the Rust and npm dependencies, and, once you uncomment a block below, the rest of
-# your stack. The docker ecosystem joins with the first Dockerfile (#7 / #31).
+# your stack. The docker ecosystems joined with the dev stack (#7).
 #
 # cooldown (zizmor audit dependabot-cooldown): a new release is proposed only after
 # 7 days. If a package is compromised that is usually noticed within that window;
@@ -63,33 +63,33 @@ updates:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
 
-  # ── Stack placeholders: uncomment what the repo actually uses ────────────────
+  # Container images of the dev stack (compose.dev.yml, docker/caddy/Dockerfile). Every
+  # reference is `name:tag@sha256:digest` (scripts/ci/check_container_hardening.py); Dependabot
+  # updates tag and digest together. No automatic major bumps for container images (C9): a
+  # major jump belongs in a hand-prepared PR. The Node image follows the Node major in
+  # `web/.nvmrc`, so it is bumped by hand together with it. Each new Dockerfile directory
+  # (`app`, `edge`) gets an entry here.
+  - package-ecosystem: "docker"
+    directory: "/docker/caddy"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(docker)"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
-  # Dockerfile base images. No automatic major bumps for container images (C9):
-  # a major jump (postgres 16 -> 17, redis 7 -> 8) usually needs a data or
-  # config migration and belongs in a hand-prepared PR.
-  # - package-ecosystem: "docker"
-  #   directory: "/"
-  #   schedule:
-  #     interval: "weekly"
-  #   cooldown:
-  #     default-days: 7
-  #   commit-message:
-  #     prefix: "chore(docker)"
-  #   ignore:
-  #     - dependency-name: "*"
-  #       update-types: ["version-update:semver-major"]
-
-  # docker-compose.yml images (one PR per image, so a failure maps to one update)
-  # - package-ecosystem: "docker-compose"
-  #   directories:
-  #     - "/"
-  #   schedule:
-  #     interval: "weekly"
-  #   cooldown:
-  #     default-days: 7
-  #   commit-message:
-  #     prefix: "chore(stacks)"
-  #   ignore:
-  #     - dependency-name: "*"
-  #       update-types: ["version-update:semver-major"]
+  # compose.dev.yml images (one PR per image, so a failure maps to one update)
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(stacks)"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

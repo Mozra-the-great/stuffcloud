@@ -58,3 +58,6 @@ __pycache__/
 
 # Throw-away app trees the web tests create (removed after each run)
 /web/apps/web/.tmp-*/
+
+# Local secret files the dev stack reads through `*_FILE` variables (never committed)
+/secrets/

@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Colour picker and unit converter (T-18, #23): two client-side tools, no new dependency. The
+  colour picker reads and writes HEX, RGB, HSL, OKLCH and CMYK (an OKLCH colour outside sRGB loses
+  chroma until it fits, and says so), copies each format, checks the WCAG 2.2 contrast of two
+  colours (ratio cut, not rounded up, with the five AA/AAA requirements as text) and takes a palette
+  from an image by median cut (decoded in the browser; the file never leaves it). The unit
+  converter covers length, mass, temperature, data, time, speed, area and volume, searchable in
+  English and German, with a significant-digits control, a table of every unit of the category,
+  decimal (kB) and binary (KiB) data units kept apart, temperature offsets and absolute zero
+  refused. Results are announced in live regions, copying is confirmed in the toast region, and both
+  tools have table-driven tests, a Playwright spec with the axe gate and a keyboard route, and a
+  German state. App-local `CopyButton` and `ToolStatus` are candidates for kern (kern#72). (#PR)
 - Auth data model, sessions and CSRF protection (A-02, #32; ADR 0005 addendum): migration
   `0002_auth` adds `users`, `credentials`, `oidc_identities`, `recovery_codes`, `sessions` and a
   `category` for security events in `audit_log`. Sessions use random tokens stored only as

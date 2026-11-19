@@ -62,9 +62,10 @@ describe('production build output', () => {
     }
   });
 
-  it('emits the nine mascot svgs as files and never inlines them', () => {
+  it('emits the nine mascot svgs and the logo as files and never inlines them', () => {
     const svgs = [...files.keys()].filter((name) => name.endsWith('.svg'));
-    expect(svgs).toHaveLength(9);
+    expect(svgs).toHaveLength(10);
+    expect(svgs.filter((name) => name.startsWith('assets/logo-'))).toHaveLength(1);
     for (const name of svgs) {
       expect(name.startsWith('assets/')).toBe(true);
     }

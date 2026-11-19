@@ -1,18 +1,12 @@
 <script lang="ts">
   import './styles/index.css';
+  import Shell from './app/Shell.svelte';
+  import { buildRoutes } from './app/routes.ts';
+  import { Router } from './app/router/router.svelte.ts';
+  import { TOOL_ENTRIES } from './app/tool-entries.ts';
+
+  const { routes, notFound } = buildRoutes(TOOL_ENTRIES);
+  const router = new Router({ routes, notFound });
 </script>
 
-<main>
-  <h1>stuffcloud</h1>
-</main>
-
-<style>
-  main {
-    padding: var(--space-32) var(--space-16);
-  }
-
-  h1 {
-    margin: 0;
-    font: 400 18px var(--pix);
-  }
-</style>
+<Shell {router} tools={TOOL_ENTRIES} />

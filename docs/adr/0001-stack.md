@@ -92,3 +92,11 @@ question open: plain Vite single-page app (SPEC 4) or SvelteKit with `adapter-st
 - PR [#101](https://github.com/Mozra-the-great/stuffcloud/pull/101) (Rust switch), PR [#106](https://github.com/Mozra-the-great/stuffcloud/pull/106) (web scaffold, Vite SPA)
 - Issues [#4](https://github.com/Mozra-the-great/stuffcloud/issues/4) (F-01), [#31](https://github.com/Mozra-the-great/stuffcloud/issues/31) (A-01)
 - [ADR 0006](0006-edge-and-core.md), [ADR 0007](0007-test-strategy.md)
+
+## Addendum: router and i18n (2026-11-19, T-03)
+
+The open point "The router for the SPA is not chosen yet" is closed by
+[ADR 0011](0011-spa-routing-and-i18n.md) (issue [#11](https://github.com/Mozra-the-great/stuffcloud/issues/11),
+PR [#127](https://github.com/Mozra-the-great/stuffcloud/pull/127)): a small own History-API router
+with lazy routes and typed i18n catalogues, no router library. The decision of this record
+(plain Vite SPA, not SvelteKit) stands; T-03 found that client-side routing is all the shell needs.

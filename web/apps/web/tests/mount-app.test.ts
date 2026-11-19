@@ -1,3 +1,4 @@
+import { screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { mountApp, type MountedApp } from '../src/mount-app.ts';
 
@@ -17,13 +18,16 @@ function addTarget(id: string): HTMLElement {
 }
 
 describe('mountApp', () => {
-  it('renders the page heading inside a main landmark', () => {
+  it('renders the app shell with the home page inside a main landmark', async () => {
     const target = addTarget('app');
     mounted = mountApp('app');
 
+    expect(target.querySelector('header')).not.toBeNull();
+    expect(target.querySelector('footer')).not.toBeNull();
     const main = target.querySelector('main');
     expect(main).not.toBeNull();
-    expect(main?.querySelector('h1')?.textContent).toBe('stuffcloud');
+    await screen.findByRole('heading', { level: 1 });
+    expect(main?.querySelector('h1')?.textContent).toBe('Your stuff, in your cloud.');
   });
 
   it('mounts into the requested element only', () => {
@@ -52,10 +56,12 @@ describe('mountApp', () => {
 
 describe('main entry', () => {
   it('mounts the app into #app on import', async () => {
-    const target = addTarget('app');
+    addTarget('app');
 
     await import('../src/main.ts');
 
-    expect(target.querySelector('main h1')?.textContent).toBe('stuffcloud');
+    expect((await screen.findByRole('heading', { level: 1 })).textContent).toBe(
+      'Your stuff, in your cloud.',
+    );
   });
 });

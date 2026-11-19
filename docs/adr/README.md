@@ -19,6 +19,7 @@ stuffcloud is, an ADR says *why* a core choice was made and what it costs.
 | [0008](0008-pixel-art-animation-runtime.md) | Pixel-art animation runtime: CSS transform keyframes with `steps()` | Accepted | 2026-11-16 |
 | [0009](0009-zone-model-and-shared-domain-isolation.md) | Zone model: per-site visibility, per-zone policy, app on a shared domain | Accepted | 2026-11-16 |
 | [0010](0010-api-first-and-configuration-as-code.md) | API-first and configuration as code | Accepted | 2026-11-16 |
+| [0011](0011-spa-routing-and-i18n.md) | SPA routing, focus management and internationalisation | Accepted | 2026-11-19 |
 
 ADRs 0001 to 0007 were written together (2026-11-16, issue
 [#8](https://github.com/Mozra-the-great/stuffcloud/issues/8)) from decisions that had already

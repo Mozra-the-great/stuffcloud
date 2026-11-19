@@ -45,6 +45,40 @@ invariant with a property test; a new parser of untrusted input with a fuzz
 target; a fixed bug with an entry in `tests/regression.rs` and a seed in
 `fuzz/seeds/`. Never lower a threshold or skip a check to get green.
 
+### Operator-domain check (maintainers)
+
+stuffcloud is instance-neutral (CLAUDE.md): no real domain of any operator may appear in a
+tracked file. `scripts/ci/check_operator_domains.py` (step "No operator domain in tracked
+files" of `repo-checks`, part of `build`) searches every tracked file and file name for the
+domains of a list that is **not in the repository**. The list is read from the environment
+variable `STUFFCLOUD_FORBIDDEN_DOMAINS`, which the workflow fills from the repository's Actions
+secret of the same name (preferred) or, if there is no secret, from the Actions variable of
+the same name.
+
+Setting it (repository admin, once; **Settings > Secrets and variables > Actions**):
+
+1. Tab **Secrets**, **New repository secret** (preferred; a secret is masked in logs and is not
+   passed to pull requests from forks). Name: `STUFFCLOUD_FORBIDDEN_DOMAINS`.
+   Alternatively tab **Variables**, **New repository variable**, same name; note that a
+   variable is plain text and may be readable by workflows of fork pull requests, so use it
+   only for names that may become known.
+2. Value: the registrable domains to keep out, one per line or separated by commas, in
+   the format `one.example, two.example` (placeholders: reserved names are ignored, so enter
+   the real ones). `#` starts a comment, a leading `*.` is ignored, subdomains are
+   covered automatically, matching is case-insensitive, an internationalised name is matched
+   in its Unicode and its Punycode form. Names reserved for documentation (`example.com`,
+   `example.org`, `example.net`, `*.example`, `*.test`, `*.invalid`, `*.localhost`) are always
+   allowed and ignored if listed.
+3. A malformed entry fails the check (exit code 2) with the number of the entry, never its
+   text. A finding prints `path:line: forbidden domain (entry N)`: the listed domain and the
+   offending line are never printed, because the logs of a public repository are public.
+
+Without the secret or variable, or for pull requests that do not receive it (forks,
+Dependabot), the step prints a notice and passes: a **reduced check**, nothing was searched
+for. Own pull requests get the full check. Run it locally with the same variable:
+`STUFFCLOUD_FORBIDDEN_DOMAINS=... python scripts/ci/check_operator_domains.py`. Its tests use
+only reserved names (`python -m unittest discover -s scripts/ci -p "test_*.py"`).
+
 ### Frontend (`web/`)
 
 The frontend is a pnpm workspace that only needs Node and pnpm; the Rust workspace

@@ -148,7 +148,7 @@ def api() -> None:
         document = {}
     check(
         "API serves the settings group from the dev bootstrap file",
-        names.status == 200 and document.get("names") == ["auth", "status", "vault"],
+        names.status == 200 and document.get("names") == ["intranet", "wiki", "vault"],
         f"{names.status} {names.body[:200]}",
     )
     etag = names.headers.get("etag", "")

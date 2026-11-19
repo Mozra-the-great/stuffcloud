@@ -44,7 +44,7 @@ fn the_committed_openapi_document_is_current() {
     assert!(
         generated == committed,
         "docs/api/openapi.json is stale: run `cargo run -p stuffcloud-app -- openapi > docs/api/openapi.json`, \
-         then `pnpm --filter @stuffcloud/api-client generate -- --input ../../docs/api/openapi.json` in web/"
+         then `pnpm --filter @stuffcloud/api-client generate -- --input ../../../docs/api/openapi.json` in web/"
     );
     let document: serde_json::Value = serde_json::from_str(&generated).unwrap();
     assert!(document["openapi"].as_str().unwrap().starts_with("3.1"));
@@ -207,7 +207,7 @@ mod lifecycle {
         let bootstrap = dir.path().join("bootstrap.json");
         std::fs::write(
             &bootstrap,
-            r#"{"version":1,"settings":{"reserved-names":{"names":["auth","status"]}}}"#,
+            r#"{"version":1,"settings":{"reserved-names":{"names":["intranet","wiki"]}}}"#,
         )
         .unwrap();
 
@@ -220,7 +220,10 @@ mod lifecycle {
             "GET /api/v1/settings/reserved-names HTTP/1.1\r\nHost: stuff.localhost\r\nConnection: close\r\n\r\n",
         );
         assert!(answer.starts_with("HTTP/1.1 200"), "{answer}");
-        assert!(answer.contains(r#""names":["auth","status"]"#), "{answer}");
+        assert!(
+            answer.contains(r#""names":["intranet","wiki"]"#),
+            "{answer}"
+        );
         let (code, lines) = stop(child);
         assert_eq!(code, Some(0), "graceful shutdown exits with 0");
         let first = messages(&lines);
@@ -250,7 +253,10 @@ mod lifecycle {
             address,
             "GET /api/v1/settings/reserved-names HTTP/1.1\r\nHost: stuff.localhost\r\nConnection: close\r\n\r\n",
         );
-        assert!(answer.contains(r#""names":["auth","status"]"#), "{answer}");
+        assert!(
+            answer.contains(r#""names":["intranet","wiki"]"#),
+            "{answer}"
+        );
         let (code, lines) = stop(child);
         assert_eq!(code, Some(0));
         let second = messages(&lines);

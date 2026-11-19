@@ -41,17 +41,29 @@ impl fmt::Display for QueryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::TooLong => write!(f, "query string is longer than {MAX_QUERY_LEN} bytes"),
-            Self::Unknown(name) => write!(f, "unknown query parameter {name:?}"),
-            Self::Repeated(name) => write!(f, "query parameter {name:?} is given more than once"),
+            Self::Unknown(name) => write!(f, "unknown query parameter {}", quoted(name)),
+            Self::Repeated(name) => {
+                write!(
+                    f,
+                    "query parameter {} is given more than once",
+                    quoted(name)
+                )
+            }
             Self::InvalidValue { name, value: None } => {
-                write!(f, "query parameter {name:?} needs a value: true or false")
+                write!(
+                    f,
+                    "query parameter {} needs a value: true or false",
+                    quoted(name)
+                )
             }
             Self::InvalidValue {
                 name,
                 value: Some(value),
             } => write!(
                 f,
-                "query parameter {name:?} must be true or false, not {value:?}"
+                "query parameter {} must be true or false, not {}",
+                quoted(name),
+                quoted(value)
             ),
         }
     }
@@ -71,6 +83,13 @@ fn clip(text: &str, max: usize) -> String {
 
 /// Longest parameter name or value echoed in an error.
 const ECHO_LEN: usize = 64;
+
+/// A stored name or value as a message shows it: quoted and escaped, then clipped again,
+/// because escaping a control character makes it up to ten times longer (fuzz finding of
+/// `write_query`: the message grew far beyond its bound).
+fn quoted(text: &str) -> String {
+    clip(&format!("{text:?}"), ECHO_LEN.saturating_mul(2))
+}
 
 impl WriteQuery {
     /// Parses the query string of a write request (`None`: the URL had no `?`).
@@ -208,6 +227,17 @@ mod tests {
             }) => assert_eq!(value, "x".repeat(ECHO_LEN)),
             other => panic!("{other:?}"),
         }
+    }
+
+    #[test]
+    fn quoted_echoes_stay_bounded_after_escaping() {
+        assert_eq!(quoted("ok"), "\"ok\"");
+        assert_eq!(quoted("a\nb"), "\"a\\nb\"");
+        let control = "\u{1}".repeat(ECHO_LEN);
+        assert_eq!(quoted(&control).len(), 2 * ECHO_LEN);
+        assert_eq!(quoted(&"x".repeat(2 * ECHO_LEN)).len(), 2 * ECHO_LEN);
+        let error = WriteQuery::parse(Some(&control)).unwrap_err();
+        assert!(error.to_string().len() < 160, "{error}");
     }
 
     #[test]

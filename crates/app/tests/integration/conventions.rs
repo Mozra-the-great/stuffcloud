@@ -25,7 +25,7 @@ async fn get_of_a_group_never_written_is_404() {
 async fn put_creates_and_get_returns_the_writable_shape_plus_meta() {
     let app = TestApp::new(Policy::AllowAll);
     let created = app
-        .put_json(PATH, &json!({"names": ["auth", "status"]}), &[])
+        .put_json(PATH, &json!({"names": ["intranet", "wiki"]}), &[])
         .await;
     assert_eq!(created.status.as_u16(), 201, "{}", created.text());
     let body = created.json();
@@ -33,7 +33,7 @@ async fn put_creates_and_get_returns_the_writable_shape_plus_meta() {
     assert_eq!(body["dry_run"], false);
     assert_eq!(
         body["diff"],
-        json!([{"pointer": "/names", "after": ["auth", "status"]}])
+        json!([{"pointer": "/names", "after": ["intranet", "wiki"]}])
     );
     let etag = etag_of(&created);
     assert!(
@@ -46,7 +46,7 @@ async fn put_creates_and_get_returns_the_writable_shape_plus_meta() {
     assert_eq!(read.status.as_u16(), 200);
     assert_eq!(etag_of(&read), etag);
     let document = read.json();
-    assert_eq!(document["names"], json!(["auth", "status"]));
+    assert_eq!(document["names"], json!(["intranet", "wiki"]));
     let meta = &document["meta"];
     assert_eq!(meta["etag"], etag);
     assert_eq!(meta["created_at"], meta["updated_at"]);
@@ -61,7 +61,7 @@ async fn put_creates_and_get_returns_the_writable_shape_plus_meta() {
 #[tokio::test]
 async fn a_repeated_put_reports_unchanged_and_changes_nothing() {
     let app = TestApp::new(Policy::AllowAll);
-    let document = json!({"names": ["auth"]});
+    let document = json!({"names": ["intranet"]});
     let first = app.put_json(PATH, &document, &[]).await;
     let before = app.get(PATH).await.json();
     let audit_before = app.audit_actions();
@@ -86,17 +86,19 @@ async fn a_repeated_put_reports_unchanged_and_changes_nothing() {
 #[tokio::test]
 async fn an_update_changes_the_etag_and_updated_at_only() {
     let app = TestApp::new(Policy::AllowAll);
-    let first = app.put_json(PATH, &json!({"names": ["auth"]}), &[]).await;
+    let first = app
+        .put_json(PATH, &json!({"names": ["intranet"]}), &[])
+        .await;
     let created = app.get(PATH).await.json();
     let updated = app
-        .put_json(PATH, &json!({"names": ["auth", "vault"]}), &[])
+        .put_json(PATH, &json!({"names": ["intranet", "vault"]}), &[])
         .await;
     assert_eq!(updated.status.as_u16(), 200);
     let body = updated.json();
     assert_eq!(body["result"], "updated");
     assert_eq!(
         body["diff"],
-        json!([{"pointer": "/names", "before": ["auth"], "after": ["auth", "vault"]}])
+        json!([{"pointer": "/names", "before": ["intranet"], "after": ["intranet", "vault"]}])
     );
     assert_ne!(etag_of(&updated), etag_of(&first));
     let now = app.get(PATH).await.json();
@@ -109,7 +111,9 @@ async fn an_update_changes_the_etag_and_updated_at_only() {
 #[tokio::test]
 async fn a_stale_if_match_gives_412_and_changes_nothing() {
     let app = TestApp::new(Policy::AllowAll);
-    let first = app.put_json(PATH, &json!({"names": ["auth"]}), &[]).await;
+    let first = app
+        .put_json(PATH, &json!({"names": ["intranet"]}), &[])
+        .await;
     let etag = etag_of(&first);
     let _second = app.put_json(PATH, &json!({"names": ["vault"]}), &[]).await;
     let state = app.get(PATH).await.json();
@@ -139,7 +143,7 @@ async fn a_stale_if_match_gives_412_and_changes_nothing() {
 #[tokio::test]
 async fn weak_and_wildcard_preconditions() {
     let app = TestApp::new(Policy::AllowAll);
-    let document = json!({"names": ["auth"]});
+    let document = json!({"names": ["intranet"]});
     // If-Match on a missing resource fails, even with `*`.
     app.put_json(PATH, &document, &[("if-match", "*")])
         .await
@@ -172,7 +176,9 @@ async fn a_dry_run_changes_nothing_and_returns_the_diff() {
     let app = TestApp::new(Policy::AllowAll);
     let dry = format!("{PATH}?dry_run=true");
 
-    let would_create = app.put_json(&dry, &json!({"names": ["auth"]}), &[]).await;
+    let would_create = app
+        .put_json(&dry, &json!({"names": ["intranet"]}), &[])
+        .await;
     assert_eq!(
         would_create.status.as_u16(),
         200,
@@ -183,12 +189,14 @@ async fn a_dry_run_changes_nothing_and_returns_the_diff() {
     assert_eq!(body["dry_run"], true);
     assert_eq!(
         body["diff"],
-        json!([{"pointer": "/names", "after": ["auth"]}])
+        json!([{"pointer": "/names", "after": ["intranet"]}])
     );
     app.get(PATH).await.assert_problem(404, "not-found");
     assert!(app.audit_actions().is_empty());
 
-    let real = app.put_json(PATH, &json!({"names": ["auth"]}), &[]).await;
+    let real = app
+        .put_json(PATH, &json!({"names": ["intranet"]}), &[])
+        .await;
     assert_eq!(
         etag_of(&would_create),
         etag_of(&real),
@@ -201,7 +209,7 @@ async fn a_dry_run_changes_nothing_and_returns_the_diff() {
     assert_eq!(body["result"], "updated");
     assert_eq!(
         body["diff"],
-        json!([{"pointer": "/names", "before": ["auth"], "after": ["vault"]}])
+        json!([{"pointer": "/names", "before": ["intranet"], "after": ["vault"]}])
     );
     assert_eq!(body["resource"]["names"], json!(["vault"]));
 
@@ -212,7 +220,7 @@ async fn a_dry_run_changes_nothing_and_returns_the_diff() {
     assert_eq!(body["dry_run"], true);
     assert_eq!(
         body["diff"],
-        json!([{"pointer": "/names", "before": ["auth"]}])
+        json!([{"pointer": "/names", "before": ["intranet"]}])
     );
     assert!(body.get("resource").is_none());
 
@@ -248,7 +256,7 @@ async fn all_field_errors_come_back_in_one_response() {
     let problem = app
         .put_json(
             PATH,
-            &json!({"names": ["auth", "Docs", "ab", "auth"], "zzz": 1, "aaa": 2}),
+            &json!({"names": ["intranet", "Docs", "ab", "intranet"], "zzz": 1, "aaa": 2}),
             &[],
         )
         .await
@@ -283,7 +291,7 @@ async fn all_field_errors_come_back_in_one_response() {
         .problem(422, "validation-failed");
     assert_eq!(missing["errors"][0]["code"], "missing_field");
     let wrong_type = app
-        .put_json(PATH, &json!({"names": "auth"}), &[])
+        .put_json(PATH, &json!({"names": "intranet"}), &[])
         .await
         .problem(422, "validation-failed");
     assert_eq!(wrong_type["errors"][0]["pointer"], "/names");
@@ -294,7 +302,9 @@ async fn all_field_errors_come_back_in_one_response() {
 async fn delete_removes_and_a_missing_resource_is_404() {
     let app = TestApp::new(Policy::AllowAll);
     app.delete(PATH, &[]).await.assert_problem(404, "not-found");
-    let created = app.put_json(PATH, &json!({"names": ["auth"]}), &[]).await;
+    let created = app
+        .put_json(PATH, &json!({"names": ["intranet"]}), &[])
+        .await;
     let deleted = app.delete(PATH, &[("if-match", &etag_of(&created))]).await;
     assert_eq!(deleted.status.as_u16(), 200, "{}", deleted.text());
     assert_eq!(deleted.json()["result"], "deleted");
@@ -364,14 +374,16 @@ async fn bodies_above_the_limit_are_refused() {
         .await
         .problem(413, "payload-too-large");
     assert_eq!(problem["detail"], "the body is larger than 1024 bytes");
-    let small = app.put_json(PATH, &json!({"names": ["auth"]}), &[]).await;
+    let small = app
+        .put_json(PATH, &json!({"names": ["intranet"]}), &[])
+        .await;
     assert_eq!(small.status.as_u16(), 201);
 }
 
 #[tokio::test]
 async fn the_production_policy_refuses_every_write() {
     let app = TestApp::new(Policy::Production);
-    let document = json!({"names": ["auth"]});
+    let document = json!({"names": ["intranet"]});
     let problem = app
         .put_json(PATH, &document, &[])
         .await

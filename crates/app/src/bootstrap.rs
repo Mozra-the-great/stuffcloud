@@ -9,7 +9,7 @@
 //! The file is JSON in the shape of the declarative configuration (SPEC 10.6):
 //!
 //! ```json
-//! { "version": 1, "settings": { "reserved-names": { "names": ["auth", "status"] } } }
+//! { "version": 1, "settings": { "reserved-names": { "names": ["intranet", "wiki"] } } }
 //! ```
 //!
 //! Only the resources that exist so far are accepted (the settings group
@@ -267,14 +267,18 @@ mod tests {
     #[test]
     fn parses_a_valid_file() {
         let writes = parse_file(
-            json!({"version": 1, "settings": {"reserved-names": {"names": ["auth"], "meta": {}}}})
+            json!({"version": 1, "settings": {"reserved-names": {"names": ["intranet"], "meta": {}}}})
                 .to_string()
                 .as_bytes(),
         )
         .unwrap();
         assert_eq!(
             writes,
-            vec![(KIND, "reserved-names", "{\"names\":[\"auth\"]}".to_owned())]
+            vec![(
+                KIND,
+                "reserved-names",
+                "{\"names\":[\"intranet\"]}".to_owned()
+            )]
         );
         assert!(parse_file(br#"{"version":1}"#).unwrap().is_empty());
         assert!(
@@ -389,7 +393,8 @@ mod tests {
         let file = dir.path().join("bootstrap.json");
         std::fs::write(
             &file,
-            json!({"version": 1, "settings": {"reserved-names": {"names": ["auth"]}}}).to_string(),
+            json!({"version": 1, "settings": {"reserved-names": {"names": ["intranet"]}}})
+                .to_string(),
         )
         .unwrap();
         assert_eq!(
@@ -397,7 +402,7 @@ mod tests {
             BootstrapReport::Applied(vec![Change::Created])
         );
         let stored = db.get(KIND, "reserved-names").unwrap().unwrap();
-        assert_eq!(stored.body, "{\"names\":[\"auth\"]}");
+        assert_eq!(stored.body, "{\"names\":[\"intranet\"]}");
 
         // A later start: the file may even be gone or broken now.
         std::fs::write(&file, "not json").unwrap();
@@ -423,7 +428,7 @@ mod tests {
         let file = dir.path().join("late.json");
         std::fs::write(
             &file,
-            r#"{"version":1,"settings":{"reserved-names":{"names":["auth"]}}}"#,
+            r#"{"version":1,"settings":{"reserved-names":{"names":["intranet"]}}}"#,
         )
         .unwrap();
         assert_eq!(

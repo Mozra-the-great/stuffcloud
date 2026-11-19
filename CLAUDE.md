@@ -67,7 +67,7 @@ python -m unittest discover -s scripts/ci -p "test_*.py"   # CI helper tests (Py
 python scripts/ci/license_gate.py             # npm license gate (needs pnpm; installs into a temp dir)
 python scripts/ci/third_party.py --write      # regenerate docs/THIRD-PARTY.md after a lockfile change
 cargo run -q -p stuffcloud-app -- openapi > docs/api/openapi.json   # after a handler change, then:
-(cd web && pnpm --filter @stuffcloud/api-client generate -- --input ../../docs/api/openapi.json)
+(cd web && pnpm --filter @stuffcloud/api-client generate -- --input ../../../docs/api/openapi.json)
 docker compose -f compose.dev.yml up --build  # local dev stack (README, "Local development stack")
 python scripts/ci/check_container_hardening.py static   # hardening gate (needs docker for the compose files)
 ```

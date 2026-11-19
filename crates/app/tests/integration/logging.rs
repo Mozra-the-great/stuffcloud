@@ -76,7 +76,8 @@ async fn logs_contain_no_addresses_tokens_cookies_or_queries() {
         assert!(log.contains("/api/v1/settings/reserved-names"), "{log}");
         assert!(log.contains("unmatched"), "{log}");
         assert!(log.contains("404"), "{log}");
-        for secret in [
+        // Probes are named by position, so a failure message never repeats the value itself.
+        let forbidden = [
             TOKEN,
             COOKIE,
             FORWARDED,
@@ -84,10 +85,11 @@ async fn logs_contain_no_addresses_tokens_cookies_or_queries() {
             "127.0.0.1",
             "Bearer",
             "stuff.localhost",
-        ] {
+        ];
+        for (index, probe) in forbidden.iter().enumerate() {
             assert!(
-                !log.contains(secret),
-                "{secret:?} leaked into the {format:?} log:\n{log}"
+                !log.contains(probe),
+                "forbidden value #{index} leaked into the {format:?} log"
             );
         }
     }

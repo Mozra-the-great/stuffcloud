@@ -421,7 +421,7 @@ mod tests {
     fn stored(etag: &str, created: i64, updated: i64) -> Stored {
         Stored {
             id: 3,
-            body: "{\"names\":[\"auth\"]}".to_owned(),
+            body: "{\"names\":[\"intranet\"]}".to_owned(),
             etag: etag.to_owned(),
             created_at: created,
             updated_at: updated,
@@ -468,7 +468,7 @@ mod tests {
         assert_eq!(
             serde_json::to_value(&document).unwrap(),
             json!({
-                "names": ["auth"],
+                "names": ["intranet"],
                 "meta": {"id": 3, "etag": "\"abc\"", "created_at": "1970-01-01T00:00:00Z", "updated_at": "1970-01-01T00:00:00Z"}
             })
         );

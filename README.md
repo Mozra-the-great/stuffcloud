@@ -86,7 +86,7 @@ the `_FILE` suffix. After a handler change regenerate the OpenAPI document and t
 
 ```sh
 cargo run -q -p stuffcloud-app -- openapi > docs/api/openapi.json
-cd web && pnpm --filter @stuffcloud/api-client generate -- --input ../../docs/api/openapi.json
+cd web && pnpm --filter @stuffcloud/api-client generate -- --input ../../../docs/api/openapi.json
 ```
 
 **Resource baseline of `app`** (CI job `dev-stack`, `docker stats` after the smoke test, idle

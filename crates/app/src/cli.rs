@@ -347,6 +347,11 @@ mod tests {
         );
 
         // A directory where the database file should be.
+        let other = tempfile::tempdir().unwrap();
+        let config = Config {
+            data_dir: other.path().to_path_buf(),
+            ..config
+        };
         std::fs::create_dir(config.database_path()).unwrap();
         let error = start(&config).unwrap_err();
         assert!(error.starts_with("cannot open the database"), "{error}");

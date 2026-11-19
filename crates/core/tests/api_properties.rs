@@ -1,12 +1,6 @@
 //! Property tests of the API building blocks (ADR 0010): entity tags and preconditions, the
 //! write query string, JSON Pointers and writable documents.
 
-#![expect(
-    clippy::unwrap_used,
-    clippy::indexing_slicing,
-    reason = "test code: a panic is a failed test"
-)]
-
 use proptest::prelude::*;
 use serde_json::{Value, json};
 use stuffcloud_core::body::{MAX_FIELD_ERRORS, canonical, parse_writable};
@@ -106,10 +100,8 @@ proptest! {
         extra in prop::option::of("[a-z]{1,5}"),
     ) {
         let mut document = json!({"names": names});
-        if let Some(extra) = &extra {
-            if extra != "names" && extra != "meta" {
-                document[extra.as_str()] = json!(1);
-            }
+        if let Some(extra) = extra.as_deref().filter(|name| *name != "names" && *name != "meta") {
+            document[extra] = json!(1);
         }
         match parse_writable::<ReservedNames>(document.to_string().as_bytes()) {
             Ok(parsed) => {

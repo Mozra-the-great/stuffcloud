@@ -26,7 +26,7 @@ pub const MAX_RESERVED_NAMES: usize = 1000;
 #[serde(deny_unknown_fields)]
 pub struct ReservedNames {
     /// The reserved site names.
-    #[cfg_attr(feature = "openapi", schema(example = json!(["auth", "status"])))]
+    #[cfg_attr(feature = "openapi", schema(example = json!(["intranet", "wiki"])))]
     pub names: Vec<String>,
 }
 
@@ -99,7 +99,7 @@ mod tests {
     #[test]
     fn valid_lists() {
         assert!(names(&[]).validate().is_empty());
-        assert!(names(&["auth", "status", "a-b"]).validate().is_empty());
+        assert!(names(&["intranet", "wiki", "a-b"]).validate().is_empty());
         let full: Vec<String> = (0..MAX_RESERVED_NAMES)
             .map(|i| format!("n{i:04}"))
             .collect();
@@ -123,7 +123,10 @@ mod tests {
 
     #[test]
     fn every_invalid_and_duplicate_name_is_reported() {
-        let errors = names(&["auth", "Auth", "ab", "auth", "wpad", "x_y", "auth"]).validate();
+        let errors = names(&[
+            "intranet", "Auth", "ab", "intranet", "wpad", "x_y", "intranet",
+        ])
+        .validate();
         let summary: Vec<(&str, FieldErrorCode)> = errors
             .iter()
             .map(|e| (e.pointer.as_str(), e.code))
@@ -147,27 +150,33 @@ mod tests {
             errors[3].detail,
             "\"wpad\" is not a site name that can be reserved: subdomain is reserved"
         );
-        assert_eq!(errors[2].detail, "\"auth\" is already listed at /names/0");
-        assert_eq!(errors[5].detail, "\"auth\" is already listed at /names/0");
+        assert_eq!(
+            errors[2].detail,
+            "\"intranet\" is already listed at /names/0"
+        );
+        assert_eq!(
+            errors[5].detail,
+            "\"intranet\" is already listed at /names/0"
+        );
     }
 
     #[test]
     fn subdomains_of_a_valid_list() {
-        let list = names(&["auth", "status"]);
+        let list = names(&["intranet", "wiki"]);
         let parsed: Vec<String> = list
             .subdomains()
             .iter()
             .map(|s| s.as_str().to_owned())
             .collect();
-        assert_eq!(parsed, vec!["auth", "status"]);
+        assert_eq!(parsed, vec!["intranet", "wiki"]);
         assert_eq!(names(&["Bad", "ok1"]).subdomains().len(), 1);
     }
 
     #[test]
     fn parses_through_the_writable_conventions() {
         let parsed: ReservedNames =
-            parse_writable(br#"{"names":["auth"],"meta":{"etag":"x"}}"#).unwrap();
-        assert_eq!(parsed, names(&["auth"]));
+            parse_writable(br#"{"names":["intranet"],"meta":{"etag":"x"}}"#).unwrap();
+        assert_eq!(parsed, names(&["intranet"]));
         match parse_writable::<ReservedNames>(
             json!({"names": ["ok1", "--"], "extra": true})
                 .to_string()

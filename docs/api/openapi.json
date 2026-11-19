@@ -1,1 +1,621 @@
-{}
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "stuffcloud API",
+    "description": "LAN API of stuffcloud (ADR 0010). Errors are RFC 9457 problem details; resources follow the conventions of docs/adr/0010-api-first-and-configuration-as-code.md.",
+    "license": {
+      "name": "GPL-3.0-or-later",
+      "identifier": "GPL-3.0-or-later"
+    },
+    "version": "0.0.0"
+  },
+  "paths": {
+    "/api/v1/openapi.json": {
+      "get": {
+        "tags": [
+          "operations"
+        ],
+        "summary": "`GET /api/v1/openapi.json`.",
+        "operationId": "openapi",
+        "responses": {
+          "200": {
+            "description": "This document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/settings/reserved-names": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "`GET /api/v1/settings/reserved-names`.",
+        "operationId": "getReservedNames",
+        "responses": {
+          "200": {
+            "description": "The reserved names",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Strong entity tag, for If-Match"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ReservedNames"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Never written; the defaults (no names) apply",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "`PUT /api/v1/settings/reserved-names`.",
+        "operationId": "putReservedNames",
+        "parameters": [
+          {
+            "name": "dry_run",
+            "in": "query",
+            "description": "Validate and report the diff, change nothing",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Write only if the current ETag matches",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "`*`: create only",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The full writable shape; a `meta` member is ignored",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservedNames"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated or unchanged (or a dry run)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WriteResult_ReservedNames"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WriteResult_ReservedNames"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed body, header or query",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "If-Match / If-None-Match failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Body is not JSON",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields, all of them listed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "`DELETE /api/v1/settings/reserved-names` (reset to the defaults).",
+        "operationId": "deleteReservedNames",
+        "parameters": [
+          {
+            "name": "dry_run",
+            "in": "query",
+            "description": "Report what would be deleted, change nothing",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Delete only if the current ETag matches",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted (or a dry run)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WriteResult_ReservedNames"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed header or query",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Never written",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "If-Match failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "tags": [
+          "operations"
+        ],
+        "summary": "`GET /healthz`: the process serves requests. Touches nothing else.",
+        "operationId": "liveness",
+        "responses": {
+          "200": {
+            "description": "The process is alive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": [
+          "operations"
+        ],
+        "summary": "`GET /metrics`.",
+        "operationId": "metrics",
+        "responses": {
+          "200": {
+            "description": "Metrics in the OpenMetrics text format",
+            "content": {
+              "application/openmetrics-text": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "tags": [
+          "operations"
+        ],
+        "summary": "`GET /readyz`: the database answers and has the schema this build needs.",
+        "operationId": "readiness",
+        "responses": {
+          "200": {
+            "description": "Ready to serve the API",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not ready",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Envelope_ReservedNames": {
+        "allOf": [
+          {
+            "type": "object",
+            "description": "Settings group `reserved-names`: site names nobody may claim in any zone, on top of the\nnames stuffcloud reserves itself ([`crate::subdomain::RESERVED`]) and those a zone\nreserves (ADR 0009).\n\nEach name must be a valid site name in canonical form (lowercase, see [`Subdomain`]),\nmay appear only once, and the list keeps the order it was written in, so a `GET` returns\nexactly what the last `PUT` sent.",
+            "required": [
+              "names"
+            ],
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "The reserved site names.",
+                "example": [
+                  "intranet",
+                  "wiki"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "meta"
+            ],
+            "properties": {
+              "meta": {
+                "$ref": "#/components/schemas/ResourceMeta",
+                "description": "Read-only facts; ignored when the document is sent back with `PUT`."
+              }
+            }
+          }
+        ],
+        "description": "A resource as `GET` returns it: the writable shape plus `meta`."
+      },
+      "FieldChange": {
+        "type": "object",
+        "description": "One changed field.",
+        "required": [
+          "pointer"
+        ],
+        "properties": {
+          "after": {
+            "description": "Value after the write (absent for a delete)."
+          },
+          "before": {
+            "description": "Value before the write (absent when the resource did not exist)."
+          },
+          "pointer": {
+            "type": "string",
+            "description": "JSON Pointer of the field."
+          }
+        }
+      },
+      "FieldError": {
+        "type": "object",
+        "description": "One invalid field.",
+        "required": [
+          "pointer",
+          "code",
+          "detail"
+        ],
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/FieldErrorCode",
+            "description": "What kind of problem it is."
+          },
+          "detail": {
+            "type": "string",
+            "description": "A sentence for people."
+          },
+          "pointer": {
+            "type": "string",
+            "description": "Where the problem is: a JSON Pointer (RFC 6901) into the request document.",
+            "example": "/names/0"
+          }
+        }
+      },
+      "FieldErrorCode": {
+        "type": "string",
+        "description": "What is wrong with a field. The serialised names are part of the API (stable).",
+        "enum": [
+          "unknown_field",
+          "missing_field",
+          "invalid_type",
+          "invalid_value",
+          "duplicate",
+          "too_many"
+        ]
+      },
+      "HealthStatus": {
+        "type": "object",
+        "description": "Answer of the probes.",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "`ok` (liveness) or `ready` (readiness)."
+          }
+        }
+      },
+      "Problem": {
+        "type": "object",
+        "description": "A problem details document (RFC 9457).",
+        "required": [
+          "type",
+          "title",
+          "status"
+        ],
+        "properties": {
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Explanation of this occurrence."
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            },
+            "description": "Every invalid field (validation problems only)."
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The HTTP status code.",
+            "minimum": 0
+          },
+          "title": {
+            "type": "string",
+            "description": "Short summary, the same for every occurrence of the kind."
+          },
+          "type": {
+            "type": "string",
+            "description": "Stable identifier of the kind of problem (a URI)."
+          }
+        }
+      },
+      "ReservedNames": {
+        "type": "object",
+        "description": "Settings group `reserved-names`: site names nobody may claim in any zone, on top of the\nnames stuffcloud reserves itself ([`crate::subdomain::RESERVED`]) and those a zone\nreserves (ADR 0009).\n\nEach name must be a valid site name in canonical form (lowercase, see [`Subdomain`]),\nmay appear only once, and the list keeps the order it was written in, so a `GET` returns\nexactly what the last `PUT` sent.",
+        "required": [
+          "names"
+        ],
+        "properties": {
+          "names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The reserved site names.",
+            "example": [
+              "intranet",
+              "wiki"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ResourceMeta": {
+        "type": "object",
+        "description": "The read-only part of a resource document.",
+        "required": [
+          "id",
+          "etag",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "description": "Creation time (RFC 3339, UTC)."
+          },
+          "etag": {
+            "type": "string",
+            "description": "The strong entity tag, exactly as in the `ETag` header (with quotes).",
+            "example": "\"3f2a9c0b7d1e4a5f8b6c2d0e9f1a7b3c\""
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Internal id; never needed to address the resource."
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "Time of the last change (RFC 3339, UTC)."
+          }
+        }
+      },
+      "WriteChange": {
+        "type": "string",
+        "description": "What a write did (or would do, in a dry run).",
+        "enum": [
+          "created",
+          "updated",
+          "unchanged",
+          "deleted"
+        ]
+      },
+      "WriteResult_ReservedNames": {
+        "type": "object",
+        "description": "The answer to a write.",
+        "required": [
+          "result",
+          "dry_run",
+          "diff"
+        ],
+        "properties": {
+          "diff": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldChange"
+            },
+            "description": "Every field that changed (or would change)."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Whether this was a dry run (then nothing was changed)."
+          },
+          "resource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Envelope_ReservedNames",
+                "description": "The resource after the write; absent after a delete."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result": {
+            "$ref": "#/components/schemas/WriteChange",
+            "description": "What happened."
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "operations",
+      "description": "Probes, metrics and the API description"
+    },
+    {
+      "name": "settings",
+      "description": "Instance-wide settings groups (SPEC 10.3)"
+    }
+  ]
+}

@@ -200,3 +200,20 @@ fn write_query_attacks_are_rejected() {
         );
     }
 }
+
+/// Fuzz finding (`write_query`, 2026-11-19): a refused parameter made of control characters
+/// was escaped in the message after it had been clipped, so the message grew far beyond its
+/// bound. Seed: `fuzz/seeds/write_query/seed-07`.
+#[test]
+fn query_errors_stay_short_for_control_characters() {
+    for input in [
+        "\u{1}".repeat(200),
+        format!("dry_run={}", "\u{7f}".repeat(200)),
+        format!("{}=true", "\u{202e}".repeat(100)),
+    ] {
+        let message = stuffcloud_core::query::WriteQuery::parse(Some(&input))
+            .unwrap_err()
+            .to_string();
+        assert!(message.len() < 300, "{} bytes: {message}", message.len());
+    }
+}

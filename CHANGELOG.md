@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `scripts/ci/license-policy.toml` and leaves `[dev_only]`; the unused `@napi-rs/canvas` binding
   of pdf.js is overridden out of the dependency graph. Tests: table-driven and property tests
   (all 31 page subsets of a five-page file), component tests and a Playwright spec per tool (axe
-  gate in both browsers, keyboard routes, live regions, German, 320 px).
+  gate in both browsers, keyboard routes, live regions, German, 320 px). (#144)
 - CRON expression and user-agent parser (T-19, #24): two client-side tools, no new dependency
   (own code instead of cron-parser, cronstrue and ua-parser-js; v2 of that library is AGPL). The CRON
   tool reads the 5-field, 6-field (seconds first) and 7-field (year last) forms, the macros

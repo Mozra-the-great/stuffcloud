@@ -323,11 +323,11 @@ pub fn check(request: &CsrfRequest<'_>, app: &Origin) -> Result<CsrfPass, CsrfRe
         [one] => Origin::parse(one).map_err(|_invalid| CsrfRefusal::InvalidOrigin)?,
         _ => return Err(CsrfRefusal::InvalidOrigin),
     };
-    if origin != *app {
+    if origin.host() != app.host() {
         return Err(CsrfRefusal::ForeignOrigin);
     }
     match request.fetch_sites {
-        [] | [b"same-origin"] => {}
+        [] | [b"same-origin" | b"same-site"] => {}
         _ => return Err(CsrfRefusal::CrossSiteRequest),
     }
     let header = match request.tokens {

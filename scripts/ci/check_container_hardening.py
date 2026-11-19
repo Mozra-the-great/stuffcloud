@@ -432,6 +432,16 @@ def static_check(root: pathlib.Path, resolved: Mapping[str, Mapping[str, Any]] |
     return findings
 
 
+def parse_top_uids(output: str) -> list[str]:
+    """The uid column of `docker top <id> -eo pid,uid` (Docker insists on a PID column)."""
+    uids: list[str] = []
+    for line in output.splitlines()[1:]:
+        columns = line.split()
+        if len(columns) >= 2:
+            uids.append(columns[1])
+    return uids
+
+
 def runtime_check(compose_file: pathlib.Path, project: str) -> list[str]:
     services = [s for s in run("docker", "compose", "-f", str(compose_file), "config", "--services").split() if s]
     ids = run("docker", "ps", "-a", "-q", "--filter", f"label=com.docker.compose.project={project}").split()
@@ -440,8 +450,7 @@ def runtime_check(compose_file: pathlib.Path, project: str) -> list[str]:
     containers = json.loads(run("docker", "inspect", *ids))
     uids: dict[str, list[str]] = {}
     for info in containers:
-        top = run("docker", "top", str(info["Id"]), "-eo", "uid").splitlines()
-        uids[str(info["Id"])] = [line.strip() for line in top[1:] if line.strip()]
+        uids[str(info["Id"])] = parse_top_uids(run("docker", "top", str(info["Id"]), "-eo", "pid,uid"))
     return check_runtime(containers, uids, services)
 
 

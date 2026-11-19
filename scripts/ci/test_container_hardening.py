@@ -464,6 +464,16 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(ch.check_runtime([inspect_doc()], {"abc": ["65532"]}, ["web"]), [])
 
 
+class TopTests(unittest.TestCase):
+    def test_uid_column_is_read(self) -> None:
+        output = "PID                 UID\n1234                65532\n1250                0\n"
+        self.assertEqual(ch.parse_top_uids(output), ["65532", "0"])
+
+    def test_header_only_or_empty(self) -> None:
+        self.assertEqual(ch.parse_top_uids("PID UID\n"), [])
+        self.assertEqual(ch.parse_top_uids(""), [])
+
+
 class StaticCheckTests(unittest.TestCase):
     def make_repo(self, root: pathlib.Path, service_changes: dict[str, Any] | None = None) -> dict[str, Any]:
         (root / "docker").mkdir()

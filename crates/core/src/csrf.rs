@@ -157,16 +157,13 @@ impl Origin {
         if rest.contains(['/', '?', '#', '@', '\\']) {
             return Err(OriginError::Trailing);
         }
-        // An IPv6 host contains colons; the port follows the closing bracket.
-        let (host, port) = match rest.rfind(']') {
-            Some(close) if rest.starts_with('[') => {
-                let (host, after) = rest.split_at(close.saturating_add(1));
-                (host, after)
-            }
-            _ => match rest.find(':') {
-                Some(colon) => rest.split_at(colon),
-                None => (rest, ""),
-            },
+        // An IPv6 host contains colons; the port follows the closing bracket. The text is
+        // ASCII here, so every split position is a character boundary.
+        let (host, port) = if rest.starts_with('[') {
+            let close = rest.find(']').ok_or(OriginError::Host)?;
+            rest.split_at(close.saturating_add(1))
+        } else {
+            rest.split_at(rest.find(':').unwrap_or(rest.len()))
         };
         if !valid_host(host) {
             return Err(OriginError::Host);
@@ -175,10 +172,8 @@ impl Origin {
             scheme.default_port()
         } else {
             let digits = port.strip_prefix(':').ok_or(OriginError::Trailing)?;
-            if digits.is_empty()
-                || digits.len() > 5
-                || !digits.bytes().all(|byte| byte.is_ascii_digit())
-            {
+            // `parse` alone would also take a sign; empty and too large fail there.
+            if !digits.bytes().all(|byte| byte.is_ascii_digit()) {
                 return Err(OriginError::Port);
             }
             digits
@@ -484,6 +479,8 @@ mod tests {
             (b"https://app.example.com:+1", OriginError::Port),
             (b"https://app.example.com:1:2", OriginError::Port),
             (b"https://app.example.com:8a", OriginError::Port),
+            (b"https://app.example.com:-1", OriginError::Port),
+            (b"https://a]b", OriginError::Host),
             (
                 "https://\u{e4}.example.com".as_bytes(),
                 OriginError::NotAscii,

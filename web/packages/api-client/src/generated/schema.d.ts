@@ -319,9 +319,9 @@ export interface operations {
     readonly deleteSession: {
         readonly parameters: {
             readonly query?: never;
-            readonly header: {
-                /** @description The CSRF token from GET /api/v1/auth/session */
-                readonly "X-CSRF-Token": string;
+            readonly header?: {
+                /** @description The CSRF token from GET /api/v1/auth/session (required for browser sessions; the generated client adds it when given `csrfToken`) */
+                readonly "X-CSRF-Token"?: string | null;
             };
             readonly path?: never;
             readonly cookie?: never;
@@ -358,9 +358,9 @@ export interface operations {
     readonly deleteSessions: {
         readonly parameters: {
             readonly query?: never;
-            readonly header: {
-                /** @description The CSRF token from GET /api/v1/auth/session */
-                readonly "X-CSRF-Token": string;
+            readonly header?: {
+                /** @description The CSRF token from GET /api/v1/auth/session (required for browser sessions; the generated client adds it when given `csrfToken`) */
+                readonly "X-CSRF-Token"?: string | null;
             };
             readonly path?: never;
             readonly cookie?: never;

@@ -72,4 +72,30 @@ describe('createStuffcloudClient', () => {
     expect(request?.headers.get('if-match')).toBe('"abc"');
     expect(await request?.json()).toEqual(body);
   });
+
+  it('reads the session and logs out with the CSRF token', async () => {
+    const seen: Request[] = [];
+    const state = { authenticated: false, csrf_token: 'a'.repeat(64) };
+    const reader = createStuffcloudClient({
+      baseUrl: 'http://stuff.localhost:8080',
+      fetch: answering(200, state, seen),
+    });
+
+    const { data } = await reader.GET('/api/v1/auth/session');
+    expect(data?.authenticated).toBe(false);
+    const token = data?.csrf_token;
+    const client = createStuffcloudClient({
+      baseUrl: 'http://stuff.localhost:8080',
+      fetch: answering(200, state, seen),
+      csrfToken: (): string | undefined => token,
+    });
+    await client.DELETE('/api/v1/auth/session');
+    await client.DELETE('/api/v1/auth/sessions');
+
+    expect(seen.map((request) => [request.method, request.headers.get('x-csrf-token')])).toEqual([
+      ['GET', null],
+      ['DELETE', 'a'.repeat(64)],
+      ['DELETE', 'a'.repeat(64)],
+    ]);
+  });
 });

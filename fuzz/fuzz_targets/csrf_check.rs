@@ -47,8 +47,8 @@ fuzz_target!(|data: &[u8]| {
             assert!(fetch_sites.is_empty() || fetch_sites == [b"same-origin"]);
             assert_eq!(tokens.len(), 1);
             assert_eq!(token.to_hex().as_bytes(), tokens[0]);
-            let cookie = lookup([cookie_header], "__Host-c").value().unwrap();
-            assert_eq!(cookie, tokens[0]);
+            let cookie = lookup([cookie_header], "__Host-c");
+            assert_eq!(cookie.value(), Some(tokens[0]));
         }
         Err(_refused) => assert!(!is_safe_method(method)),
     }

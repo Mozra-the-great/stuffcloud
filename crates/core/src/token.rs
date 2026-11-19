@@ -86,7 +86,7 @@ impl Token {
             };
             let high = nibble(*high).ok_or(TokenError::InvalidCharacter(index))?;
             let low = nibble(*low).ok_or(TokenError::InvalidCharacter(index.wrapping_add(1)))?;
-            *slot = (high << 4) | low;
+            *slot = high.wrapping_mul(16).wrapping_add(low);
         }
         Ok(Self(bytes))
     }

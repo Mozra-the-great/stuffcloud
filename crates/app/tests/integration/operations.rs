@@ -120,6 +120,11 @@ async fn unknown_routes_and_methods_are_problems() {
         assert!(allow.contains(method), "{allow}");
     }
     let patch = app
+        .call(Method::PATCH, "/healthz", &csrf_headers(), None)
+        .await;
+    patch.assert_problem(405, "method-not-allowed");
+    // Without them the CSRF check answers first, for known and unknown routes alike.
+    let bare = app
         .send(
             Request::builder()
                 .method(Method::PATCH)
@@ -128,7 +133,7 @@ async fn unknown_routes_and_methods_are_problems() {
                 .unwrap(),
         )
         .await;
-    patch.assert_problem(405, "method-not-allowed");
+    bare.assert_problem(403, "csrf-rejected");
 }
 
 #[tokio::test]

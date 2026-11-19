@@ -1062,8 +1062,11 @@ async fn a_cross_site_get_cannot_rebind_the_csrf_token() {
             .set_session_csrf(admin.session.id, &token_hash(&admin.csrf))
             .unwrap();
     }
-    // An anonymous client has nothing to bind, so a cross-site GET still hands out a cookie.
+    // The same holds without a session: a cross-site navigation must not replace the CSRF
+    // cookie of an open login form either.
     let (reply, _) = session_state(&app, &[header("sec-fetch-site", "cross-site")]).await;
+    assert!(reply.set_cookies().is_empty());
+    let (reply, _) = session_state(&app, &[header("sec-fetch-site", "same-origin")]).await;
     assert_eq!(reply.set_cookies().len(), 1);
 }
 

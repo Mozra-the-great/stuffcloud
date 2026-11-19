@@ -105,7 +105,7 @@ async fn session_state(state: &AppState, request: Request<Body>) -> Result<Respo
     // A fresh token is kept (bound to the session, set as a cookie) only when the request may
     // bind one: a cross-site navigation carries the Lax session cookie but not the Strict CSRF
     // cookie, and must not be able to replace the token the user's open tabs use (#135).
-    let keep = fresh && (session.is_none() || may_bind_csrf(&parts.headers));
+    let keep = fresh && may_bind_csrf(&parts.headers);
     if let (true, Some(session)) = (keep, session) {
         let id = session.id;
         let hash = token_hash(&token);

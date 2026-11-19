@@ -250,8 +250,10 @@ Authentication
   end after an idle and an absolute timeout (deployment configuration, defaults 8 hours and
   7 days), are never reused across a login (fixation) and end on logout, "logout everywhere"
   and a role change. The client gets the CSRF token from `GET /api/v1/auth/session` and sends
-  it as `X-CSRF-Token`; requests with an `Authorization` header (tokens) are not cookie
-  authenticated and skip these checks (ADR 0005, addendum A-02). API tokens for the CLI and automation (hashed at
+  it as `X-CSRF-Token`; requests with a well-formed `Authorization: Bearer` header (tokens) are
+  not cookie authenticated and skip these checks, any other `Authorization` scheme is ignored
+  (the request is handled as if it had none), and a malformed one is refused with 401 (ADR 0005,
+  addenda A-02 and #134). API tokens for the CLI and automation (hashed at
   rest, scoped incl. admin scopes, revocable) and service accounts without interactive login
   (section 10.4).
 - E-mail is **optional** infrastructure (SMTP configurable). Without SMTP:
@@ -650,8 +652,11 @@ Test layers and what each must cover:
   `Domain=` attribute, every state-changing route refuses a missing or foreign `Origin`
   and a missing CSRF token, and cookies tossed for the parent domain are ignored.
 - **Cookie check** (since A-02): `scripts/ci/check_cookies.py` fails on any cookie with a
-  `Domain=` attribute in any crate (`app` now, `edge` when it exists) and on `Set-Cookie`
-  outside the cookie module, in addition to the per-route tests.
+  `Domain=` attribute in any Rust file of the repository (sources, tests, `build.rs`, fuzz
+  targets), Caddy file or script of `web/`, on `Set-Cookie` outside the cookie module, on cookie
+  libraries and `document.cookie`, in addition to the per-route tests (which also cover the
+  probe, metrics and fallback paths). It is defense in depth: the `SetCookie` type is the
+  boundary.
 - **Listener tests** (hosting): on the tunnel listener the app address, internal sites
   and unknown names give the same response; forged `Host`, `X-Forwarded-*` and tunnel
   headers on the LAN listener never make a request count as coming from the internet.

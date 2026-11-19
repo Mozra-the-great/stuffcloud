@@ -39,10 +39,28 @@ fn operations() -> Vec<(Method, String)> {
             ));
         }
     }
-    for method in [Method::POST, Method::PUT, Method::DELETE, Method::PATCH] {
-        found.push((method, "/api/v1/no-such-route".to_owned()));
+    // Paths outside the OpenAPI document: the probes, the metrics, the router's fallback and
+    // the bare prefixes. The middleware must treat them like any route (#136).
+    for path in [
+        "/",
+        "/healthz",
+        "/readyz",
+        "/metrics",
+        "/api",
+        "/api/v1",
+        "/api/v1/no-such-route",
+        "/no-such-path",
+    ] {
+        for method in [
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::PATCH,
+        ] {
+            found.push((method, path.to_owned()));
+        }
     }
-    found.push((Method::GET, "/api/v1/no-such-route".to_owned()));
     found
 }
 
@@ -780,4 +798,338 @@ async fn the_audit_log_holds_no_personal_data() {
     }
     let actor = format!("user:{}", alice.session.user.id);
     assert_eq!(log[2].actor.as_deref(), Some(actor.as_str()));
+}
+
+/// Credentials a browser or a proxy attaches on its own, also to cross-site requests (#134).
+const FOREIGN_SCHEMES: [&str; 6] = [
+    "Basic dXNlcjpwYXNz",
+    "basic dXNlcjpwYXNz",
+    "Digest username=\"a\", realm=\"r\"",
+    "Negotiate YIIBsw==",
+    "NTLM TlRMTVNTUAAB",
+    "Token abc",
+];
+
+#[tokio::test]
+async fn a_foreign_authorization_scheme_does_not_switch_the_csrf_checks_off() {
+    let mut checked = 0;
+    for (method, path) in operations().into_iter().filter(|(m, _)| is_write(m)) {
+        let app = TestApp::new(Policy::Production);
+        let body = body_for(&method, &path);
+        for scheme in FOREIGN_SCHEMES {
+            let authorization = header("authorization", scheme);
+            for extra in [
+                // A cross-site form post with the cached credentials: no Origin, no token.
+                Vec::new(),
+                vec![header("origin", SITE_ORIGIN)],
+                vec![header("origin", "null")],
+                vec![
+                    header("origin", APP_ORIGIN),
+                    header("sec-fetch-site", "cross-site"),
+                ],
+                vec![header("origin", APP_ORIGIN)],
+            ] {
+                let mut headers = vec![authorization.clone()];
+                headers.extend(extra);
+                let reply = app
+                    .call(method.clone(), &path, &headers, body.as_ref())
+                    .await;
+                reply.assert_problem(403, "csrf-rejected");
+                checked += 1;
+            }
+        }
+    }
+    assert!(checked >= 5 * 6 * 5, "only {checked} requests checked");
+}
+
+#[tokio::test]
+async fn a_foreign_scheme_is_ignored_and_cookies_work_as_usual() {
+    let app = TestApp::new(Policy::Production);
+    let admin = app.login("admin", Role::Admin);
+    for scheme in FOREIGN_SCHEMES {
+        // A proxy that asks for a login does not break the cookie session.
+        let mut read = admin.read_headers();
+        read.push(header("authorization", scheme));
+        let (_, state) = session_state(&app, &read).await;
+        assert_eq!(state["authenticated"], true, "{scheme}");
+        // A write needs the full browser proof, and with it the session's rights.
+        let mut write = admin.write_headers();
+        write.push(header("authorization", scheme));
+        let reply = app
+            .call(
+                Method::PUT,
+                SETTINGS,
+                &write,
+                Some(&json!({"names": ["intranet"]})),
+            )
+            .await;
+        assert!(reply.status.is_success(), "{scheme}: {}", reply.text());
+    }
+    // Without a session the checks still apply and the policy answers as for anonymous.
+    let mut anonymous = csrf_headers();
+    anonymous.push(header("authorization", FOREIGN_SCHEMES[0]));
+    app.call(
+        Method::PUT,
+        SETTINGS,
+        &anonymous,
+        Some(&json!({"names": ["x"]})),
+    )
+    .await
+    .assert_problem(401, "unauthenticated");
+}
+
+#[tokio::test]
+async fn a_broken_bearer_header_is_refused_and_never_falls_back() {
+    let app = TestApp::new(Policy::AllowAll);
+    let admin = app.login("admin", Role::Admin);
+    let audit_before = app.db.audit_log().unwrap();
+    let broken: [&[&str]; 8] = [
+        &["Bearer"],
+        &["Bearer "],
+        &["Bearer a=b"],
+        &["Bearer a b"],
+        &["Bearer \"abc\""],
+        &["Bearer abc", "Bearer abc"],
+        &["Basic dXNlcjpwYXNz", "Bearer abc"],
+        &["Bearer abc", "Basic dXNlcjpwYXNz"],
+    ];
+    for values in broken {
+        for (method, path) in operations() {
+            // Neither the cookie session nor valid CSRF headers rescue the request.
+            let mut headers = admin.write_headers();
+            for value in values {
+                headers.push(header("authorization", value));
+            }
+            let reply = app
+                .call(
+                    method.clone(),
+                    &path,
+                    &headers,
+                    body_for(&method, &path).as_ref(),
+                )
+                .await;
+            let problem = reply.problem(401, "unauthenticated");
+            assert_eq!(
+                problem["detail"],
+                "the Authorization header is not exactly one well-formed Bearer token",
+                "{values:?} {method} {path}"
+            );
+            assert!(reply.set_cookies().is_empty(), "{method} {path}");
+        }
+    }
+    assert_eq!(
+        app.db.audit_log().unwrap(),
+        audit_before,
+        "nothing was written"
+    );
+    assert_eq!(app.db.session_count(admin.session.user.id).unwrap(), 1);
+}
+
+#[tokio::test]
+async fn a_bearer_token_needs_no_origin_and_uses_no_cookies() {
+    let app = TestApp::new(Policy::AllowAll);
+    let admin = app.login("admin", Role::Admin);
+    for value in [
+        "Bearer abc",
+        "bearer abc",
+        "BEARER sfc_0123.4-5~6+7/8==",
+        "Bearer a",
+    ] {
+        let mut headers = admin.read_headers();
+        headers.push(header("authorization", value));
+        let (reply, state) = session_state(&app, &headers).await;
+        assert_eq!(
+            state["authenticated"], false,
+            "{value}: the cookie is ignored"
+        );
+        // The session cookie is neither used nor cleared for an API client.
+        assert!(
+            reply
+                .set_cookies()
+                .iter()
+                .all(|cookie| !cookie.starts_with("__Host-stuffcloud-session=")),
+            "{value}"
+        );
+        let write = app
+            .call(
+                Method::PUT,
+                SETTINGS,
+                &[header("authorization", value)],
+                Some(&json!({"names": ["intranet"]})),
+            )
+            .await;
+        assert!(write.status.is_success(), "{value}: {}", write.text());
+    }
+}
+
+#[tokio::test]
+async fn an_origin_port_with_a_leading_zero_is_refused() {
+    let app = TestApp::new(Policy::Production);
+    let body = json!({"names": ["intranet"]});
+    for origin in [
+        "https://app.example.com:0443",
+        "https://app.example.com:00443",
+        "https://app.example.com:0",
+    ] {
+        let mut headers = csrf_headers();
+        headers[0].1 = origin.to_owned();
+        let problem = app
+            .call(Method::PUT, SETTINGS, &headers, Some(&body))
+            .await
+            .problem(403, "csrf-rejected");
+        assert_eq!(
+            problem["detail"], "the Origin header is not exactly one valid origin",
+            "{origin}"
+        );
+    }
+    // The explicit default port is still the app origin: the request reaches the policy.
+    let mut headers = csrf_headers();
+    headers[0].1 = "https://app.example.com:443".to_owned();
+    app.call(Method::PUT, SETTINGS, &headers, Some(&body))
+        .await
+        .assert_problem(401, "unauthenticated");
+}
+
+/// The CSRF hash stored for a session.
+fn stored_csrf_hash(app: &TestApp, browser: &Browser) -> [u8; 32] {
+    match app
+        .db
+        .find_session(
+            &token_hash(&browser.token),
+            &TIMEOUTS,
+            app.clock.now_millis(),
+        )
+        .unwrap()
+    {
+        SessionLookup::Active(session) => session.csrf_hash,
+        other => panic!("{other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn a_cross_site_get_cannot_rebind_the_csrf_token() {
+    let app = TestApp::new(Policy::Production);
+    let admin = app.login("admin", Role::Admin);
+    // A top-level navigation from another site: the Lax session cookie is there, the Strict
+    // CSRF cookie is not.
+    let session_only = format!("__Host-stuffcloud-session={}", admin.token.to_hex());
+    for site in ["cross-site", "same-site", "other", ""] {
+        let headers = [
+            header("cookie", &session_only),
+            header("sec-fetch-site", site),
+        ];
+        let (reply, state) = session_state(&app, &headers).await;
+        assert_eq!(state["authenticated"], true, "{site}");
+        assert!(reply.set_cookies().is_empty(), "{site}: no cookie is set");
+        // Nothing was stored: the token of the user's open tab still works.
+        assert_eq!(
+            stored_csrf_hash(&app, &admin),
+            token_hash(&admin.csrf),
+            "{site}"
+        );
+        let write = app
+            .call(
+                Method::PUT,
+                SETTINGS,
+                &admin.write_headers(),
+                Some(&json!({"names": ["intranet"]})),
+            )
+            .await;
+        assert!(write.status.is_success(), "{site}: {}", write.text());
+    }
+    // The app itself, the user (typed address) and clients without the header may bind.
+    for site in [Some("same-origin"), Some("none"), None] {
+        let mut headers = vec![header("cookie", &session_only)];
+        if let Some(site) = site {
+            headers.push(header("sec-fetch-site", site));
+        }
+        let (reply, state) = session_state(&app, &headers).await;
+        assert_ne!(state["csrf_token"], admin.csrf.to_hex(), "{site:?}");
+        assert_eq!(reply.set_cookies().len(), 1, "{site:?}");
+        let fresh = Token::parse(state["csrf_token"].as_str().unwrap().as_bytes()).unwrap();
+        let rebound = Browser {
+            csrf: fresh,
+            ..admin.clone()
+        };
+        assert_eq!(
+            stored_csrf_hash(&app, &admin),
+            token_hash(&rebound.csrf),
+            "{site:?}"
+        );
+        // Put the original token back for the next round.
+        let _bound = app
+            .db
+            .set_session_csrf(admin.session.id, &token_hash(&admin.csrf))
+            .unwrap();
+    }
+    // An anonymous client has nothing to bind, so a cross-site GET still hands out a cookie.
+    let (reply, _) = session_state(&app, &[header("sec-fetch-site", "cross-site")]).await;
+    assert_eq!(reply.set_cookies().len(), 1);
+}
+
+#[tokio::test]
+async fn session_lookups_of_unknown_cookies_write_nothing() {
+    let app = TestApp::new(Policy::Production);
+    let alice = app.login("alice", Role::User);
+    let audit_before = app.db.audit_log().unwrap();
+    for byte in 0_u8..20 {
+        let cookie = format!(
+            "__Host-stuffcloud-session={}",
+            Token::from_bytes([byte; 32]).to_hex()
+        );
+        let (reply, state) = session_state(&app, &[header("cookie", &cookie)]).await;
+        assert_eq!(state["authenticated"], false);
+        assert!(
+            reply
+                .set_cookies()
+                .iter()
+                .any(|cookie| cookie.starts_with("__Host-stuffcloud-session=;"))
+        );
+    }
+    assert_eq!(app.db.audit_log().unwrap(), audit_before);
+    assert_eq!(app.db.session_count(alice.session.user.id).unwrap(), 1);
+}
+
+#[tokio::test]
+async fn refusals_are_counted_by_rule() {
+    let app = TestApp::new(Policy::Production);
+    let body = json!({"names": ["intranet"]});
+    for _ in 0..3 {
+        app.call(Method::PUT, SETTINGS, &[], Some(&body))
+            .await
+            .assert_problem(403, "csrf-rejected");
+    }
+    app.call(
+        Method::PUT,
+        SETTINGS,
+        &[header("origin", SITE_ORIGIN)],
+        Some(&body),
+    )
+    .await
+    .assert_problem(403, "csrf-rejected");
+    let admin = app.login("admin", Role::Admin);
+    let mut mismatch = admin.write_headers();
+    mismatch[1].1 = Token::from_bytes([7; 32]).to_hex();
+    app.call(Method::PUT, SETTINGS, &mismatch, Some(&body))
+        .await
+        .assert_problem(403, "csrf-rejected");
+    app.call(
+        Method::PUT,
+        SETTINGS,
+        &[header("authorization", "Bearer")],
+        Some(&body),
+    )
+    .await
+    .assert_problem(401, "unauthenticated");
+    let metrics = app.get("/metrics").await.text();
+    for line in [
+        "stuffcloud_auth_rejections_total{reason=\"missing_origin\"} 3",
+        "stuffcloud_auth_rejections_total{reason=\"foreign_origin\"} 1",
+        "stuffcloud_auth_rejections_total{reason=\"token_mismatch\"} 1",
+        "stuffcloud_auth_rejections_total{reason=\"invalid_authorization\"} 1",
+    ] {
+        assert!(metrics.contains(line), "{line}\n{metrics}");
+    }
+    // The label holds a rule name, never a value from the request.
+    assert!(!metrics.contains(SITE_ORIGIN), "{metrics}");
 }

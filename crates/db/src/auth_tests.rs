@@ -189,6 +189,118 @@ fn a_session_is_created_found_and_touched() {
     );
 }
 
+/// A second connection that holds SQLite's write lock until it is dropped or committed.
+fn hold_write_lock(dir: &tempfile::TempDir) -> Connection {
+    let other = Connection::open(dir.path().join("auth.sqlite3")).unwrap();
+    other.execute_batch("BEGIN IMMEDIATE").unwrap();
+    other
+}
+
+fn is_busy(error: &DbError) -> bool {
+    matches!(
+        error,
+        DbError::Sqlite(rusqlite::Error::SqliteFailure(failure, _))
+            if failure.code == rusqlite::ErrorCode::DatabaseBusy
+    )
+}
+
+#[test]
+fn a_lookup_that_writes_nothing_does_not_take_the_write_lock() {
+    let (dir, db) = db();
+    let user = person(&db, "alice", Role::User);
+    let session = login(&db, &user, 1, 1000);
+    let audit_before = db.audit_log().unwrap();
+    // Another process (edge) holds the write lock; waiting for it must not be necessary.
+    db.lock()
+        .unwrap()
+        .busy_timeout(std::time::Duration::ZERO)
+        .unwrap();
+    let other = hold_write_lock(&dir);
+
+    // An unknown token (random cookies) and a fresh session are answered by the read alone.
+    assert_eq!(
+        db.find_session(&hash(2), &T, 1000).unwrap(),
+        SessionLookup::Unknown
+    );
+    assert_eq!(
+        active(
+            db.find_session(&hash(1), &T, 1000 + TOUCH_INTERVAL_MS - 1)
+                .unwrap()
+        ),
+        session
+    );
+    // Recording the use and deleting an expired session need the write lock.
+    let touch = db
+        .find_session(&hash(1), &T, 1000 + TOUCH_INTERVAL_MS)
+        .unwrap_err();
+    assert!(is_busy(&touch), "{touch:?}");
+    let expire = db.find_session(&hash(1), &T, T.idle_ms + 1000).unwrap_err();
+    assert!(is_busy(&expire), "{expire:?}");
+
+    other.execute_batch("COMMIT").unwrap();
+    assert_eq!(db.audit_log().unwrap(), audit_before, "nothing was written");
+    assert_eq!(
+        active(
+            db.find_session(&hash(1), &T, 1000 + TOUCH_INTERVAL_MS)
+                .unwrap()
+        )
+        .last_seen_at,
+        1000 + TOUCH_INTERVAL_MS
+    );
+}
+
+#[test]
+fn the_write_half_looks_the_session_up_again() {
+    let (_dir, db) = db();
+    let user = person(&db, "alice", Role::User);
+    let session = login(&db, &user, 1, 0);
+    let mut conn = db.lock().unwrap();
+    // The session ended between the read and the write transaction.
+    assert_eq!(
+        settle_session(&mut conn, &hash(2), &T, 5).unwrap(),
+        SessionLookup::Unknown
+    );
+    // Still there and nothing is due: the row comes back unchanged, nothing is written.
+    assert_eq!(
+        settle_session(&mut conn, &hash(1), &T, 5).unwrap(),
+        SessionLookup::Active(session)
+    );
+    drop(conn);
+    assert_eq!(
+        security(&db).len(),
+        2,
+        "user.created and session.created only"
+    );
+}
+
+#[test]
+fn a_recently_used_session_still_expires_at_the_absolute_timeout() {
+    let (_dir, db) = db();
+    let user = person(&db, "alice", Role::User);
+    let session = login(&db, &user, 1, 0);
+    // Used a second ago, so only the absolute timeout is reached and no touch is due.
+    let _rows = db
+        .lock()
+        .unwrap()
+        .execute(
+            "UPDATE sessions SET last_seen_at = ?1",
+            [T.absolute_ms - 1000],
+        )
+        .unwrap();
+    assert_eq!(
+        db.find_session(&hash(1), &T, T.absolute_ms - 1).unwrap(),
+        SessionLookup::Active(Session {
+            last_seen_at: T.absolute_ms - 1000,
+            ..session
+        })
+    );
+    assert_eq!(
+        db.find_session(&hash(1), &T, T.absolute_ms).unwrap(),
+        SessionLookup::Expired(SessionAge::AbsoluteExpired)
+    );
+    assert_eq!(db.session_count(user.id).unwrap(), 0);
+}
+
 #[test]
 fn idle_and_absolute_expiry_delete_the_session() {
     let (_dir, db) = db();

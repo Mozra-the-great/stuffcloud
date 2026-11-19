@@ -8,6 +8,7 @@
 //! - [`auth`]: authentication of every request (the `__Host-` session cookie, the `Origin` and
 //!   CSRF checks of SPEC 5.5) and the session primitives the login flows use; [`sessions`]
 //!   are the session endpoints (current session and CSRF token, logout, logout everywhere).
+//! - [`sampler`]: the rate limit of log lines a client can trigger (refused cross-site requests).
 //! - [`problem`]: RFC 9457 problem details, the only error format.
 //! - [`health`], [`metrics`], [`telemetry`]: probes, Prometheus metrics, structured logs
 //!   without client addresses or tokens.
@@ -28,6 +29,7 @@ pub mod middleware;
 pub mod openapi;
 pub mod problem;
 pub mod resource;
+pub mod sampler;
 pub mod server;
 pub mod sessions;
 pub mod settings;

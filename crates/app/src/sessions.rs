@@ -2,7 +2,9 @@
 //!
 //! - `GET /auth/session` tells the client who it is and hands out the CSRF token every write
 //!   needs (it also sets the `__Host-stuffcloud-csrf` cookie when the browser has no valid
-//!   one). Anonymous clients get a token too, so the login form is protected.
+//!   one). Anonymous clients get a token too, so the login form is protected. It only reads
+//!   the session: a new token for a session is stored only when the request may bind one
+//!   ([`crate::auth::may_bind_csrf`]: same-origin, from the user, or without `Sec-Fetch-Site`).
 //! - `DELETE /auth/session` ends the current session (logout).
 //! - `DELETE /auth/sessions` ends every session of the account (logout everywhere).
 //!
@@ -21,7 +23,8 @@ use stuffcloud_db::token_hash;
 use utoipa::ToSchema;
 
 use crate::auth::{
-    Authentication, CSRF_COOKIE, SESSION_COOKIE, append_cookie, bound_to, csrf_cookie, new_token,
+    Authentication, CSRF_COOKIE, SESSION_COOKIE, append_cookie, bound_to, csrf_cookie,
+    may_bind_csrf, new_token,
 };
 use crate::problem::{Problem, ProblemBody, ProblemKind};
 use crate::resource::rfc3339;
@@ -99,7 +102,11 @@ async fn session_state(state: &AppState, request: Request<Body>) -> Result<Respo
         Some(token) => (token, false),
         None => (new_token()?, true),
     };
-    if let (true, Some(session)) = (fresh, session) {
+    // A fresh token is kept (bound to the session, set as a cookie) only when the request may
+    // bind one: a cross-site navigation carries the Lax session cookie but not the Strict CSRF
+    // cookie, and must not be able to replace the token the user's open tabs use (#135).
+    let keep = fresh && (session.is_none() || may_bind_csrf(&parts.headers));
+    if let (true, Some(session)) = (keep, session) {
         let id = session.id;
         let hash = token_hash(&token);
         let _bound = state.db(move |db| db.set_session_csrf(id, &hash)).await?;
@@ -129,7 +136,7 @@ async fn session_state(state: &AppState, request: Request<Body>) -> Result<Respo
         session: times,
     })
     .into_response();
-    if fresh {
+    if keep {
         append_cookie(response.headers_mut(), &CSRF_COOKIE.set(&token, None));
     }
     Ok(response)

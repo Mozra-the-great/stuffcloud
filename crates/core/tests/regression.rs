@@ -237,6 +237,8 @@ const ORIGIN_ATTACKS: &[&str] = &[
     "https://app.example.com/",
     "https://app.example.com:443/",
     "https://app.example.com:0443x",
+    "https://app.example.com:0443",
+    "https://app.example.com:00443",
     "https://app.example.com%2f",
     "https://app%2eexample.com",
     "https://xn--pp-8ka.example.com",
@@ -315,4 +317,47 @@ fn token_attacks_are_rejected() {
             "accepted attack token {input:?}"
         );
     }
+}
+
+/// `Authorization` headers a browser or a proxy may attach to a cross-site request on its own, or
+/// that look like a token without being one (#134). None of them may count as a bearer token,
+/// because only a bearer token switches the cookie and CSRF rules off.
+const NOT_A_BEARER: &[&str] = &[
+    "Basic dXNlcjpwYXNz",
+    "basic dXNlcjpwYXNz",
+    "Digest username=\"a\", realm=\"r\"",
+    "Negotiate YIIBsw==",
+    "NTLM TlRMTVNTUAABAAAA",
+    "AWS4-HMAC-SHA256 Credential=a",
+    "Bearers abc",
+    " Bearer abc",
+    "Bearer	abc",
+    "Bearer",
+    "Bearer ",
+    "Bearer  abc",
+    "Bearer abc def",
+    "Bearer abc, Basic dXNlcjpwYXNz",
+    "Bearer \"abc\"",
+    "Bearer a=b",
+    "",
+];
+
+#[test]
+fn only_a_well_formed_bearer_header_is_a_bearer() {
+    use stuffcloud_core::authorization::{Authorization, classify};
+    for value in NOT_A_BEARER {
+        assert!(
+            !matches!(classify(&[value.as_bytes()]), Authorization::Bearer(_)),
+            "{value:?} counted as a bearer token"
+        );
+    }
+    assert!(matches!(
+        classify(&[b"Bearer abc"]),
+        Authorization::Bearer(b"abc")
+    ));
+    // A second field next to a real token is refused as a whole.
+    assert_eq!(
+        classify(&[b"Bearer abc", b"Basic dXNlcjpwYXNz"]),
+        Authorization::Malformed
+    );
 }

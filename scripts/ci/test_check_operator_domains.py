@@ -277,7 +277,7 @@ class MainTest(unittest.TestCase):
     def test_a_malformed_entry_fails_without_printing_it(self) -> None:
         code, out = self.run_main("fine.example\nnot a domain!")
         self.assertEqual(code, 2)
-        self.assertIn("entry 2, 3, 4 is not a domain name", out)
+        self.assertIn("entry 2, 3, 4 is neither a domain name", out)
         self.assertNotIn("domain!", out)
 
     def test_reserved_entries_are_noticed_and_ignored(self) -> None:
@@ -289,6 +289,268 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("entry 1, 2 is a name reserved for documentation", out.getvalue())
         self.assertIn("reduced check", out.getvalue())
+
+
+class AddressParseTest(unittest.TestCase):
+    def test_an_address_entry_is_kept_whole_and_lowercase(self) -> None:
+        (entry,) = entries("Some.One+tag@Mail.Example")
+        self.assertEqual(
+            (entry.kind, entry.ascii_name, entry.unicode_name),
+            ("email", "some.one+tag@mail.example", "some.one+tag@mail.example"),
+        )
+        self.assertEqual(entry.number, 1)
+
+    def test_domains_stay_domains_and_numbers_count_both_kinds(self) -> None:
+        parsed = gate.parse_entries("corp.example\nsomeone@mail.example\nother.example", **NOTHING_RESERVED)
+        self.assertEqual([(e.number, e.kind) for e in parsed.entries], [(1, "domain"), (2, "email"), (3, "domain")])
+
+    def test_the_domain_part_of_an_address_may_be_unicode(self) -> None:
+        (entry,) = entries("someone@bücher.example")
+        self.assertEqual(entry.ascii_name, "someone@xn--bcher-kva.example")
+        self.assertEqual(entry.unicode_name, "someone@bücher.example")
+
+    def test_malformed_addresses(self) -> None:
+        for bad in (
+            "@mail.example",
+            "someone@",
+            "someone@localhost",
+            "someone@mail",
+            "a@b@mail.example",
+            ".someone@mail.example",
+            "someone.@mail.example",
+            "some..one@mail.example",
+            "some*one@mail.example",
+            "*@mail.example",
+            "someone@*.mail.example",
+            "someone@.mail.example",
+            "someone@mail.example.",
+            "someone@-mail.example",
+            "someone@mail..example",
+            "someone@mail_x.example",
+            "söme@mail.example",
+            "someone@mail.example/x",
+            "<someone@mail.example>",
+            "mailto:someone@mail.example",
+            "x" * 65 + "@mail.example",
+        ):
+            parsed = gate.parse_entries(bad, **NOTHING_RESERVED)
+            self.assertEqual(parsed.entries, (), bad)
+            self.assertEqual(len(parsed.malformed), 1, bad)
+
+    def test_the_local_part_may_be_64_characters_and_use_atext(self) -> None:
+        for good in ("x" * 64 + "@mail.example", "a.b-c_d+e=f'g@mail.example", "{a|b}~!$&?^`/%@mail.example"):
+            self.assertEqual(len(entries(good)), 1, good)
+
+    def test_an_address_with_a_reserved_domain_is_ignored_like_a_reserved_domain(self) -> None:
+        parsed = gate.parse_entries("someone@example.com\nsomeone@corp.example\nsomeone@real-looking.de")
+        self.assertEqual(parsed.reserved, (1, 2))
+        self.assertEqual([e.ascii_name for e in parsed.entries], ["someone@real-looking.de"])
+        self.assertEqual(parsed.malformed, ())
+
+    def test_a_hash_still_starts_a_comment(self) -> None:
+        parsed = gate.parse_entries("someone@mail.example # not this@other.example", **NOTHING_RESERVED)
+        self.assertEqual([e.ascii_name for e in parsed.entries], ["someone@mail.example"])
+
+
+class AddressMatchTest(unittest.TestCase):
+    ADDRESS = "someone@mail.example"
+
+    def test_the_address_in_any_case_and_surroundings(self) -> None:
+        for text in (
+            "someone@mail.example",
+            "SomeOne@Mail.Example",
+            "SOMEONE@MAIL.EXAMPLE",
+            "<someone@mail.example>",
+            "mailto:someone@mail.example?subject=x",
+            '"someone@mail.example"',
+            "'someone@mail.example'",
+            "(someone@mail.example)",
+            "Mail me: someone@mail.example.",
+            "a,someone@mail.example,b",
+            "to=someone@mail.example",
+            "someone@mail.example:25",
+            "someone@mail.example/path",
+            "\tsomeone@mail.example\\n",
+        ):
+            self.assertEqual(hits(text, self.ADDRESS), [(1, 1)], text)
+
+    def test_not_inside_a_longer_address_or_word(self) -> None:
+        for text in (
+            "xsomeone@mail.example",
+            "first.someone@mail.example",
+            "first_someone@mail.example",
+            "first-someone@mail.example",
+            "first+someone@mail.example",
+            "1someone@mail.example",
+            "50%someone@mail.example",
+            "someone@mail.example.org",
+            "someone@mail.example.pem",
+            "someone@mail.examples",
+            "someone@mail.example-two",
+            "someone@xmail.example",
+            "someone@sub.mail.example",
+            "someone@mail.exampl",
+            "someonemail.example",
+            "someone mail.example",
+            "someone at mail.example",
+            "someone[at]mail.example",
+        ):
+            self.assertEqual(hits(text, self.ADDRESS), [], text)
+
+    def test_the_local_part_must_be_whole(self) -> None:
+        for text in ("someone2@mail.example", "someon@mail.example", "omeone@mail.example", "some.one@mail.example"):
+            self.assertEqual(hits(text, self.ADDRESS), [], text)
+
+    def test_an_address_entry_never_forbids_its_domain(self) -> None:
+        for text in ("mail.example", "www.mail.example", "https://mail.example/x", "other@mail.example", "x@sub.mail.example", "someone"):
+            self.assertEqual(hits(text, self.ADDRESS), [], text)
+
+    def test_a_domain_entry_beside_it_still_matches_the_domain(self) -> None:
+        text = "someone@mail.example and other@mail.example"
+        self.assertEqual(hits(text, self.ADDRESS), [(1, 1)])
+        self.assertEqual(hits(text, self.ADDRESS, "mail.example"), [(1, 1), (1, 2)])
+        self.assertEqual(hits("other@mail.example", self.ADDRESS, "mail.example"), [(1, 2)])
+
+    def test_escaped_at_signs(self) -> None:
+        for text in (
+            "someone%40mail.example",
+            "mailto:someone%40Mail.Example",
+            "someone&#64;mail.example",
+            "someone&#064;mail.example",
+            "someone&#x40;mail.example",
+            "someone&#X40;mail.example",
+            "someone&commat;mail.example",
+            '"someone\\u0040mail.example"',
+            "?to=someone%40mail.example&x=1",
+        ):
+            self.assertEqual(hits(text, self.ADDRESS), [(1, 1)], text)
+
+    def test_what_is_not_covered(self) -> None:
+        for text in ("someone%2540mail.example", "someone=40mail.example", "someone＠mail.example", "someone&#65;mail.example"):
+            self.assertEqual(hits(text, self.ADDRESS), [], text)
+
+    def test_after_a_percent_escape_the_address_still_matches(self) -> None:
+        for text in ("a%20someone@mail.example", "to%3Asomeone%40mail.example", "%0Asomeone@mail.example"):
+            self.assertEqual(hits(text, self.ADDRESS), [(1, 1)], text)
+        self.assertEqual(hits("a%2someone@mail.example", self.ADDRESS), [])
+
+    def test_unicode_and_punycode_domain_forms(self) -> None:
+        for text in ("someone@bücher.example", "SOMEONE@BÜCHER.example", "someone@xn--bcher-kva.example"):
+            self.assertEqual(hits(text, "someone@bücher.example"), [(1, 1)], text)
+        self.assertEqual(hits("someone@bücher.example", "someone@xn--bcher-kva.example"), [(1, 1)])
+        self.assertEqual(hits("someone@übücher.example", "someone@bücher.example"), [])
+
+    def test_regex_metacharacters_in_the_local_part_are_literal(self) -> None:
+        for entry, text in (("a.b@mail.example", "aXb@mail.example"), ("a+@mail.example", "aa@mail.example"), ("a?b@mail.example", "b@mail.example")):
+            self.assertEqual(hits(text, entry), [], text)
+        self.assertEqual(hits("a.b+c@mail.example", "a.b+c@mail.example"), [(1, 1)])
+
+    def test_several_address_entries_report_their_own_numbers(self) -> None:
+        text = "one@mail.example\nnone\ntwo@mail.example one@mail.example\n"
+        self.assertEqual(hits(text, "one@mail.example", "two@mail.example"), [(1, 1), (3, 1), (3, 2)])
+
+
+class AddressTreeTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self._dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self._dir.cleanup)
+        self.root = Path(self._dir.name)
+
+    def write(self, relative: str, content: str) -> None:
+        path = self.root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+
+    def test_a_finding_names_file_line_and_entry_but_never_the_address(self) -> None:
+        self.write("docs/a.md", "fine\nwrite to Someone@Mail.Example today\nwww.mail.example is fine\n")
+        found = gate.check(self.root, entries("other.example", "someone@mail.example"))
+        self.assertEqual(found, ["docs/a.md:2: forbidden e-mail address (entry 2)"])
+        self.assertNotIn("someone", "\n".join(found))
+        self.assertNotIn("mail.example", "\n".join(found).lower())
+
+    def test_domain_and_address_findings_are_labelled_by_kind(self) -> None:
+        self.write("a.txt", "see corp.example and someone@mail.example\n")
+        self.assertEqual(
+            gate.check(self.root, entries("corp.example", "someone@mail.example")),
+            ["a.txt:1: forbidden domain (entry 1)", "a.txt:1: forbidden e-mail address (entry 2)"],
+        )
+
+    def test_a_file_name_with_the_address_is_hidden(self) -> None:
+        self.write("exports/someone@mail.example", "nothing here\n")
+        self.write("exports/Someone%40Mail.Example/readme.md", "clean\n")
+        found = gate.check(self.root, entries("someone@mail.example"))
+        self.assertEqual(len(found), 2)
+        for line in found:
+            self.assertNotIn("someone", line.lower())
+            self.assertTrue(line.startswith("<file name hidden #"), line)
+            self.assertIn("forbidden e-mail address (entry 1)", line)
+
+    def test_other_addresses_and_the_domain_alone_pass(self) -> None:
+        self.write("a.txt", "other@mail.example\nhttps://mail.example/\nsomeone@mail.example.org\nxsomeone@mail.example\n")
+        self.assertEqual(gate.check(self.root, entries("someone@mail.example")), [])
+
+
+class AddressMainTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self._dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self._dir.cleanup)
+        self.root = Path(self._dir.name)
+
+    def run_main(self, value: str) -> tuple[int, str]:
+        env = {k: v for k, v in os.environ.items() if k not in (gate.ENV_VAR, "GITHUB_ACTIONS")}
+        env[gate.ENV_VAR] = value
+        out = io.StringIO()
+        with (
+            mock.patch.dict(os.environ, env, clear=True),
+            mock.patch.object(gate, "is_reserved", lambda _name: False),
+            redirect_stdout(out),
+        ):
+            code = gate.main(["check_operator_domains.py", str(self.root)])
+        return code, out.getvalue()
+
+    def test_an_address_hit_fails_and_prints_no_address(self) -> None:
+        (self.root / "b.md").write_text("contact: someone@mail.example\n", encoding="utf-8")
+        code, out = self.run_main("someone@mail.example, other.example")
+        self.assertEqual(code, 1)
+        self.assertIn("b.md:1: forbidden e-mail address (entry 1)", out)
+        self.assertNotIn("someone", out)
+        self.assertNotIn("mail.example", out)
+
+    def test_a_failing_fixture_per_rule(self) -> None:
+        fixtures = {
+            "exact.md": "someone@mail.example",
+            "case.md": "SOMEONE@MAIL.EXAMPLE",
+            "encoded.md": "someone%40mail.example",
+            "entity.md": "someone&#64;mail.example",
+            "sentence.md": "write to someone@mail.example.",
+        }
+        for name, content in fixtures.items():
+            with self.subTest(name):
+                (self.root / name).write_text(content + "\n", encoding="utf-8")
+                code, out = self.run_main("someone@mail.example")
+                self.assertEqual(code, 1, out)
+                self.assertIn(f"{name}:1: forbidden e-mail address (entry 1)", out)
+                (self.root / name).unlink()
+        code, out = self.run_main("someone@mail.example")
+        self.assertEqual(code, 0, out)
+
+    def test_clean_neighbours_of_an_address_pass(self) -> None:
+        (self.root / "c.md").write_text(
+            "other@mail.example mail.example xsomeone@mail.example someone@mail.example.org\n", encoding="utf-8"
+        )
+        code, out = self.run_main("someone@mail.example")
+        self.assertEqual(code, 0, out)
+        self.assertIn("1 entries, no findings", out)
+
+    def test_a_malformed_address_fails_without_printing_it(self) -> None:
+        for bad in ("fine.example\nsomeone@localhost", "fine.example\nso..one@mail.example", "@mail.example"):
+            code, out = self.run_main(bad)
+            self.assertEqual(code, 2, bad)
+            self.assertIn("is neither a domain name", out)
+            self.assertNotIn("someone", out)
+            self.assertNotIn("mail.example", out)
+        code, out = self.run_main("fine.example\nsomeone@localhost")
+        self.assertIn("entry 2 is neither", out)
 
 
 if __name__ == "__main__":

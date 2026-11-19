@@ -66,8 +66,8 @@ scripts/ci/     label script (opt-in via LABELS_ENABLED), npm license gate (lice
                 hardening gate (check_container_hardening.py), dev stack smoke test
                 (dev_stack_smoke.py), cookie scope gate (check_cookies.py: Rust, Cargo.toml, Caddyfiles, web/),
                 crypto misuse gate (check_crypto.py: reviewed call sites of salts, literal keys, SHA-2;
-                no MD5/SHA-1), operator-domain gate (check_operator_domains.py: list from the Actions
-                secret/variable STUFFCLOUD_FORBIDDEN_DOMAINS, reduced check without it), tests
+                no MD5/SHA-1), operator-domain gate (check_operator_domains.py: domains and e-mail addresses
+                from the Actions secret/variable STUFFCLOUD_FORBIDDEN_DOMAINS, reduced check without it), tests
 compose.dev.yml local dev stack (Caddy, app, Mailpit; `edge` joins with H-19); docker/caddy/
                 Caddyfile.dev, placeholder site, Dockerfile (web build baked in); .env.example
 docs/           SPEC.md, ACCESSIBILITY.md (a11y gate, keyboard map), adr/ (architecture decision
@@ -89,7 +89,7 @@ cargo +nightly-2026-11-01 fuzz run safe_rel_path fuzz/corpus/safe_rel_path \
 python -m unittest discover -s scripts/ci -p "test_*.py"   # CI helper tests (Python 3.11+)
 python scripts/ci/check_cookies.py            # no cookie with a Domain attribute, Set-Cookie only in app/src/auth.rs, no document.cookie
 python scripts/ci/check_crypto.py             # crypto in product code only at the reviewed call sites (ALLOWLIST with reasons)
-STUFFCLOUD_FORBIDDEN_DOMAINS=... python scripts/ci/check_operator_domains.py   # no operator domain in tracked files (list never in the repo; CONTRIBUTING.md)
+STUFFCLOUD_FORBIDDEN_DOMAINS=... python scripts/ci/check_operator_domains.py   # no operator domain or e-mail address in tracked files (list never in the repo; CONTRIBUTING.md)
 python scripts/ci/license_gate.py             # npm license gate (needs pnpm; installs into a temp dir)
 python scripts/ci/third_party.py --write      # regenerate docs/THIRD-PARTY.md after a lockfile change
 cargo run -q -p stuffcloud-app -- permissions > docs/api/permissions.md   # after a route or matrix change (a test fails when stale)
@@ -257,9 +257,10 @@ stuffcloud is open source and must work for any operator. Flag every violation i
   and the documentation IP ranges (`192.0.2.0/24`, `198.51.100.0/24`,
   `203.0.113.0/24`, `2001:db8::/32`).
 - CI enforces it: `scripts/ci/check_operator_domains.py` searches every tracked file for the
-  domains of the maintainer's list (Actions secret/variable `STUFFCLOUD_FORBIDDEN_DOMAINS`, not
-  in the repo; pull requests without access to it get a notice and a reduced check). Never
-  write a real domain into a test or doc to "test" it: use a reserved name.
+  domains and e-mail addresses of the maintainer's list (Actions secret/variable
+  `STUFFCLOUD_FORBIDDEN_DOMAINS`, not in the repo; an entry with `@` is one exact address; pull
+  requests without access to it get a notice and a reduced check). Never write a real domain or
+  address into a test or doc to "test" it: use a reserved name.
 - The only allowed project-specific URLs are the project's own links (repository,
   issue tracker, licence, release/update source) — and only where they are needed.
 

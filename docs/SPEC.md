@@ -775,13 +775,16 @@ Test layers and what each must cover:
   secret working; a missing or wrong key leaves the app running with the affected features failing
   closed.
 - **Operator-domain check** (SC-D, owner answer SF11): `scripts/ci/check_operator_domains.py`
-  searches every tracked file and file name for the domains of the maintainer's list, which is
-  never in the repository: the Actions secret (or variable) `STUFFCLOUD_FORBIDDEN_DOMAINS`
-  (CONTRIBUTING.md describes how to set it). A listed domain is found case-insensitively, as
-  itself and as any subdomain; the reserved names of RFC 2606 / 6761 are always allowed. The
-  output names file and line, never the domain. Without the list (pull requests from forks and
+  searches every tracked file and file name for the domains and e-mail addresses of the
+  maintainer's list, which is never in the repository: the Actions secret (or variable)
+  `STUFFCLOUD_FORBIDDEN_DOMAINS` (CONTRIBUTING.md describes how to set it). A listed domain is
+  found case-insensitively, as itself and as any subdomain; an entry with `@` is one exact
+  address (`local@domain`), found case-insensitively as a whole address (not inside a longer one,
+  also with the `@` written `%40` or as an HTML entity) and never forbids its domain; the reserved
+  names of RFC 2606 / 6761 are always allowed. The output names file, line and entry number,
+  never the domain or address. Without the list (pull requests from forks and
   Dependabot receive no secrets) the step prints a notice and passes: a reduced check. Its
-  tests use only reserved names.
+  tests use only reserved names, with a failing fixture per rule.
 - **Listener tests** (hosting): on the tunnel listener the app address, internal sites
   and unknown names give the same response; forged `Host`, `X-Forwarded-*` and tunnel
   headers on the LAN listener never make a request count as coming from the internet.

@@ -40,6 +40,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   list (pull requests from forks and Dependabot get no secrets) the step prints a notice and passes, a
   reduced check; a malformed entry fails it. Tests use reserved names only. How to set it:
   CONTRIBUTING.md, "Operator-domain check". (#153)
+- Operator-domain gate: an entry of `STUFFCLOUD_FORBIDDEN_DOMAINS` that contains `@` is an exact e-mail
+  address (`local@domain`, case-insensitive, whole addresses only, also with the `@` written `%40` or as an
+  HTML entity), so a private address can be protected without forbidding every address at its provider; its
+  domain part never becomes a forbidden domain. An invalid address fails the gate with the entry number only,
+  findings read `forbidden e-mail address (entry N)` and never print the address. Tests use `*.example`
+  placeholders and have a failing fixture per rule. (#PR)
 - ADR 0010 addendum "write-only secrets" (SF12, documentation only, implementation in #152): secret fields
   take a reference or a write-only value that is never returned and never in plain text in the database,
   audit log, export or `plan` output; stored AEAD-encrypted (XChaCha20-Poly1305) in the database under a key

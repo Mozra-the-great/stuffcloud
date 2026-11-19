@@ -231,7 +231,8 @@ describe('scaffoldTool', () => {
       expect(source).toContain("  'tool.merge-pdf.description': 'Merge PDFs in your browser.',");
       expect(source).toContain("  'tool.merge-pdf.keywords': 'merge pdf',");
     }
-    expect(en).toMatch(/'error\.retry': 'Try again',\n\n {2}'tool\.merge-pdf\.name'/);
+    // The new texts follow the last entry of the catalogue after a blank line, whatever that is.
+    expect(en).toMatch(/,\n\n {2}'tool\.merge-pdf\.name'/);
     expect(en.startsWith(beforeEn.slice(0, 200))).toBe(true);
     expect(en.endsWith('export type MessageKey = keyof typeof en;\n')).toBe(true);
     expect(de.trimEnd().endsWith('};')).toBe(true);

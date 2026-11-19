@@ -167,6 +167,9 @@ test.describe('reflow (WCAG 1.4.10)', () => {
     ['/', 'Your stuff, in your cloud.'],
     ['/tools', 'Tools'],
     ['/tools/worker-lab', 'Worker lab'],
+    ['/tools/pdf-merge', 'Merge PDFs'],
+    ['/tools/pdf-split', 'Split PDF'],
+    ['/tools/pdf-pages', 'Rotate, delete, reorder PDF pages'],
     ['/nowhere', 'Nothing here'],
     ['/gallery.html', 'Components'],
   ] as const) {

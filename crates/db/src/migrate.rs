@@ -370,9 +370,15 @@ mod tests {
             tables(&conn),
             vec![
                 "audit_log",
+                "credentials",
                 "instance_state",
+                "oidc_identities",
+                "recovery_codes",
                 "resources",
-                "schema_migrations"
+                "schema_migrations",
+                "sessions",
+                "sqlite_sequence",
+                "users"
             ]
         );
     }

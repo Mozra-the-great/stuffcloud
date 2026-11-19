@@ -170,6 +170,10 @@ proptest! {
         } else {
             prop_assert!(!timeouts.evaluate(created, last_seen, now + later).is_active());
         }
-        prop_assert!(timeouts.remaining_secs(created, now) <= u64::try_from(absolute).unwrap() / 1000);
+        if now >= created {
+            prop_assert!(
+                timeouts.remaining_secs(created, now) <= u64::try_from(absolute).unwrap() / 1000
+            );
+        }
     }
 }

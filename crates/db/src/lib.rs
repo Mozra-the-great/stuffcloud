@@ -201,10 +201,10 @@ mod tests {
             db.check_schema(),
             Err(DbError::SchemaOutdated {
                 found: 0,
-                expected: 1
+                expected: 2
             })
         ));
-        assert_eq!(db.migrate().unwrap().applied, vec![1]);
+        assert_eq!(db.migrate().unwrap().applied, vec![1, 2]);
         db.check_schema().unwrap();
         assert_eq!(db.migrate().unwrap().applied, Vec::<u32>::new());
         let conn = db.lock().unwrap();

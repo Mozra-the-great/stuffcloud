@@ -368,6 +368,7 @@ pub fn listen_from<E: Environment + ?Sized>(env: &E) -> Option<SocketAddr> {
 
 /// The session timeouts; the absolute one may not be shorter than the idle one.
 fn session_timeouts<E: Environment + ?Sized>(reader: &mut Reader<'_, E>) -> Timeouts {
+    let errors_before = reader.errors.len();
     let idle_minutes = reader.number(
         "STUFFCLOUD_SESSION_IDLE_MINUTES",
         DEFAULT_SESSION_IDLE_MINUTES,
@@ -385,7 +386,8 @@ fn session_timeouts<E: Environment + ?Sized>(reader: &mut Reader<'_, E>) -> Time
         idle_ms: idle_minutes.saturating_mul(MINUTE_MS),
         absolute_ms: absolute_hours.saturating_mul(HOUR_MS),
     };
-    if session.absolute_ms < session.idle_ms {
+    // Compared only when both values are valid, so a bad value is reported once.
+    if reader.errors.len() == errors_before && session.absolute_ms < session.idle_ms {
         reader.fail(
             "STUFFCLOUD_SESSION_ABSOLUTE_HOURS",
             "must not be shorter than STUFFCLOUD_SESSION_IDLE_MINUTES",

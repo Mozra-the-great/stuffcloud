@@ -10,7 +10,7 @@
 -- have no account); the permission matrix is A-07 (#37). Service accounts (SPEC 10.4) have no
 -- interactive login and therefore never get a session.
 CREATE TABLE users (
-    id          INTEGER PRIMARY KEY,
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
     login       TEXT    NOT NULL UNIQUE,
     kind        TEXT    NOT NULL CHECK (kind IN ('person', 'service')),
     role        TEXT    NOT NULL CHECK (role IN ('user', 'moderator', 'admin')),
@@ -55,12 +55,13 @@ CREATE TABLE recovery_codes (
     UNIQUE (user_id, code_hash)
 ) STRICT;
 
--- Browser sessions. `token_hash` is SHA-256 of the session token in the `__Host-` cookie,
--- `csrf_hash` SHA-256 of the CSRF token bound to the session. The idle and absolute timeouts
+-- Browser sessions. Ids are never reused (AUTOINCREMENT), so an id in the audit log always
+-- names one session; the same holds for `users`. `token_hash` is SHA-256 of the session token
+-- in the `__Host-` cookie, `csrf_hash` SHA-256 of the CSRF token bound to the session. The idle and absolute timeouts
 -- are deployment configuration and are applied to `last_seen_at` and `created_at` on every
 -- lookup, so a shorter timeout takes effect at once.
 CREATE TABLE sessions (
-    id            INTEGER PRIMARY KEY,
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
     token_hash    BLOB    NOT NULL UNIQUE CHECK (length(token_hash) = 32),
     csrf_hash     BLOB    NOT NULL CHECK (length(csrf_hash) = 32),
     user_id       INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,

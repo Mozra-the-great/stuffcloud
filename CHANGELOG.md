@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   are audited with internal ids only. The typed client sends the CSRF header (`csrfToken`
   option). CI: the static cookie gate `scripts/ci/check_cookies.py` in `repo-checks`, an
   integration test of every route's `Set-Cookie` and CSRF refusals, property tests, an attack
-  corpus and the fuzz targets `cookie_header`, `origin` and `csrf_check`. (#PR)
+  corpus and the fuzz targets `cookie_header`, `origin` and `csrf_check`. (#133)
 - API skeleton (A-01, #31): `crates/app` (axum) serves the LAN API under `/api/v1` with the
   resource conventions of ADR 0010 built once for every resource: idempotent `PUT`
   (`created` / `updated` / `unchanged`, an unchanged write touches nothing and writes no audit

@@ -171,7 +171,7 @@ async fn end_session(state: &AppState, request: Request<Body>) -> Result<Respons
     tag = "auth",
     operation_id = "deleteSession",
     params(
-        ("X-CSRF-Token" = String, Header, description = "The CSRF token from GET /api/v1/auth/session"),
+        ("X-CSRF-Token" = Option<String>, Header, description = "The CSRF token from GET /api/v1/auth/session (required for browser sessions; the generated client adds it when given `csrfToken`)"),
     ),
     responses(
         (status = 204, description = "The session has ended; both cookies are deleted"),
@@ -211,7 +211,7 @@ async fn end_all_sessions(state: &AppState, request: Request<Body>) -> Result<Re
     tag = "auth",
     operation_id = "deleteSessions",
     params(
-        ("X-CSRF-Token" = String, Header, description = "The CSRF token from GET /api/v1/auth/session"),
+        ("X-CSRF-Token" = Option<String>, Header, description = "The CSRF token from GET /api/v1/auth/session (required for browser sessions; the generated client adds it when given `csrfToken`)"),
     ),
     responses(
         (status = 200, description = "Every session of the account has ended; both cookies are deleted", body = EndedSessions),

@@ -36,7 +36,11 @@ deny.toml       cargo-deny: advisories, GPL-compatible licenses, sources
 rust-toolchain.toml  pinned stable (same as rust-version in Cargo.toml)
 .github/        workflows (ci, deep-tests, claude review, workflow-lint, secret-scan), rulesets, templates
 scripts/ci/     label script (opt-in via LABELS_ENABLED), npm license gate (license_gate.py,
-                license-policy.toml), THIRD-PARTY.md generator (third_party.py), tests
+                license-policy.toml), THIRD-PARTY.md generator (third_party.py), container
+                hardening gate (check_container_hardening.py), dev stack smoke test
+                (dev_stack_smoke.py), tests
+compose.dev.yml local dev stack (Caddy + Mailpit; `app`/`edge` join with A-01/H-19); docker/caddy/
+                Caddyfile.dev, placeholder site, Dockerfile (web build baked in); .env.example
 docs/           SPEC.md, adr/ (architecture decision records), THIRD-PARTY.md (generated),
                 THIRD-PARTY-ASSETS.md, design/, TEMPLATE-SETUP.md
 ```
@@ -54,6 +58,8 @@ cargo +nightly-2026-11-01 fuzz run safe_rel_path fuzz/corpus/safe_rel_path \
 python -m unittest discover -s scripts/ci -p "test_*.py"   # CI helper tests (Python 3.11+)
 python scripts/ci/license_gate.py             # npm license gate (needs pnpm; installs into a temp dir)
 python scripts/ci/third_party.py --write      # regenerate docs/THIRD-PARTY.md after a lockfile change
+docker compose -f compose.dev.yml up --build  # local dev stack (README, "Local development stack")
+python scripts/ci/check_container_hardening.py static   # hardening gate (needs docker for the compose files)
 ```
 
 Tools: `cargo install --locked cargo-llvm-cov cargo-mutants cargo-deny cargo-fuzz`
@@ -90,13 +96,16 @@ Tests are part of the security design; err on the side of too many (SPEC section
 
 `ci.yml` job `build` is the required check: an aggregate over fmt, clippy, test,
 docs, coverage, mutants, fuzz, web (lint, typecheck, test, build of `web/`), e2e (Playwright, no retries), licenses (npm
-license gate + THIRD-PARTY.md freshness), supply-chain, codeql and repo-checks (add new jobs to its `needs`; no job skips itself on changed
+license gate + THIRD-PARTY.md freshness), dev-stack (container hardening gate on every compose file
+and Dockerfile, Caddyfile check, smoke test of the dev stack), supply-chain, codeql and repo-checks (add new jobs to its `needs`; no job skips itself on changed
 paths, because the aggregate counts a skipped job as a failure). `deep-tests.yml` runs nightly: long fuzzing (grows the cached corpus),
 full mutants, Miri, 500k proptest cases, fresh advisories, beta toolchain.
 Toolchain bump: `rust-toolchain.toml` + `rust-version` in `Cargo.toml`; nightly
-bump: `NIGHTLY` in both workflows. Dependabot handles actions, cargo and npm (`/web`,
+bump: `NIGHTLY` in both workflows. Dependabot handles actions, cargo, npm (`/web`,
 minor/patch grouped; semver-major `@types/node` is ignored, it follows the Node major in
-`web/.nvmrc` and is bumped by hand together with it).
+`web/.nvmrc` and is bumped by hand together with it) and the Docker images (`docker`, `docker-compose`;
+every image reference is `name:tag@sha256:digest`). A new service in a compose file copies the `x-hardened`
+block, a new Dockerfile directory gets a Dependabot entry; the hardening gate fails otherwise.
 
 ## Dependencies and licenses
 

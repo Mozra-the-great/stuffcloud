@@ -209,15 +209,33 @@ describe('numberLines', () => {
 describe('escapePattern and compile', () => {
   it('escapes every character that means something in a pattern', () => {
     expect(escapePattern('a.b*c?')).toBe(`a${B}.b${B}*c${B}?`);
-    expect(escapePattern('(x)[y]{z}|^$+/-')).toBe(
-      `${B}(x${B})${B}[y${B}]${B}{z${B}}${B}|${B}^${B}$${B}+${B}/${B}-`,
+    expect(escapePattern('(x)[y]{z}|^$+/')).toBe(
+      `${B}(x${B})${B}[y${B}]${B}{z${B}}${B}|${B}^${B}$${B}+${B}/`,
     );
+    // A hyphen is not syntax outside a character class, and an escaped one is an error in Unicode mode.
+    expect(escapePattern('2024-01-02')).toBe('2024-01-02');
+    expect(escapePattern('--')).toBe('--');
     expect(escapePattern(B)).toBe(B + B);
     expect(escapePattern('plain text ünï')).toBe('plain text ünï');
   });
 
   it('matches exactly the text it escaped, whatever it contains', () => {
-    for (const text of ['a.b', '[x]', '(', '$1', '^start', 'a|b', B, '*+?', '{1,2}']) {
+    for (const text of [
+      'a.b',
+      '[x]',
+      '(',
+      '$1',
+      '^start',
+      'a|b',
+      B,
+      '*+?',
+      '{1,2}',
+      '-',
+      '--',
+      'e-mail',
+      '2024-01-02',
+      '/',
+    ]) {
       const compiled = compile({
         find: text,
         replacement: '',
@@ -228,6 +246,27 @@ describe('escapePattern and compile', () => {
       expect(compiled.ok).toBe(true);
       if (compiled.ok) {
         expect(`x${text}y`.replace(compiled.pattern, '|')).toBe('x|y');
+      }
+    }
+  });
+
+  it('compiles and matches every printable ASCII character and every pair of them, as plain text', () => {
+    const printable = Array.from({ length: 95 }, (_, index) => String.fromCharCode(32 + index));
+    for (const first of printable) {
+      for (const second of ['', ...printable]) {
+        const text = first + second;
+        const compiled = compile({
+          find: text,
+          replacement: '',
+          regex: false,
+          ignoreCase: false,
+          wholeWord: false,
+        });
+        if (!compiled.ok) {
+          throw new Error(`${JSON.stringify(text)} does not compile: ${compiled.message}`);
+        }
+        // Control characters around the text: they are not in the printable range being tried.
+        expect(`\u0001${text}\u0002`.replace(compiled.pattern, '|')).toBe('\u0001|\u0002');
       }
     }
   });
@@ -269,6 +308,21 @@ describe('replaceText', () => {
       text: '$&$1$$ b',
       count: 1,
     });
+  });
+
+  it('replaces a hyphen, a double hyphen and a hyphenated word in plain mode', () => {
+    expect(replaceText('2024-01-02', { ...base, find: '-', replacement: '/' })).toEqual({
+      ok: true,
+      text: '2024/01/02',
+      count: 2,
+    });
+    expect(replaceText('a--b e-mail', { ...base, find: '--', replacement: '+' })).toEqual({
+      ok: true,
+      text: 'a+b e-mail',
+      count: 1,
+    });
+    const word = { ...base, find: 'e-mail', replacement: 'email', wholeWord: true };
+    expect(replaceText('e-mail', word)).toEqual({ ok: true, text: 'email', count: 1 });
   });
 
   it('ignores case on request and keeps it otherwise', () => {

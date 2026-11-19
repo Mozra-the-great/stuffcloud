@@ -123,6 +123,17 @@ test.describe('textops', () => {
     await a11y.check(page, 'textops: bad pattern');
   });
 
+  test('replaces a plain hyphen, which is no special character', async ({ page, a11y }) => {
+    await open(page);
+    await input(page).fill('2024-01-02');
+    await page.getByRole('combobox', { name: 'What to do' }).selectOption('replace');
+    await page.getByRole('textbox', { name: 'Find' }).fill('-');
+    await page.getByRole('textbox', { name: 'Replace with' }).fill('/');
+    await expect(result(page)).toHaveValue('2024/01/02');
+    await expect(status(page)).toHaveText('2 matches replaced.');
+    await a11y.check(page, 'textops: plain replace');
+  });
+
   test('stops a pattern that never ends and stays usable', async ({ page, a11y }) => {
     test.setTimeout(60_000);
     await open(page);

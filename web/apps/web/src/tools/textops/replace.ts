@@ -23,7 +23,11 @@ export type ReplaceResult =
 export const MAX_FIND_LENGTH = 1000;
 
 const BACKSLASH = String.fromCharCode(92);
-const SYNTAX = '^$.*+?()[]{}|/-';
+/**
+ * The characters that mean something in a pattern. The hyphen is not one: outside a character class
+ * it is a plain character, and an escaped hyphen (`\-`) is a syntax error in Unicode mode.
+ */
+const SYNTAX = '^$.*+?()[]{}|/';
 
 /** The text as a pattern that matches exactly it. */
 export function escapePattern(text: string): string {

@@ -1,4 +1,4 @@
 import { serveWorker } from '@stuffcloud/tools';
-import { runTask } from './task.ts';
+import { isInput, runTask } from './match.ts';
 
-serveWorker(runTask);
+serveWorker(runTask, { accepts: isInput });

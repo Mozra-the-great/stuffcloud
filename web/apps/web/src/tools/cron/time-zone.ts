@@ -140,7 +140,11 @@ export function wallTimeAt(instant: number, timeZone: string): WallTime {
 
 /** A wall-clock time read as if it were UTC: the clock-on-the-wall number line. */
 export function wallToNumber(wall: WallTime): number {
-  return Date.UTC(wall.year, wall.month - 1, wall.day, wall.hour, wall.minute, wall.second);
+  // `Date.UTC` reads the years 0 to 99 as 1900 to 1999, so the year is set separately.
+  const date = new Date(0);
+  date.setUTCFullYear(wall.year, wall.month - 1, wall.day);
+  date.setUTCHours(wall.hour, wall.minute, wall.second, 0);
+  return date.getTime();
 }
 
 /** The offset of a zone from UTC at an instant, in milliseconds (positive east of Greenwich). */

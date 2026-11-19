@@ -40,8 +40,7 @@
     {rows}
     bind:value
     aria-invalid={hasError ? 'true' : undefined}
-    aria-describedby={describedByIds}
-  ></textarea>
+    aria-describedby={describedByIds}></textarea>
   {#if hasHint}
     <p class="sc-fld__hint" id={hintId}>{hint}</p>
   {/if}

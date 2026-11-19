@@ -9,7 +9,7 @@ export default defineTool({
   sticker: 'jwt',
   runsIn: 'client',
   fileContent: 'stays-in-browser',
-  requires: [],
+  requires: ['webcrypto'],
   budget: { scriptKb: 50, assetsKb: 0 },
   load: () => import('./Tool.svelte'),
 });

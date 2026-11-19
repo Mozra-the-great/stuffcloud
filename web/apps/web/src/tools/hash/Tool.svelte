@@ -114,7 +114,6 @@
 
   const bytes = $derived(new Intl.NumberFormat(i18n.locale));
 
-
   async function hashFile(file: File): Promise<void> {
     controller?.abort();
     pool ??= createPool();

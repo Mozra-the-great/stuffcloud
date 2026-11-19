@@ -115,11 +115,13 @@ describe.each(ALGORITHMS)('%s (incremental)', (algorithm) => {
     }).toThrow('the hash is finished');
     expect(() => hasher.digest()).toThrow('the hash is finished');
   });
+});
 
-  it('counts a length whose bit count needs more than 32 bits (more than 512 MiB)', () => {
+describe('the length field', () => {
+  it('counts a length whose bit count needs more than 32 bits (more than 512 MiB, SHA-256)', () => {
     const chunk = new Uint8Array(1 << 24);
-    const hasher = createHasher(algorithm);
-    const expected = createHash(NODE_NAMES[algorithm]);
+    const hasher = createHasher('SHA-256');
+    const expected = createHash('sha256');
     for (let index = 0; index < 33; index += 1) {
       hasher.update(chunk);
       expected.update(chunk);

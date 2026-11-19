@@ -1,7 +1,7 @@
 import type { TaskContext } from '@stuffcloud/tools';
 import { ALGORITHMS, createHasher, toHex, type Digests } from './digest.ts';
 
-/** The file to hash; it is read from the worker, chunk by chunk, so it is never held in memory whole. */
+/** The file to hash; the worker reads it piece by piece (`Blob.slice`), so it is never held in memory whole. */
 export interface Input {
   readonly file: Blob;
 }
@@ -11,8 +11,8 @@ export interface Output {
   readonly digests: Digests;
 }
 
-/** Progress is reported at most this often (in bytes), so a big file does not flood the page with messages. */
-export const PROGRESS_STEP = 4 * 1024 * 1024;
+/** The file is read and hashed in pieces of this size (in bytes); progress is reported after each. */
+export const CHUNK_SIZE = 4 * 1024 * 1024;
 
 export function isInput(value: unknown): value is Input {
   return (
@@ -27,22 +27,12 @@ export async function runTask({ file }: Input, { progress }: TaskContext): Promi
   const hashers = ALGORITHMS.map((algorithm) => [algorithm, createHasher(algorithm)] as const);
   // The progress total must be positive, also for an empty file.
   const total = Math.max(file.size, 1);
-  const reader = file.stream().getReader();
-  let done = 0;
-  let reported = 0;
-  for (;;) {
-    const chunk = await reader.read();
-    if (chunk.done) {
-      break;
-    }
+  for (let offset = 0; offset < file.size; offset += CHUNK_SIZE) {
+    const chunk = new Uint8Array(await file.slice(offset, offset + CHUNK_SIZE).arrayBuffer());
     for (const [, hasher] of hashers) {
-      hasher.update(chunk.value);
+      hasher.update(chunk);
     }
-    done += chunk.value.length;
-    if (done - reported >= PROGRESS_STEP) {
-      reported = done;
-      progress(Math.min(done, total), total);
-    }
+    progress(Math.min(offset + chunk.length, total), total);
   }
   progress(total, total);
   const digests = Object.fromEntries(

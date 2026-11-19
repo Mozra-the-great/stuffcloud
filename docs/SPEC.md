@@ -325,8 +325,8 @@ Library candidates (license must be verified per version before adoption):
 | Text | lorem ipsum, UUID (v4/v7), QR code | native / qrcode |
 | Text | diff viewer | jsdiff |
 | Text | text manipulation (case, sort, dedupe, trim, count, ...) | own small functions |
-| Extra | hash/checksum, password generator | WebCrypto |
-| Extra | regex tester, URL encode/decode, JWT decoder, timestamp converter | native |
+| Extra | hash/checksum, password generator | WebCrypto (text); files hashed piece by piece by own incremental SHA-1/2 in a worker; `crypto.getRandomValues` (no dependency; T-22) |
+| Extra | regex tester, URL encode/decode, JWT decoder, timestamp converter | native: the regex runs in a worker that is stopped on a timeout; the JWT signature check uses WebCrypto and a pasted key (no dependency; T-22) |
 | Extra | Markdown preview, JSON formatter/validator, SQL formatter | marked + DOMPurify, native, sql-formatter |
 
 Rules

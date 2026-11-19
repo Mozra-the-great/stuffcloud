@@ -30,6 +30,11 @@ export interface Hasher {
 const TWO_32 = 4_294_967_296;
 const MASK_64 = (1n << 64n) - 1n;
 
+/** The word at `index`; the indices used here are always inside the array (a missing one reads as 0). */
+function at(words: ArrayLike<number>, index: number): number {
+  return words[index] ?? 0;
+}
+
 function rotl(value: number, bits: number): number {
   return (value << bits) | (value >>> (32 - bits));
 }
@@ -111,7 +116,7 @@ function words32(state: Uint32Array, count: number): Uint8Array {
   const bytes = new Uint8Array(count * 4);
   const view = new DataView(bytes.buffer);
   for (let index = 0; index < count; index += 1) {
-    view.setUint32(index * 4, state[index] ?? 0);
+    view.setUint32(index * 4, at(state, index));
   }
   return bytes;
 }
@@ -131,14 +136,14 @@ class Sha1 extends BlockHasher {
       w[t] = view.getUint32(t * 4);
     }
     for (let t = 16; t < 80; t += 1) {
-      w[t] = rotl((w[t - 3] ?? 0) ^ (w[t - 8] ?? 0) ^ (w[t - 14] ?? 0) ^ (w[t - 16] ?? 0), 1);
+      w[t] = rotl(at(w, t - 3) ^ at(w, t - 8) ^ at(w, t - 14) ^ at(w, t - 16), 1);
     }
     const s = this.#state;
-    let a = s[0] ?? 0;
-    let b = s[1] ?? 0;
-    let c = s[2] ?? 0;
-    let d = s[3] ?? 0;
-    let e = s[4] ?? 0;
+    let a = at(s, 0);
+    let b = at(s, 1);
+    let c = at(s, 2);
+    let d = at(s, 3);
+    let e = at(s, 4);
     for (let t = 0; t < 80; t += 1) {
       let f: number;
       let k: number;
@@ -155,18 +160,18 @@ class Sha1 extends BlockHasher {
         f = b ^ c ^ d;
         k = 0xca62c1d6;
       }
-      const next = (rotl(a, 5) + f + e + k + (w[t] ?? 0)) >>> 0;
+      const next = (rotl(a, 5) + f + e + k + at(w, t)) >>> 0;
       e = d;
       d = c;
       c = rotl(b, 30) >>> 0;
       b = a;
       a = next;
     }
-    s[0] = ((s[0] ?? 0) + a) >>> 0;
-    s[1] = ((s[1] ?? 0) + b) >>> 0;
-    s[2] = ((s[2] ?? 0) + c) >>> 0;
-    s[3] = ((s[3] ?? 0) + d) >>> 0;
-    s[4] = ((s[4] ?? 0) + e) >>> 0;
+    s[0] = (at(s, 0) + a) >>> 0;
+    s[1] = (at(s, 1) + b) >>> 0;
+    s[2] = (at(s, 2) + c) >>> 0;
+    s[3] = (at(s, 3) + d) >>> 0;
+    s[4] = (at(s, 4) + e) >>> 0;
   }
 
   protected output(): Uint8Array {
@@ -242,25 +247,25 @@ class Sha256 extends BlockHasher {
       w[t] = view.getUint32(t * 4);
     }
     for (let t = 16; t < 64; t += 1) {
-      const w15 = w[t - 15] ?? 0;
-      const w2 = w[t - 2] ?? 0;
+      const w15 = at(w, t - 15);
+      const w2 = at(w, t - 2);
       const s0 = rotr(w15, 7) ^ rotr(w15, 18) ^ (w15 >>> 3);
       const s1 = rotr(w2, 17) ^ rotr(w2, 19) ^ (w2 >>> 10);
-      w[t] = ((w[t - 16] ?? 0) + s0 + (w[t - 7] ?? 0) + s1) >>> 0;
+      w[t] = (at(w, t - 16) + s0 + at(w, t - 7) + s1) >>> 0;
     }
     const s = this.#state;
-    let a = s[0] ?? 0;
-    let b = s[1] ?? 0;
-    let c = s[2] ?? 0;
-    let d = s[3] ?? 0;
-    let e = s[4] ?? 0;
-    let f = s[5] ?? 0;
-    let g = s[6] ?? 0;
-    let h = s[7] ?? 0;
+    let a = at(s, 0);
+    let b = at(s, 1);
+    let c = at(s, 2);
+    let d = at(s, 3);
+    let e = at(s, 4);
+    let f = at(s, 5);
+    let g = at(s, 6);
+    let h = at(s, 7);
     for (let t = 0; t < 64; t += 1) {
       const big1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
       const choose = (e & f) ^ (~e & g);
-      const temp1 = (h + big1 + choose + (K256[t] ?? 0) + (w[t] ?? 0)) >>> 0;
+      const temp1 = (h + big1 + choose + at(K256, t) + at(w, t)) >>> 0;
       const big0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
       const majority = (a & b) ^ (a & c) ^ (b & c);
       const temp2 = (big0 + majority) >>> 0;
@@ -273,14 +278,14 @@ class Sha256 extends BlockHasher {
       b = a;
       a = (temp1 + temp2) >>> 0;
     }
-    s[0] = ((s[0] ?? 0) + a) >>> 0;
-    s[1] = ((s[1] ?? 0) + b) >>> 0;
-    s[2] = ((s[2] ?? 0) + c) >>> 0;
-    s[3] = ((s[3] ?? 0) + d) >>> 0;
-    s[4] = ((s[4] ?? 0) + e) >>> 0;
-    s[5] = ((s[5] ?? 0) + f) >>> 0;
-    s[6] = ((s[6] ?? 0) + g) >>> 0;
-    s[7] = ((s[7] ?? 0) + h) >>> 0;
+    s[0] = (at(s, 0) + a) >>> 0;
+    s[1] = (at(s, 1) + b) >>> 0;
+    s[2] = (at(s, 2) + c) >>> 0;
+    s[3] = (at(s, 3) + d) >>> 0;
+    s[4] = (at(s, 4) + e) >>> 0;
+    s[5] = (at(s, 5) + f) >>> 0;
+    s[6] = (at(s, 6) + g) >>> 0;
+    s[7] = (at(s, 7) + h) >>> 0;
   }
 
   protected output(): Uint8Array {
@@ -315,22 +320,21 @@ class Sha512 extends BlockHasher {
     }
     for (let t = 16; t < 80; t += 1) {
       // sigma0 of w[t-15]: ROTR 1 ^ ROTR 8 ^ SHR 7; sigma1 of w[t-2]: ROTR 19 ^ ROTR 61 ^ SHR 6.
-      const h15 = w[(t - 15) * 2] ?? 0;
-      const l15 = w[(t - 15) * 2 + 1] ?? 0;
+      const h15 = at(w, (t - 15) * 2);
+      const l15 = at(w, (t - 15) * 2 + 1);
       const s0h = ((h15 >>> 1) | (l15 << 31)) ^ ((h15 >>> 8) | (l15 << 24)) ^ (h15 >>> 7);
       const s0l =
         ((l15 >>> 1) | (h15 << 31)) ^ ((l15 >>> 8) | (h15 << 24)) ^ ((l15 >>> 7) | (h15 << 25));
-      const h2 = w[(t - 2) * 2] ?? 0;
-      const l2 = w[(t - 2) * 2 + 1] ?? 0;
+      const h2 = at(w, (t - 2) * 2);
+      const l2 = at(w, (t - 2) * 2 + 1);
       const s1h = ((h2 >>> 19) | (l2 << 13)) ^ ((l2 >>> 29) | (h2 << 3)) ^ (h2 >>> 6);
       const s1l =
         ((l2 >>> 19) | (h2 << 13)) ^ ((h2 >>> 29) | (l2 << 3)) ^ ((l2 >>> 6) | (h2 << 26));
-      const lowSum =
-        (w[(t - 16) * 2 + 1] ?? 0) + (s0l >>> 0) + (w[(t - 7) * 2 + 1] ?? 0) + (s1l >>> 0);
+      const lowSum = at(w, (t - 16) * 2 + 1) + (s0l >>> 0) + at(w, (t - 7) * 2 + 1) + (s1l >>> 0);
       const highSum =
-        (w[(t - 16) * 2] ?? 0) +
+        at(w, (t - 16) * 2) +
         (s0h >>> 0) +
-        (w[(t - 7) * 2] ?? 0) +
+        at(w, (t - 7) * 2) +
         (s1h >>> 0) +
         Math.floor(lowSum / TWO_32);
       w[t * 2] = highSum >>> 0;
@@ -338,22 +342,22 @@ class Sha512 extends BlockHasher {
     }
 
     const s = this.#state;
-    let ah = s[0] ?? 0;
-    let al = s[1] ?? 0;
-    let bh = s[2] ?? 0;
-    let bl = s[3] ?? 0;
-    let ch = s[4] ?? 0;
-    let cl = s[5] ?? 0;
-    let dh = s[6] ?? 0;
-    let dl = s[7] ?? 0;
-    let eh = s[8] ?? 0;
-    let el = s[9] ?? 0;
-    let fh = s[10] ?? 0;
-    let fl = s[11] ?? 0;
-    let gh = s[12] ?? 0;
-    let gl = s[13] ?? 0;
-    let hh = s[14] ?? 0;
-    let hl = s[15] ?? 0;
+    let ah = at(s, 0);
+    let al = at(s, 1);
+    let bh = at(s, 2);
+    let bl = at(s, 3);
+    let ch = at(s, 4);
+    let cl = at(s, 5);
+    let dh = at(s, 6);
+    let dl = at(s, 7);
+    let eh = at(s, 8);
+    let el = at(s, 9);
+    let fh = at(s, 10);
+    let fl = at(s, 11);
+    let gh = at(s, 12);
+    let gl = at(s, 13);
+    let hh = at(s, 14);
+    let hl = at(s, 15);
 
     for (let t = 0; t < 80; t += 1) {
       // Sigma1(e): ROTR 14 ^ ROTR 18 ^ ROTR 41.
@@ -364,17 +368,13 @@ class Sha512 extends BlockHasher {
       const chooseH = (eh & fh) ^ (~eh & gh);
       const chooseL = (el & fl) ^ (~el & gl);
       const t1l =
-        hl +
-        (big1l >>> 0) +
-        (chooseL >>> 0) +
-        (K512_WORDS[t * 2 + 1] ?? 0) +
-        (w[t * 2 + 1] ?? 0);
+        hl + (big1l >>> 0) + (chooseL >>> 0) + at(K512_WORDS, t * 2 + 1) + at(w, t * 2 + 1);
       const t1h =
         hh +
         (big1h >>> 0) +
         (chooseH >>> 0) +
-        (K512_WORDS[t * 2] ?? 0) +
-        (w[t * 2] ?? 0) +
+        at(K512_WORDS, t * 2) +
+        at(w, t * 2) +
         Math.floor(t1l / TWO_32);
       // Sigma0(a): ROTR 28 ^ ROTR 34 ^ ROTR 39.
       const big0h =
@@ -408,9 +408,9 @@ class Sha512 extends BlockHasher {
 
     const next = [ah, al, bh, bl, ch, cl, dh, dl, eh, el, fh, fl, gh, gl, hh, hl];
     for (let pair = 0; pair < 8; pair += 1) {
-      const lowSum = (s[pair * 2 + 1] ?? 0) + (next[pair * 2 + 1] ?? 0);
+      const lowSum = at(s, pair * 2 + 1) + at(next, pair * 2 + 1);
       s[pair * 2 + 1] = lowSum >>> 0;
-      s[pair * 2] = ((s[pair * 2] ?? 0) + (next[pair * 2] ?? 0) + Math.floor(lowSum / TWO_32)) >>> 0;
+      s[pair * 2] = (at(s, pair * 2) + at(next, pair * 2) + Math.floor(lowSum / TWO_32)) >>> 0;
     }
   }
 

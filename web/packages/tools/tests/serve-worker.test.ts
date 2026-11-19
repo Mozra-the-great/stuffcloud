@@ -175,6 +175,18 @@ describe('serveWorker', () => {
     expect(scope.posted).toEqual([]);
   });
 
+  it('answers a message with an empty origin (a worker hears its parent) and only that', async () => {
+    const scope = new FakeScope();
+    serveWorker<number, number>((input) => input + 1, { scope });
+    scope.deliver({ type: 'run', id: 0, input: 1 }, '');
+    scope.deliver({ type: 'run', id: 1, input: 1 }, 'https://example.org');
+    scope.deliver({ type: 'run', id: 2, input: 1 }, 'null');
+    await flush();
+    expect(scope.posted.map((entry) => entry.message)).toEqual([
+      { type: 'result', id: 0, output: 2 },
+    ]);
+  });
+
   it('lets a job through when its input is accepted and refuses it otherwise', async () => {
     const scope = new FakeScope();
     let calls = 0;

@@ -69,21 +69,24 @@ export class Factory {
 /** A worker-side scope the test can push messages into; replies are collected. */
 export class FakeScope implements WorkerScope {
   readonly posted: { readonly message: unknown; readonly transfer: object[] | undefined }[] = [];
-  #listener: ((event: { readonly data?: unknown }) => void) | undefined;
+  #listener: ((event: { readonly data?: unknown; readonly origin?: string }) => void) | undefined;
 
   postMessage(message: unknown, transfer?: object[]): void {
     this.posted.push({ message, transfer });
   }
 
-  addEventListener(_type: 'message', listener: (event: { readonly data?: unknown }) => void): void {
+  addEventListener(
+    _type: 'message',
+    listener: (event: { readonly data?: unknown; readonly origin?: string }) => void,
+  ): void {
     this.#listener = listener;
   }
 
-  deliver(data: unknown): void {
+  deliver(data: unknown, origin?: string): void {
     if (this.#listener === undefined) {
       throw new Error('serveWorker has not registered a listener');
     }
-    this.#listener({ data });
+    this.#listener(origin === undefined ? { data } : { data, origin });
   }
 }
 

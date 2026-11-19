@@ -3,7 +3,10 @@ import { isProgress, isRunRequest, type Reply } from './worker-protocol.ts';
 /** The slice of a worker's global scope that {@link serveWorker} uses. */
 export interface WorkerScope {
   postMessage(message: unknown, transfer?: object[]): void;
-  addEventListener(type: 'message', listener: (event: { readonly data?: unknown }) => void): void;
+  addEventListener(
+    type: 'message',
+    listener: (event: { readonly data?: unknown; readonly origin?: string }) => void,
+  ): void;
 }
 
 /** What a task handler can report while it runs. */
@@ -50,6 +53,12 @@ export function serveWorker<I, O>(
     scope.postMessage(message, transfer);
   };
   scope.addEventListener('message', (event) => {
+    // A dedicated worker only hears its parent, and its events carry an empty origin. A message
+    // with an origin comes from a window: `serveWorker` was called in a page, which must not
+    // let other pages run tasks.
+    if (event.origin !== undefined && event.origin !== '') {
+      return;
+    }
     const request: unknown = event.data;
     if (!isRunRequest(request)) {
       return;

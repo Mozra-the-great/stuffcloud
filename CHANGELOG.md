@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   HTML entity), so a private address can be protected without forbidding every address at its provider; its
   domain part never becomes a forbidden domain. An invalid address fails the gate with the entry number only,
   findings read `forbidden e-mail address (entry N)` and never print the address. Tests use `*.example`
-  placeholders and have a failing fixture per rule. (#PR)
+  placeholders and have a failing fixture per rule. (#156)
 - ADR 0010 addendum "write-only secrets" (SF12, documentation only, implementation in #152): secret fields
   take a reference or a write-only value that is never returned and never in plain text in the database,
   audit log, export or `plan` output; stored AEAD-encrypted (XChaCha20-Poly1305) in the database under a key

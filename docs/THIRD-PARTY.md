@@ -132,7 +132,7 @@ come from neither package manager are in
 | zeroize | 1.9.2 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/zeroize/1.9.2) |
 | zmij | 1.0.23 | MIT | [crates.io](https://crates.io/crates/zmij/1.0.23) |
 
-## npm (28)
+## npm (32)
 
 | Name | Version | License | Source |
 |---|---|---|---|
@@ -145,17 +145,20 @@ come from neither package manager are in
 | @pdf-lib/upng | 1.0.1 | MIT | [npm](https://www.npmjs.com/package/@pdf-lib/upng/v/1.0.1) |
 | @sveltejs/acorn-typescript | 1.0.13 | MIT | [npm](https://www.npmjs.com/package/@sveltejs/acorn-typescript/v/1.0.13) |
 | @types/estree | 1.0.10 | MIT | [npm](https://www.npmjs.com/package/@types/estree/v/1.0.10) |
+| @types/trusted-types | 2.0.7 | MIT | [npm](https://www.npmjs.com/package/@types/trusted-types/v/2.0.7) |
 | @typescript-eslint/types | 8.72.2 | MIT | [npm](https://www.npmjs.com/package/@typescript-eslint/types/v/8.72.2) |
 | acorn | 8.19.0 | MIT | [npm](https://www.npmjs.com/package/acorn/v/8.19.0) |
 | aria-query | 5.3.1 | Apache-2.0 | [npm](https://www.npmjs.com/package/aria-query/v/5.3.1) |
 | axobject-query | 4.1.0 | Apache-2.0 | [npm](https://www.npmjs.com/package/axobject-query/v/4.1.0) |
 | clsx | 2.1.1 | MIT | [npm](https://www.npmjs.com/package/clsx/v/2.1.1) |
 | devalue | 5.9.4 | MIT | [npm](https://www.npmjs.com/package/devalue/v/5.9.4) |
+| dompurify | 3.4.18 | (MPL-2.0 OR Apache-2.0) | [npm](https://www.npmjs.com/package/dompurify/v/3.4.18) |
 | esm-env | 1.2.2 | MIT | [npm](https://www.npmjs.com/package/esm-env/v/1.2.2) |
 | esrap | 2.4.0 | MIT | [npm](https://www.npmjs.com/package/esrap/v/2.4.0) |
 | is-reference | 3.0.3 | MIT | [npm](https://www.npmjs.com/package/is-reference/v/3.0.3) |
 | locate-character | 3.0.0 | MIT | [npm](https://www.npmjs.com/package/locate-character/v/3.0.0) |
 | magic-string | 0.30.21 | MIT | [npm](https://www.npmjs.com/package/magic-string/v/0.30.21) |
+| marked | 18.2.1 | MIT | [npm](https://www.npmjs.com/package/marked/v/18.2.1) |
 | openapi-fetch | 0.17.0 | MIT | [npm](https://www.npmjs.com/package/openapi-fetch/v/0.17.0) |
 | openapi-typescript-helpers | 0.1.0 | MIT | [npm](https://www.npmjs.com/package/openapi-typescript-helpers/v/0.1.0) |
 | pako | 1.0.11 | (MIT AND Zlib) | [npm](https://www.npmjs.com/package/pako/v/1.0.11) |
@@ -163,4 +166,5 @@ come from neither package manager are in
 | pdfjs-dist | 6.5.438 | Apache-2.0 | [npm](https://www.npmjs.com/package/pdfjs-dist/v/6.5.438) |
 | svelte | 5.57.3 | MIT | [npm](https://www.npmjs.com/package/svelte/v/5.57.3) |
 | tslib | 1.14.1 | 0BSD | [npm](https://www.npmjs.com/package/tslib/v/1.14.1) |
+| yaml | 2.9.1 | ISC | [npm](https://www.npmjs.com/package/yaml/v/2.9.1) |
 | zimmerframe | 1.1.5 | MIT | [npm](https://www.npmjs.com/package/zimmerframe/v/1.1.5) |

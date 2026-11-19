@@ -126,6 +126,11 @@ fn reset_link<E: Environment + ?Sized>(env: &E, login: &str) -> Result<String, S
             "{:?} is a service account, which has no password",
             login.as_str()
         )),
+        // Only the API is refused links for admin accounts; the command line has no actor.
+        Issued::AdminAccount => Err(format!(
+            "{:?} is an admin account; its link was refused",
+            login.as_str()
+        )),
     }
 }
 
@@ -644,6 +649,19 @@ mod tests {
             call(&["reset-link", "robot"], &env).2.trim_end(),
             "\"robot\" is a service account, which has no password"
         );
+        // An admin account gets its link only here, never through the API.
+        let _ = db
+            .create_user(
+                "root",
+                stuffcloud_core::session::UserKind::Person,
+                Role::Admin,
+                None,
+                1,
+            )
+            .unwrap();
+        let (code, out, err) = call(&["reset-link", "root"], &env);
+        assert_eq!(code, EXIT_OK, "{err}");
+        assert!(out.starts_with("https://app.example.com/password-reset#token="));
         assert_eq!(
             call(&["reset-link", "Bob"], &env).2.trim_end(),
             "\"Bob\" is not a login name: character 0 is not one of a-z, 0-9, '.', '_' or '-' (lowercase only)"

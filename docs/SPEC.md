@@ -294,15 +294,21 @@ Authentication
   get the same answer after the same work (one Argon2id check against a dummy hash). Login
   attempts are throttled in memory (never stored or logged): per client address (behind the
   proxies named in `STUFFCLOUD_TRUSTED_PROXIES` the forwarded address, IPv6 by /64) 20 free
-  failures, per typed login name 10, then waits that double up to 15 minutes; an address that
-  logged in to the account within 30 days is not slowed down by the per-account rule. It is a
-  backoff, never a lockout; the trade-off is in the ADR addendum. Registrations: 5 per address,
-  then waits up to an hour.
+  failures, per account 10 (counted by the typed login name and, once found, by the account
+  itself, so its name and address share them), then waits that double up to 15 minutes; an
+  address that logged in to the account within 30 days is not slowed down by the per-account
+  rule, except behind an unlisted proxy (a private or loopback peer and no proxy list, which
+  also logs a warning). Attempts are reserved before the check, so parallel requests get no more
+  checks than sequential ones (`free + 1` per key), and the password-hashing queue is bounded
+  (beyond it 429 at once). It is a backoff, never a lockout; the trade-off is in the ADR
+  addendum. Registrations: 5 per address, then waits up to an hour. Argon2id parameters below
+  OWASP's minimum pairs are refused.
 - Password reset: a reset token is single use, valid for 60 minutes, stored as a hash, and ends
   every session of the account when redeemed. Without SMTP an admin issues the link
   (`POST /api/v1/admin/users/{login}/password-reset`) or the operator does on the host
-  (`stuffcloud-app reset-link <login>`); with SMTP (A-10) the account asks for it itself. A
-  password change needs the current password and ends the account's other sessions.
+  (`stuffcloud-app reset-link <login>`; for an admin account only the host command issues one);
+  with SMTP (A-10) the account asks for it itself. A password change needs the current password,
+  ends the account's other sessions and voids an open reset link.
 - Sessions: `__Host-` prefixed, HttpOnly, Secure, SameSite=Lax cookies, host-only on the
   app address (no `Domain=` attribute); `Origin` check and CSRF token on every
   state-changing request (section 5.5). Session tokens are random, stored only as hashes,
@@ -593,6 +599,9 @@ zones:
 - Docker Compose; configuration through environment variables; secrets from env or
   files (`_FILE` variants), never in the repo and never through the API; bootstrap without
   clicks (section 10.7).
+- Behind a reverse proxy the deployment sets `STUFFCLOUD_TRUSTED_PROXIES` to the proxy's
+  address or network, so the login throttles see each client (the app warns when it is missing).
+  Bootstrap secrets come from `_FILE` variables and leave the deployment after the first start.
 - Containers: one static binary per service on a `distroless` (or `scratch`)
   base, no shell, non-root user, read-only root filesystem, all capabilities
   dropped, `no-new-privileges`; only the data directory is writable, and `edge`

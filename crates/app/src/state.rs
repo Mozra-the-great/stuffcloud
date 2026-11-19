@@ -195,6 +195,11 @@ pub(crate) mod tests {
 
     /// The account machinery with the cheapest hashing parameters.
     pub(crate) fn accounts() -> Accounts {
+        accounts_behind("")
+    }
+
+    /// The same behind the trusted proxies `proxies`.
+    fn accounts_behind(proxies: &str) -> Accounts {
         Accounts::new(
             crate::password::Passwords::new(
                 crate::password::Argon2Settings::CHEAPEST,
@@ -203,12 +208,22 @@ pub(crate) mod tests {
                 2,
             )
             .unwrap(),
-            stuffcloud_core::client_ip::ProxyList::default(),
+            stuffcloud_core::client_ip::ProxyList::parse(proxies).unwrap(),
         )
     }
 
     /// A state on a fresh database (kept on disk until the process ends).
     pub(crate) fn state() -> AppState {
+        state_with_proxies("")
+    }
+
+    /// A state whose app trusts the proxies `proxies`.
+    pub(crate) fn state_with_proxies(proxies: &str) -> AppState {
+        state_with_accounts(accounts_behind(proxies))
+    }
+
+    /// A state with this account machinery.
+    pub(crate) fn state_with_accounts(accounts: Accounts) -> AppState {
         let dir = tempfile::tempdir().unwrap().keep();
         let db = Arc::new(Database::open(&dir.join("s.sqlite3")).unwrap());
         let _ = db.migrate().unwrap();
@@ -218,7 +233,7 @@ pub(crate) mod tests {
             Arc::new(SystemClock),
             Limits::default(),
             settings(),
-            accounts(),
+            accounts,
         )
     }
 

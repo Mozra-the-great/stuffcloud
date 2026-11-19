@@ -2,13 +2,16 @@
 //! line) to `stuffcloud_core::client_ip`. Fails on a panic and when the client address breaks a
 //! rule: an untrusted peer is always the client whatever the header says; behind a trusted peer
 //! the client is the peer or one of the header's entries; every listed block contains its own
-//! address.
+//! address; an unlisted proxy is only ever suspected without a list, and an address is internal
+//! exactly when its canonical form is.
 #![no_main]
 
 use std::net::IpAddr;
 
 use libfuzzer_sys::fuzz_target;
-use stuffcloud_core::client_ip::{Block, Bucket, ProxyList, canonical, client_address};
+use stuffcloud_core::client_ip::{
+    Block, Bucket, ProxyList, canonical, client_address, is_internal, unlisted_proxy,
+};
 
 fuzz_target!(|data: &[u8]| {
     let mut lines = data.split(|byte| *byte == b'\n');
@@ -43,7 +46,14 @@ fuzz_target!(|data: &[u8]| {
         "2001:db8::5".parse().unwrap(),
         entries.first().copied().unwrap_or([192, 0, 2, 1].into()),
     ];
+    for entry in &entries {
+        assert_eq!(is_internal(*entry), is_internal(canonical(*entry)));
+    }
     for peer in peers {
+        assert_eq!(
+            unlisted_proxy(peer, &proxies),
+            proxies.is_empty() && is_internal(peer)
+        );
         let client = canonical(client_address(peer, &fields, &proxies));
         if !proxies.contains(peer) {
             assert_eq!(client, canonical(peer));

@@ -218,11 +218,22 @@ impl Problem {
     /// `Retry-After` header in whole seconds (rounded up, at least 1).
     #[must_use]
     pub fn too_many_requests(wait_ms: i64) -> Self {
+        Self::retry_later(wait_ms, "too many attempts")
+    }
+
+    /// The server is too busy to check a password now (the hashing queue is full): the same
+    /// 429 with `Retry-After`, with a detail that says why. Nothing was checked or counted.
+    #[must_use]
+    pub fn busy(wait_ms: i64) -> Self {
+        Self::retry_later(wait_ms, "the server is busy checking other passwords")
+    }
+
+    fn retry_later(wait_ms: i64, reason: &str) -> Self {
         let seconds = u64::try_from(wait_ms).unwrap_or(0).div_ceil(1000).max(1);
         Self {
             kind: ProblemKind::TooManyRequests,
             detail: Some(format!(
-                "too many attempts; try again in {seconds} second{}",
+                "{reason}; try again in {seconds} second{}",
                 if seconds == 1 { "" } else { "s" }
             )),
             errors: Vec::new(),
@@ -443,6 +454,17 @@ mod tests {
                 seconds.to_string().as_str()
             );
         }
+        let busy = Problem::busy(1500);
+        assert_eq!(busy.kind(), ProblemKind::TooManyRequests);
+        assert_eq!(busy.retry_after(), Some(2));
+        assert_eq!(
+            busy.body().detail.as_deref(),
+            Some("the server is busy checking other passwords; try again in 2 seconds")
+        );
+        assert_eq!(
+            Problem::busy(1000).body().detail.as_deref(),
+            Some("the server is busy checking other passwords; try again in 1 second")
+        );
         assert_eq!(Problem::new(ProblemKind::NotFound).retry_after(), None);
         let plain = Problem::new(ProblemKind::NotFound).into_response();
         assert!(plain.headers().get(RETRY_AFTER).is_none());

@@ -494,6 +494,63 @@ fn reset_tokens_are_single_use_short_lived_and_end_every_session() {
 }
 
 #[test]
+fn only_the_command_line_issues_reset_links_for_admins() {
+    let (_dir, db) = db();
+    let admin = db
+        .create_user("admin", UserKind::Person, Role::Admin, None, 1)
+        .unwrap();
+    let other = db
+        .create_user("other", UserKind::Person, Role::Admin, None, 1)
+        .unwrap();
+    for target in ["admin", "other"] {
+        assert_eq!(
+            db.issue_password_reset(&login(target), &hash(20), Some(admin.id), 900, 100)
+                .unwrap(),
+            ResetIssue::AdminAccount,
+            "{target}"
+        );
+    }
+    // Nothing was stored or audited for the refused ones.
+    assert_eq!(db.password_reset_target(&hash(20), 101).unwrap(), None);
+    assert!(
+        !actions(&db)
+            .iter()
+            .any(|row| row.1 == "password.reset_issued")
+    );
+    assert_eq!(
+        db.issue_password_reset(&login("other"), &hash(21), None, 900, 100)
+            .unwrap(),
+        ResetIssue::Issued(other)
+    );
+}
+
+#[test]
+fn a_password_change_deletes_the_open_reset_token() {
+    let (_dir, db) = db();
+    let alice = created(register(&db, "alice", "alice@example.com", None));
+    let bob = created(register(&db, "bob", "bob@example.com", None));
+    for (user, token) in [("alice", 30), ("bob", 31)] {
+        let _ = db
+            .issue_password_reset(&login(user), &hash(token), None, 900, 100)
+            .unwrap();
+    }
+    let _ended = db.set_password(alice.id, "changed", None, 200).unwrap();
+    assert_eq!(db.password_reset_target(&hash(30), 201).unwrap(), None);
+    assert_eq!(
+        db.redeem_password_reset(&hash(30), "undo", 201).unwrap(),
+        None
+    );
+    // Another account's link is untouched.
+    assert_eq!(
+        db.password_reset_target(&hash(31), 201)
+            .unwrap()
+            .unwrap()
+            .user,
+        bob
+    );
+}
+
+#[test]
 fn expired_tokens_are_purged() {
     let (_dir, db) = db();
     let admin = db

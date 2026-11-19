@@ -31,6 +31,8 @@ impl AccessPolicy for AllowAll {
 }
 
 /// The account machinery with the cheapest Argon2 parameters (a hash costs next to nothing).
+/// The hashing queue is long enough for every burst a test sends, so a count of password
+/// checks never depends on how the requests interleave (the bound itself has unit tests).
 pub(crate) fn cheap_accounts() -> stuffcloud_app::accounts::Accounts {
     stuffcloud_app::accounts::Accounts::new(
         stuffcloud_app::password::Passwords::new(
@@ -39,28 +41,43 @@ pub(crate) fn cheap_accounts() -> stuffcloud_app::accounts::Accounts {
             stuffcloud_app::password::Blocklist::default(),
             2,
         )
-        .unwrap(),
+        .unwrap()
+        .with_queue(1024, std::time::Duration::from_mins(1)),
         stuffcloud_core::client_ip::ProxyList::default(),
     )
 }
 
 /// A clock that moves one second forward on every read, so a write that touched a
-/// timestamp would show it. Tests move it further with [`SteppingClock::advance`].
-#[derive(Debug, Default)]
-pub(crate) struct SteppingClock(AtomicI64);
+/// timestamp would show it. Tests move it further with [`SteppingClock::advance`]. A frozen
+/// one ([`TestApp::frozen`]) only moves on `advance`: a burst of parallel requests then
+/// happens at one instant, as it does for the throttles.
+#[derive(Debug)]
+pub(crate) struct SteppingClock {
+    offset: AtomicI64,
+    step: i64,
+}
+
+impl Default for SteppingClock {
+    fn default() -> Self {
+        Self {
+            offset: AtomicI64::new(0),
+            step: 1000,
+        }
+    }
+}
 
 /// The first reading of [`SteppingClock`].
 pub(crate) const EPOCH: i64 = 1_763_510_400_000;
 
 impl SteppingClock {
     pub(crate) fn advance(&self, millis: i64) {
-        let _ = self.0.fetch_add(millis, Ordering::SeqCst);
+        let _ = self.offset.fetch_add(millis, Ordering::SeqCst);
     }
 }
 
 impl Clock for SteppingClock {
     fn now_millis(&self) -> i64 {
-        EPOCH + self.0.fetch_add(1000, Ordering::SeqCst)
+        EPOCH + self.offset.fetch_add(self.step, Ordering::SeqCst)
     }
 }
 
@@ -145,7 +162,23 @@ impl TestApp {
         Self::with_limits(policy, Limits::default())
     }
 
+    /// A test app whose clock stands still between `advance` calls.
+    pub(crate) fn frozen(policy: Policy) -> Self {
+        Self::build(
+            policy,
+            Limits::default(),
+            SteppingClock {
+                offset: AtomicI64::new(0),
+                step: 0,
+            },
+        )
+    }
+
     pub(crate) fn with_limits(policy: Policy, limits: Limits) -> Self {
+        Self::build(policy, limits, SteppingClock::default())
+    }
+
+    fn build(policy: Policy, limits: Limits, clock: SteppingClock) -> Self {
         let dir = tempfile::tempdir().unwrap();
         let db = Arc::new(Database::open(&dir.path().join("test.sqlite3")).unwrap());
         let _ = db.migrate().unwrap();
@@ -153,7 +186,7 @@ impl TestApp {
             Policy::AllowAll => Arc::new(AllowAll),
             Policy::Production => Arc::new(MatrixPolicy),
         };
-        let clock = Arc::new(SteppingClock::default());
+        let clock = Arc::new(clock);
         let shared_clock: Arc<dyn Clock> = Arc::<SteppingClock>::clone(&clock);
         let state = AppState::new(
             Arc::clone(&db),

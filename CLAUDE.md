@@ -24,7 +24,7 @@ crates/core/    domain types + validation (SafeRelPath, Subdomain), API building
                 check, session: timeouts, roles; authorisation: scope = permission names + token
                 scopes, policy = the permission matrix + `decide`, hosting = zone rules `may_host`), account
                 building blocks (account: login names, e-mail addresses, password policy, action bodies;
-                throttle: backoff rule; client_ip: trusted proxies + X-Forwarded-For), no I/O
+                throttle: backoff rule; client_ip: trusted proxies + X-Forwarded-For + unlisted-proxy detection), no I/O
   tests/        properties.rs, api_properties.rs, auth_properties.rs, policy_properties.rs, account_properties.rs (proptest), regression.rs (attack corpus)
 crates/db/      SQLite (rusqlite, WAL): migrations/ + runner, resource store, audit log, bootstrap,
                 auth.rs (users, hashed sessions, timeouts, rotation, session cap, security audit events),

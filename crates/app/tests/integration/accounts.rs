@@ -8,8 +8,11 @@
 //! - login starts a new session (fixation), registration logs in, both set only `__Host-`
 //!   cookies; the session cap ends the oldest session;
 //! - the throttles answer 429 with `Retry-After` without checking the password, the per-account
-//!   rule spares an address that logged in before;
-//! - password change and admin-issued reset links (single use, 60 minutes) end sessions;
+//!   rule spares an address that logged in before (not behind an unlisted proxy) and counts an
+//!   account under all its names; a burst of parallel attempts gets exactly the free failures
+//!   plus one password check (#145);
+//! - password change and admin-issued reset links (single use, 60 minutes) end sessions; a
+//!   password change voids an open link; no link for an admin account through the API;
 //! - the audit log holds no login names, addresses or tokens.
 
 use std::net::SocketAddr;
@@ -21,6 +24,7 @@ use serde_json::{Value, json};
 use stuffcloud_core::account::{Email, Login};
 use stuffcloud_core::session::{Role, UserKind};
 use stuffcloud_db::{AuditEntry, NewAccount, Registration, User};
+use tower::ServiceExt;
 
 use crate::common::{APP_ORIGIN, Browser, CSRF, EPOCH, Policy, Reply, TestApp, csrf_headers};
 
@@ -87,24 +91,66 @@ async fn login(app: &TestApp, login: &str, password: &str) -> Reply {
     .await
 }
 
-/// A login from a client address (as `axum::serve` with connect info hands it over).
-async fn login_from(app: &TestApp, from: [u8; 4], login: &str, password: &str) -> Reply {
+/// A request with `headers` and a JSON body, from a client address (as `axum::serve` with
+/// connect info hands it over) or without one.
+fn request_from(
+    from: Option<[u8; 4]>,
+    path: &str,
+    headers: &[(String, String)],
+    body: &Value,
+) -> Request<Body> {
     let mut builder = Request::builder()
         .method(Method::POST)
-        .uri(LOGIN)
+        .uri(path)
         .header("content-type", "application/json");
-    for (name, value) in csrf_headers() {
-        builder = builder.header(name, value);
+    for (name, value) in headers {
+        builder = builder.header(name.as_str(), value.as_str());
     }
-    let mut request = builder
-        .body(Body::from(
-            json!({"login": login, "password": password}).to_string(),
-        ))
-        .unwrap();
-    let _previous = request
-        .extensions_mut()
-        .insert(ConnectInfo(SocketAddr::from((from, 40000))));
-    app.send(request).await
+    let mut request = builder.body(Body::from(body.to_string())).unwrap();
+    if let Some(from) = from {
+        let _previous = request
+            .extensions_mut()
+            .insert(ConnectInfo(SocketAddr::from((from, 40000))));
+    }
+    request
+}
+
+fn login_request(from: [u8; 4], login: &str, password: &str) -> Request<Body> {
+    request_from(
+        Some(from),
+        LOGIN,
+        &csrf_headers(),
+        &json!({"login": login, "password": password}),
+    )
+}
+
+/// A login from a client address.
+async fn login_from(app: &TestApp, from: [u8; 4], login: &str, password: &str) -> Reply {
+    app.send(login_request(from, login, password)).await
+}
+
+/// Sends every request at once, each on its own task, and returns the statuses sorted.
+async fn burst(app: &TestApp, requests: Vec<Request<Body>>) -> Vec<u16> {
+    let tasks: Vec<_> = requests
+        .into_iter()
+        .map(|request| {
+            let router = app.router.clone();
+            tokio::spawn(async move { router.oneshot(request).await.unwrap().status().as_u16() })
+        })
+        .collect();
+    let mut statuses = Vec::with_capacity(tasks.len());
+    for task in tasks {
+        statuses.push(task.await.unwrap());
+    }
+    statuses.sort_unstable();
+    statuses
+}
+
+/// `count` times `status`, then `rest` times 429.
+fn expected(status: u16, count: usize, rest: usize) -> Vec<u16> {
+    let mut statuses = vec![status; count];
+    statuses.extend(vec![429; rest]);
+    statuses
 }
 
 /// The value of a cookie the reply sets.
@@ -365,6 +411,143 @@ async fn an_address_that_logged_in_before_is_spared_by_the_account_rule() {
     stranger.assert_problem(429, "too-many-requests");
     let reply = login_from(&app, home, "alice", ALICE_PASSWORD).await;
     assert_eq!(reply.status.as_u16(), 200, "{}", reply.text());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_burst_at_one_account_gets_exactly_its_free_failures_plus_one_check() {
+    let app = TestApp::frozen(Policy::Production);
+    let _alice = account(
+        &app,
+        "alice",
+        "alice@example.com",
+        Role::User,
+        ALICE_PASSWORD,
+    )
+    .await;
+    // Known and unknown names alike: 10 free failures plus one check, the rest is refused
+    // unchecked, from 60 different addresses at the same instant.
+    for name in ["alice", "nobody"] {
+        let before = verifications(&app);
+        let requests = (0..60)
+            .map(|n| login_request([198, 51, 100, n], name, "wrong password"))
+            .collect();
+        assert_eq!(burst(&app, requests).await, expected(401, 11, 49), "{name}");
+        assert_eq!(verifications(&app), before + 11, "{name}");
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_burst_from_one_address_gets_exactly_its_free_failures_plus_one_check() {
+    let app = TestApp::frozen(Policy::Production);
+    let before = verifications(&app);
+    let requests = (0..60)
+        .map(|n| login_request([192, 0, 2, 50], &format!("guess{n}"), "wrong password"))
+        .collect();
+    assert_eq!(burst(&app, requests).await, expected(401, 21, 39));
+    assert_eq!(verifications(&app), before + 21);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_burst_of_password_changes_gets_exactly_the_free_failures_plus_one_check() {
+    let app = TestApp::frozen(Policy::Production);
+    let alice = account(
+        &app,
+        "alice",
+        "alice@example.com",
+        Role::User,
+        ALICE_PASSWORD,
+    )
+    .await;
+    let browser = app.session_for(alice.id);
+    let before = verifications(&app);
+    let requests = (0..40)
+        .map(|_| {
+            request_from(
+                None,
+                PASSWORD,
+                &browser.write_headers(),
+                &json!({"current_password": "wrong", "new_password": NEW_PASSWORD}),
+            )
+        })
+        .collect();
+    assert_eq!(burst(&app, requests).await, expected(422, 11, 29));
+    assert_eq!(verifications(&app), before + 11);
+    // The failures count for the account: a login under its address is refused now too.
+    let reply = login_from(&app, [203, 0, 113, 4], "alice@example.com", ALICE_PASSWORD).await;
+    reply.assert_problem(401, "invalid-credentials");
+}
+
+#[tokio::test]
+async fn an_account_is_counted_under_all_its_names() {
+    let app = TestApp::frozen(Policy::Production);
+    let _alice = account(
+        &app,
+        "alice",
+        "alice@example.com",
+        Role::User,
+        ALICE_PASSWORD,
+    )
+    .await;
+    for n in 0..10 {
+        login_from(&app, [198, 51, 100, n], "alice", "guess")
+            .await
+            .assert_problem(401, "invalid-credentials");
+    }
+    // The address is a fresh name, but the account has used up its free failures: this one is
+    // the last check...
+    login_from(&app, [198, 51, 100, 10], "alice@example.com", "guess")
+        .await
+        .assert_problem(401, "invalid-credentials");
+    // ...and now even the right password under a third spelling is not tried: the same 401 as a
+    // wrong one, after a check against the dummy hash (no 429 that would tell the names belong
+    // together).
+    let before = verifications(&app);
+    let refused = login_from(&app, [203, 0, 113, 1], " ALICE@example.com", ALICE_PASSWORD).await;
+    let wrong = login_from(&app, [203, 0, 113, 2], "nobody@example.com", "guess").await;
+    assert_eq!(verifications(&app), before + 2);
+    assert_eq!(refused.status, wrong.status);
+    assert_eq!(refused.body, wrong.body);
+    assert!(refused.header("retry-after").is_none());
+    assert!(refused.set_cookies().is_empty());
+    // Once the wait is over the right password works again.
+    app.clock.advance(2000);
+    let reply = login_from(&app, [203, 0, 113, 1], "alice@example.com", ALICE_PASSWORD).await;
+    assert_eq!(reply.status.as_u16(), 200, "{}", reply.text());
+    let metrics = app.get("/metrics").await.text();
+    assert!(metrics.contains("reason=\"throttled\""), "{metrics}");
+}
+
+#[tokio::test]
+async fn behind_an_unlisted_proxy_no_address_is_exempt() {
+    let app = TestApp::frozen(Policy::Production);
+    let _alice = account(
+        &app,
+        "alice",
+        "alice@example.com",
+        Role::User,
+        ALICE_PASSWORD,
+    )
+    .await;
+    // The peer is a private address and no proxy is listed: it is everyone behind the proxy.
+    let proxy = [172, 18, 0, 3];
+    assert_eq!(
+        login_from(&app, proxy, "alice", ALICE_PASSWORD)
+            .await
+            .status
+            .as_u16(),
+        200
+    );
+    for n in 0..11 {
+        login_from(&app, [198, 51, 100, n], "alice", "guess")
+            .await
+            .assert_problem(401, "invalid-credentials");
+    }
+    // The owner's earlier login from that address does not exempt it (an attacker behind the
+    // same proxy would share the exemption), whereas a public address that logged in is spared.
+    login_from(&app, proxy, "alice", ALICE_PASSWORD)
+        .await
+        .assert_problem(429, "too-many-requests");
+    assert_eq!(app.state.accounts().throttles().sizes()[3], 0);
 }
 
 async fn register(app: &TestApp, body: &Value) -> Reply {
@@ -710,6 +893,54 @@ async fn the_own_password_changes_and_other_sessions_end() {
 }
 
 #[tokio::test]
+async fn a_password_change_voids_an_open_reset_link() {
+    let app = TestApp::new(Policy::Production);
+    let admin = admin(&app).await;
+    let alice = account(
+        &app,
+        "alice",
+        "alice@example.com",
+        Role::User,
+        ALICE_PASSWORD,
+    )
+    .await;
+    let link = app
+        .call(
+            Method::POST,
+            "/api/v1/admin/users/alice/password-reset",
+            &admin.write_headers(),
+            None,
+        )
+        .await
+        .json();
+    let changed = app
+        .call(
+            Method::POST,
+            PASSWORD,
+            &app.session_for(alice.id).write_headers(),
+            Some(&json!({"current_password": ALICE_PASSWORD, "new_password": NEW_PASSWORD})),
+        )
+        .await;
+    assert_eq!(changed.status.as_u16(), 204, "{}", changed.text());
+    let redeemed = app
+        .call(
+            Method::POST,
+            RESET,
+            &csrf_headers(),
+            Some(&json!({"token": link["token"], "password": "the attacker's passphrase"})),
+        )
+        .await;
+    assert_eq!(
+        redeemed.problem(422, "validation-failed")["errors"][0]["detail"],
+        "the reset link is unknown, used or expired"
+    );
+    assert_eq!(
+        login(&app, "alice", NEW_PASSWORD).await.status.as_u16(),
+        200
+    );
+}
+
+#[tokio::test]
 async fn an_admin_reset_link_works_once_within_the_hour() {
     let app = TestApp::new(Policy::Production);
     let admin = admin(&app).await;
@@ -783,6 +1014,23 @@ async fn an_admin_reset_link_works_once_within_the_hour() {
         .create_user("robot", UserKind::Service, Role::User, None, EPOCH)
         .unwrap();
     issue("robot").await.assert_problem(403, "forbidden");
+    // No link for an admin account through the API, not even the caller's own.
+    let _other = account(
+        &app,
+        "other",
+        "other@example.com",
+        Role::Admin,
+        "the other admin's passphrase",
+    )
+    .await;
+    for target in ["other", "admin"] {
+        let refused = issue(target).await;
+        assert_eq!(
+            refused.problem(403, "forbidden")["detail"],
+            "reset links for admin accounts are issued only on the host: stuffcloud-app reset-link <login>",
+            "{target}"
+        );
+    }
     // An hour later a link no longer works (the admin's own session is long idle by then, so
     // this comes last).
     let late = issue("alice").await.json()["token"]

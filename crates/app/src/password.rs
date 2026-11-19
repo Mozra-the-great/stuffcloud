@@ -6,12 +6,17 @@
 //!   with other parameters stores a new hash ([`Verified::rehash`]).
 //! - The defaults are the first of OWASP's recommended Argon2id configurations (19 MiB memory,
 //!   2 iterations, 1 lane). An operator calibrates them with `STUFFCLOUD_ARGON2_*`; the start-up
-//!   log reports how long one hash takes on the machine (keep it well below a second; OWASP
-//!   lists equivalent pairs such as 46 MiB x 1, 12 MiB x 3, 9 MiB x 4, 7 MiB x 5).
+//!   log reports how long one hash takes on the machine (keep it well below a second). The
+//!   memory may not go below OWASP's minimum for the number of iterations
+//!   ([`owasp_min_memory_kib`]: 46 MiB x 1, 19 MiB x 2, 12 MiB x 3, 9 MiB x 4, 7 MiB x 5 and
+//!   more); the configuration refuses weaker pairs.
 //! - Hashing is CPU and memory heavy, so it runs on the blocking pool, never on an async worker,
-//!   and at most [`Passwords::concurrency`] hashes run at once; further requests wait for a slot
-//!   (and run into the request time limit under a flood), so login traffic cannot exhaust the
-//!   memory of the host.
+//!   and at most [`Passwords::concurrency`] hashes run at once, so login traffic cannot exhaust
+//!   the memory of the host. Further requests queue for a slot, but the queue is bounded
+//!   ([`QUEUE_PER_SLOT`] waiting requests per slot, each for at most [`MAX_QUEUE_WAIT`]): beyond
+//!   it a request is answered at once with 429 and `Retry-After` ([`Problem::busy`]) instead of
+//!   waiting into the request time limit, so a flood cannot make every legitimate login time
+//!   out (#145). Such a request was not checked and does not count as a failed login.
 //! - An unknown account is checked against a dummy hash made at start-up with the same
 //!   parameters ([`Passwords::verify`] with `None`), so the answer takes as long as for a known
 //!   account: the timing does not tell whether an account exists. [`Passwords::verifications`]
@@ -21,8 +26,8 @@
 //!   breached-password corpus); no request ever leaves the host. It is kept in memory as the
 //!   first 8 bytes of the SHA-256 of each normalised line, sorted.
 
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::Instant;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::time::{Duration, Instant};
 
 use argon2::password_hash::Error as HashError;
 use argon2::{
@@ -32,7 +37,7 @@ use argon2::{
 use sha2::{Digest, Sha256};
 use stuffcloud_core::account::{PasswordPolicy, normalize_password};
 use stuffcloud_core::token::Token;
-use tokio::sync::Semaphore;
+use tokio::sync::{Semaphore, SemaphorePermit, TryAcquireError};
 
 use crate::problem::Problem;
 
@@ -55,6 +60,25 @@ pub const DEFAULT_PARALLELISM: u32 = 1;
 pub const MAX_PARALLELISM: u32 = 16;
 /// Most hashes computed at the same time.
 pub const MAX_CONCURRENCY: usize = 16;
+/// Requests that may wait for a hashing slot, per slot.
+pub const QUEUE_PER_SLOT: usize = 8;
+/// The longest a request waits for a hashing slot.
+pub const MAX_QUEUE_WAIT: Duration = Duration::from_secs(5);
+/// What a request refused for a full queue is told to wait (milliseconds).
+pub const BUSY_RETRY_MS: i64 = 1000;
+
+/// OWASP's smallest memory cost in KiB for `iterations` (its recommended Argon2id pairs:
+/// 46 MiB x 1, 19 MiB x 2, 12 MiB x 3, 9 MiB x 4, 7 MiB x 5; more iterations keep 7 MiB).
+#[must_use]
+pub const fn owasp_min_memory_kib(iterations: u32) -> u32 {
+    match iterations {
+        0 | 1 => 46 * 1024,
+        2 => 19 * 1024,
+        3 => 12 * 1024,
+        4 => 9 * 1024,
+        _ => MIN_MEMORY_KIB,
+    }
+}
 
 /// The Argon2id parameters of the deployment.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -162,8 +186,21 @@ pub struct Passwords {
     blocklist: Blocklist,
     permits: Semaphore,
     concurrency: usize,
+    queue: usize,
+    max_wait: Duration,
+    waiting: AtomicUsize,
     verifications: AtomicU64,
     calibration_ms: u128,
+}
+
+/// A place in the queue for a hashing slot, given back when the wait ends (also when the
+/// request is cancelled).
+struct Waiting<'a>(&'a AtomicUsize);
+
+impl Drop for Waiting<'_> {
+    fn drop(&mut self) {
+        let _left = self.0.fetch_sub(1, Ordering::AcqRel);
+    }
 }
 
 /// The hasher for the parameters.
@@ -250,9 +287,27 @@ impl Passwords {
             blocklist,
             permits: Semaphore::new(concurrency),
             concurrency,
+            queue: concurrency.saturating_mul(QUEUE_PER_SLOT),
+            max_wait: MAX_QUEUE_WAIT,
+            waiting: AtomicUsize::new(0),
             verifications: AtomicU64::new(0),
             calibration_ms,
         })
+    }
+
+    /// The same with another bound of the queue: at most `queue` requests wait for a slot, each
+    /// for at most `max_wait`.
+    #[must_use]
+    pub const fn with_queue(mut self, queue: usize, max_wait: Duration) -> Self {
+        self.queue = queue;
+        self.max_wait = max_wait;
+        self
+    }
+
+    /// How many requests may wait for a hashing slot.
+    #[must_use]
+    pub const fn queue(&self) -> usize {
+        self.queue
     }
 
     /// The password policy.
@@ -279,22 +334,52 @@ impl Passwords {
         self.calibration_ms
     }
 
-    /// How many password checks ran (real and dummy).
+    /// How many password checks ran (real and dummy); a request refused for a full queue is
+    /// not one.
     #[must_use]
     pub fn verifications(&self) -> u64 {
         self.verifications.load(Ordering::Relaxed)
     }
 
-    /// Waits for a hashing slot and runs `work` on the blocking pool.
-    async fn run<T: Send + 'static>(
-        &self,
+    /// Takes every hashing slot, so the next request has to queue (tests of the callers).
+    #[cfg(test)]
+    pub(crate) fn hold_slots(&self) -> SemaphorePermit<'_> {
+        self.permits
+            .try_acquire_many(u32::try_from(self.concurrency).unwrap())
+            .unwrap()
+    }
+
+    /// A hashing slot: a free one at once, or one waited for in the bounded queue.
+    async fn slot(&self) -> Result<SemaphorePermit<'_>, Problem> {
+        match self.permits.try_acquire() {
+            Ok(permit) => return Ok(permit),
+            Err(TryAcquireError::Closed) => {
+                return Err(Problem::internal(&"the hashing slots are closed"));
+            }
+            Err(TryAcquireError::NoPermits) => {}
+        }
+        let queue = self.queue;
+        if self
+            .waiting
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |waiting| {
+                (waiting < queue).then_some(waiting.saturating_add(1))
+            })
+            .is_err()
+        {
+            return Err(Problem::busy(BUSY_RETRY_MS));
+        }
+        let _waiting = Waiting(&self.waiting);
+        match tokio::time::timeout(self.max_wait, self.permits.acquire()).await {
+            Ok(Ok(permit)) => Ok(permit),
+            Ok(Err(closed)) => Err(Problem::internal(&closed)),
+            Err(_elapsed) => Err(Problem::busy(BUSY_RETRY_MS)),
+        }
+    }
+
+    /// Runs `work` on the blocking pool (the caller holds a slot).
+    async fn blocking<T: Send + 'static>(
         work: impl FnOnce() -> Result<T, String> + Send + 'static,
     ) -> Result<T, Problem> {
-        let _permit = self
-            .permits
-            .acquire()
-            .await
-            .map_err(|error| Problem::internal(&error))?;
         tokio::task::spawn_blocking(work)
             .await
             .map_err(|error| Problem::internal(&error))?
@@ -305,11 +390,12 @@ impl Passwords {
     ///
     /// # Errors
     ///
-    /// An internal problem when hashing fails.
+    /// An internal problem when hashing fails; [`Problem::busy`] when the queue is full.
     pub async fn hash(&self, password: &str) -> Result<String, Problem> {
         let params = self.params.clone();
         let password = password.to_owned();
-        self.run(move || hash_blocking(&params, &password)).await
+        let _slot = self.slot().await?;
+        Self::blocking(move || hash_blocking(&params, &password)).await
     }
 
     /// [`Passwords::hash`] on the calling thread, outside the runtime (the first admin at
@@ -328,15 +414,17 @@ impl Passwords {
     ///
     /// # Errors
     ///
-    /// An internal problem when the stored hash is not a PHC string or hashing fails.
+    /// An internal problem when the stored hash is not a PHC string or hashing fails;
+    /// [`Problem::busy`] (429) when no slot is free and the queue is full, or the wait for a
+    /// slot took too long: then nothing was checked.
     pub async fn verify(&self, password: &str, stored: Option<&str>) -> Result<Verified, Problem> {
+        let _slot = self.slot().await?;
         let _counted = self.verifications.fetch_add(1, Ordering::Relaxed);
         let params = self.params.clone();
         let password = password.to_owned();
         let real = stored.is_some();
         let stored = stored.unwrap_or(&self.dummy).to_owned();
-        self.run(move || verify_blocking(&params, &password, &stored, real))
-            .await
+        Self::blocking(move || verify_blocking(&params, &password, &stored, real)).await
     }
 }
 
@@ -602,6 +690,103 @@ mod tests {
         );
         assert!(measured.calibration_ms() < 60_000);
     }
+    #[test]
+    fn the_owasp_floor_follows_its_pairs() {
+        assert_eq!(owasp_min_memory_kib(0), 47_104);
+        assert_eq!(owasp_min_memory_kib(1), 47_104);
+        assert_eq!(owasp_min_memory_kib(2), 19_456);
+        assert_eq!(owasp_min_memory_kib(3), 12_288);
+        assert_eq!(owasp_min_memory_kib(4), 9_216);
+        assert_eq!(owasp_min_memory_kib(5), 7_168);
+        assert_eq!(owasp_min_memory_kib(MAX_ITERATIONS), MIN_MEMORY_KIB);
+        // The defaults are OWASP's first pair, exactly at the floor.
+        let defaults = Argon2Settings::default();
+        assert_eq!(
+            owasp_min_memory_kib(defaults.iterations),
+            defaults.memory_kib
+        );
+        assert_eq!(QUEUE_PER_SLOT, 8);
+        assert_eq!(MAX_QUEUE_WAIT, Duration::from_secs(5));
+        assert_eq!(BUSY_RETRY_MS, 1000);
+    }
+
+    /// Waits until `count` requests are queued for a slot.
+    async fn queued(passwords: &Passwords, count: usize) {
+        while passwords.waiting.load(Ordering::Acquire) != count {
+            tokio::task::yield_now().await;
+        }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn the_queue_for_a_slot_is_bounded() {
+        let passwords = std::sync::Arc::new(cheap().with_queue(1, Duration::from_secs(30)));
+        assert_eq!(passwords.queue(), 1);
+        assert_eq!(cheap().queue(), 2 * QUEUE_PER_SLOT);
+        let first = passwords.permits.try_acquire().unwrap();
+        let second = passwords.permits.try_acquire().unwrap();
+        // One request may wait...
+        let waiter = {
+            let passwords = std::sync::Arc::clone(&passwords);
+            tokio::spawn(async move { passwords.verify("anything", None).await })
+        };
+        queued(&passwords, 1).await;
+        // ...the next one is refused at once, and nothing was checked.
+        for refused in [
+            passwords.verify("anything", None).await.unwrap_err(),
+            passwords.hash("anything").await.unwrap_err(),
+        ] {
+            assert_eq!(refused.kind(), crate::problem::ProblemKind::TooManyRequests);
+            assert_eq!(refused.retry_after(), Some(1));
+            assert_eq!(
+                refused.body().detail.as_deref(),
+                Some("the server is busy checking other passwords; try again in 1 second")
+            );
+        }
+        assert_eq!(passwords.verifications(), 0);
+        drop(first);
+        assert!(!waiter.await.unwrap().unwrap().matches);
+        assert_eq!(passwords.verifications(), 1);
+        assert_eq!(passwords.waiting.load(Ordering::Acquire), 0);
+        drop(second);
+        // With free slots nobody queues.
+        assert!(!passwords.verify("anything", None).await.unwrap().matches);
+        assert_eq!(passwords.waiting.load(Ordering::Acquire), 0);
+    }
+
+    #[tokio::test]
+    async fn a_request_waits_for_a_slot_only_so_long() {
+        let passwords = cheap().with_queue(4, Duration::from_millis(20));
+        let _first = passwords.permits.try_acquire().unwrap();
+        let _second = passwords.permits.try_acquire().unwrap();
+        let refused = passwords.verify("anything", None).await.unwrap_err();
+        assert_eq!(refused.retry_after(), Some(1));
+        assert_eq!(passwords.waiting.load(Ordering::Acquire), 0);
+        assert_eq!(passwords.verifications(), 0);
+        passwords.permits.close();
+        assert_eq!(
+            passwords.verify("anything", None).await.unwrap_err().kind(),
+            crate::problem::ProblemKind::Internal
+        );
+    }
+
+    #[tokio::test]
+    async fn closed_slots_are_an_internal_error_also_while_waiting() {
+        let passwords = std::sync::Arc::new(cheap().with_queue(4, Duration::from_secs(30)));
+        let first = passwords.permits.try_acquire().unwrap();
+        let _second = passwords.permits.try_acquire().unwrap();
+        let waiter = {
+            let passwords = std::sync::Arc::clone(&passwords);
+            tokio::spawn(async move { passwords.hash("anything").await })
+        };
+        queued(&passwords, 1).await;
+        passwords.permits.close();
+        assert_eq!(
+            waiter.await.unwrap().unwrap_err().kind(),
+            crate::problem::ProblemKind::Internal
+        );
+        drop(first);
+    }
+
     #[test]
     fn policy_breach_and_calibration() {
         let passwords = cheap();

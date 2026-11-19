@@ -424,7 +424,7 @@
             }
           },
           "403": {
-            "description": "The account or token lacks the permission admin:users:write, the account is a service account, or the Origin or CSRF check failed",
+            "description": "The account or token lacks the permission admin:users:write, the account is a service account or an admin account (their links come only from `stuffcloud-app reset-link`), or the Origin or CSRF check failed",
             "content": {
               "application/problem+json": {
                 "schema": {

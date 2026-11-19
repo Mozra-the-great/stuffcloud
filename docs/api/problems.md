@@ -146,6 +146,10 @@ Too many failed attempts: logins per client address and per login name, wrong re
 registrations per client address (SPEC 6). The attempt was not checked. The `Retry-After` header
 gives the seconds until the next attempt is checked; the wait doubles with every further
 failure, up to 15 minutes (registrations: one hour). It is a backoff, never a lockout.
+Attempts that are still being checked count too, so a burst of parallel requests gets no more
+checks than the same requests one after another. The same type, with the detail "the server is
+busy checking other passwords", answers a request that found the password-hashing queue full;
+it was not checked or counted, and `Retry-After` is one second.
 
 <a id="internal"></a>
 ## internal (500)

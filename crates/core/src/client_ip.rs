@@ -12,6 +12,10 @@
 //!   client. An entry that is not an IP address stops the walk: the last trusted hop before it
 //!   counts as the client (a proxy that wrote garbage is not believed further left).
 //!
+//! A private or loopback peer with an empty proxy list is most likely a reverse proxy nobody
+//! listed ([`unlisted_proxy`]): then every client shares the proxy's address. The app warns
+//! about it and grants no per-address exemption from the account rule (#146).
+//!
 //! The address is only used as a throttle key in memory ([`Bucket`]: an IPv6 client is keyed
 //! by its /64, which one subscriber usually holds entirely); it is never stored or logged.
 
@@ -162,6 +166,33 @@ pub fn client_address(peer: IpAddr, forwarded_for: &[&[u8]], trusted: &ProxyList
         }
     }
     client
+}
+
+/// Whether an address belongs to a local network rather than to the internet: loopback,
+/// private (RFC 1918), shared (RFC 6598, `100.64.0.0/10`), link-local, and for IPv6 unique local
+/// (`fc00::/7`) and link-local (`fe80::/10`) addresses. An IPv4-mapped address counts as its
+/// IPv4 address. The unspecified address is none of them.
+#[must_use]
+pub fn is_internal(address: IpAddr) -> bool {
+    match canonical(address) {
+        IpAddr::V4(v4) => {
+            let [first, second, ..] = v4.octets();
+            v4.is_loopback()
+                || v4.is_private()
+                || v4.is_link_local()
+                || (first == 100 && (second & 0b1100_0000) == 0b0100_0000)
+        }
+        IpAddr::V6(v6) => v6.is_loopback() || v6.is_unique_local() || v6.is_unicast_link_local(),
+    }
+}
+
+/// Whether a request from `peer` probably came through a reverse proxy that is not listed:
+/// the list is empty and the peer is on a local network ([`is_internal`]). In the deployments
+/// stuffcloud supports the app is only reachable through its proxy, so its address then stands
+/// for every client.
+#[must_use]
+pub fn unlisted_proxy(peer: IpAddr, trusted: &ProxyList) -> bool {
+    trusted.is_empty() && is_internal(peer)
 }
 
 /// The throttle key of a client address: IPv4 as it is, IPv6 by its /64.
@@ -345,6 +376,69 @@ mod tests {
             client_address(proxy, &[b"::ffff:203.0.113.8"], &proxies),
             ip("203.0.113.8")
         );
+    }
+
+    #[test]
+    fn internal_addresses_and_their_edges() {
+        for internal in [
+            "127.0.0.1",
+            "127.255.255.255",
+            "10.0.0.0",
+            "10.255.255.255",
+            "172.16.0.0",
+            "172.31.255.255",
+            "192.168.0.0",
+            "192.168.255.255",
+            "169.254.0.1",
+            "100.64.0.0",
+            "100.127.255.255",
+            "::1",
+            "::ffff:10.1.2.3",
+            "fc00::1",
+            "fdff:ffff::1",
+            "fe80::1",
+            "febf::1",
+        ] {
+            assert!(is_internal(ip(internal)), "{internal}");
+        }
+        for external in [
+            "0.0.0.0",
+            "9.255.255.255",
+            "11.0.0.0",
+            "172.15.255.255",
+            "172.32.0.0",
+            "192.167.255.255",
+            "192.169.0.0",
+            "169.253.255.255",
+            "169.255.0.0",
+            "100.63.255.255",
+            "100.128.0.0",
+            "99.64.0.0",
+            "101.64.0.0",
+            "192.0.2.1",
+            "203.0.113.9",
+            "::",
+            "::2",
+            "fbff::1",
+            "fe00::1",
+            "fec0::1",
+            "2001:db8::1",
+            "::ffff:192.0.2.1",
+        ] {
+            assert!(!is_internal(ip(external)), "{external}");
+        }
+    }
+
+    #[test]
+    fn an_unlisted_proxy_is_a_local_peer_without_a_list() {
+        let none = ProxyList::default();
+        assert!(unlisted_proxy(ip("172.18.0.3"), &none));
+        assert!(unlisted_proxy(ip("::1"), &none));
+        assert!(!unlisted_proxy(ip("203.0.113.5"), &none));
+        // Once the operator lists any proxy, the peer is taken at its word.
+        let listed = list("192.0.2.10");
+        assert!(!unlisted_proxy(ip("172.18.0.3"), &listed));
+        assert!(!unlisted_proxy(ip("203.0.113.5"), &listed));
     }
 
     #[test]

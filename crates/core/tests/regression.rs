@@ -530,3 +530,58 @@ fn smuggling_e_mail_addresses_are_refused() {
         );
     }
 }
+
+/// #145: a burst of parallel login attempts all passed the throttle before the first failure
+/// was counted. With the attempts still being checked counted as failures, a key gets exactly
+/// `free + 1` checks, whatever arrives at the same instant.
+#[test]
+fn a_burst_of_parallel_attempts_is_not_checked_beyond_the_free_failures() {
+    use stuffcloud_core::throttle::{Failures, Rule};
+    let rule = Rule {
+        free: 10,
+        base_ms: 1000,
+        max_ms: 900_000,
+        window_ms: 3_600_000,
+    };
+    let admitted = (0..2000_u32)
+        .take_while(|running| {
+            rule.wait_in_flight(Failures::default(), *running, 0)
+                .is_none()
+        })
+        .count();
+    assert_eq!(admitted, 11);
+    // Even after the wait of the counted failures, only one runs at a time.
+    let counted = Failures {
+        count: 11,
+        last_at: 0,
+    };
+    assert_eq!(rule.wait_in_flight(counted, 0, 1000), None);
+    assert_eq!(rule.wait_in_flight(counted, 1, 1000), Some(2000));
+}
+
+/// #146: behind Caddy without a proxy list every client had the proxy's address. Such peers
+/// (the addresses Docker, Podman and LXC bridges hand out, and loopback) are recognised as
+/// unlisted proxies; a public peer and any peer with a list are taken at their word.
+#[test]
+fn proxy_peers_without_a_list_are_recognised() {
+    use std::net::IpAddr;
+    use stuffcloud_core::client_ip::{ProxyList, unlisted_proxy};
+    let none = ProxyList::default();
+    for peer in [
+        "172.17.0.2",
+        "172.18.0.3",
+        "10.88.0.5",
+        "10.0.3.10",
+        "127.0.0.1",
+        "::1",
+        "fd00::2",
+    ] {
+        assert!(
+            unlisted_proxy(peer.parse::<IpAddr>().unwrap(), &none),
+            "{peer}"
+        );
+    }
+    assert!(!unlisted_proxy("203.0.113.5".parse().unwrap(), &none));
+    let listed = ProxyList::parse("172.18.0.0/16").unwrap();
+    assert!(!unlisted_proxy("172.18.0.3".parse().unwrap(), &listed));
+}

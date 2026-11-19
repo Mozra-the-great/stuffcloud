@@ -104,6 +104,10 @@ pub enum ResetIssue {
     UnknownUser,
     /// The account is a service account, which has no password.
     ServiceAccount,
+    /// The account is an admin and the link was asked for through the API: reset links for
+    /// admin accounts come only from the operator's command line, so a stolen admin session
+    /// cannot take over another admin account (#147).
+    AdminAccount,
 }
 
 /// Reads an account and its password by login name or e-mail address.
@@ -344,8 +348,9 @@ impl Database {
         Ok(())
     }
 
-    /// Sets the password of an account and ends its sessions except `keep` (the session the
-    /// change was made from). Returns how many sessions ended.
+    /// Sets the password of an account, deletes its open reset token (a link issued before the
+    /// change must not undo it) and ends its sessions except `keep` (the session the change was
+    /// made from). Returns how many sessions ended.
     ///
     /// # Errors
     ///
@@ -363,6 +368,7 @@ impl Database {
             return Err(DbError::UnknownUser(user_id));
         }
         store_password(&tx, user_id, hash, now)?;
+        let _resets = tx.execute("DELETE FROM password_resets WHERE user_id = ?1", [user_id])?;
         let who = actor(user_id);
         audit(
             &tx,
@@ -488,7 +494,8 @@ impl Database {
     }
 
     /// Stores a password reset token for an account (replacing an older one). `actor` is the
-    /// admin who asked for it, `None` for the operator's command line.
+    /// admin who asked for it, `None` for the operator's command line; only the command line
+    /// may issue one for an admin account ([`ResetIssue::AdminAccount`]).
     ///
     /// # Errors
     ///
@@ -509,6 +516,9 @@ impl Database {
         let user = record.user;
         if user.kind != UserKind::Person {
             return Ok(ResetIssue::ServiceAccount);
+        }
+        if user.role == Role::Admin && actor_id.is_some() {
+            return Ok(ResetIssue::AdminAccount);
         }
         let _rows = tx.execute(
             "INSERT INTO password_resets (token_hash, user_id, created_by, created_at, expires_at)

@@ -6,18 +6,38 @@
 //!   guessing: one address gets 20 free failures, then waits that double up to 15 minutes.
 //! - **Per account** ([`ACCOUNT_RULE`]): failed logins for one login name or e-mail address,
 //!   counted by the normalised text that was typed (an unknown name is throttled exactly like a
-//!   known one, so the throttle tells nothing about which accounts exist). It slows down
-//!   guessing spread over many addresses. Its cost: an attacker with several addresses can keep
-//!   an account waiting. Two things bound that: the wait never exceeds 15 minutes and every
+//!   known one, so the throttle tells nothing about which accounts exist), and once the lookup
+//!   found an account also by its internal id ([`AccountKey::Id`]), so its login name and its
+//!   address share one count instead of having 10 free failures each. It slows down guessing
+//!   spread over many addresses. Its cost: an attacker with several addresses can keep an
+//!   account waiting. Two things bound that: the wait never exceeds 15 minutes and every
 //!   attempt after it is checked again (backoff, never a lockout), and a client address that
 //!   logged in to the account successfully within [`KNOWN_FOR_MS`] skips this rule (it still
-//!   has its own address rule). The keys are SHA-256 hashes of the typed text, so the table
-//!   holds no login names or addresses.
+//!   has its own address rule). The exemption is not granted when the address is probably that
+//!   of a reverse proxy nobody listed (`stuffcloud_core::client_ip::unlisted_proxy`): it would
+//!   then exempt every client behind the proxy (#146). The typed-text keys are SHA-256 hashes,
+//!   so the table holds no login names or addresses.
 //! - **Registrations per client address** ([`REGISTER_RULE`]): every registration attempt
 //!   counts; 5 are free, then waits from one minute up to an hour.
 //!
-//! Each table holds at most [`CAPACITY`] keys; when it is full, forgotten keys are dropped
-//! first and then the key with the oldest failure, so a flood of new keys cannot grow memory.
+//! **Attempts are reserved before they are checked** (#145). [`Throttles::reserve_login`]
+//! takes the attempt's place in the address and account counts under the same lock that reads
+//! them, so attempts that are still running count like failures ([`Rule::wait_in_flight`]): a
+//! key gets at most `free + 1` checks however many requests arrive at once. The
+//! [`Reservation`] is settled when the answer is known: a failure is booked, a success refunds
+//! the place (and forgets the account's failures), and an attempt that was never checked (the
+//! hashing queue was full) is refunded. A reservation that is dropped unsettled (an error, a
+//! cancelled request) counts as a failure.
+//!
+//! Each table holds at most [`CAPACITY`] keys. A full table makes room for a new key by
+//! dropping a sixteenth of itself at once ([`EVICTION_SHARE`]; the scan runs once per that many
+//! new keys, not on every one): keys whose window has passed first, then the fewest failures,
+//! then the oldest. A key with a running attempt is never dropped, and dropping by the fewest
+//! failures means a flood of fresh keys (one failure each) cannot push out the counter of an
+//! account under attack. [`Throttles::sweep`] removes forgotten keys periodically. Known
+//! addresses are capped per account ([`KNOWN_PER_ACCOUNT`]; the account's own oldest one makes
+//! way); when the table is full a new address simply stays unknown, so logging in elsewhere
+//! can never remove another account's exemption.
 
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -60,10 +80,50 @@ pub const KNOWN_FOR_MS: i64 = 30 * 24 * HOUR_MS;
 /// Most keys per table.
 pub const CAPACITY: usize = 50_000;
 
-/// The throttle key of an account name: SHA-256 of the normalised text.
+/// Most known client addresses per account.
+pub const KNOWN_PER_ACCOUNT: usize = 16;
+
+/// A full table drops this share of its keys at once (one sixteenth).
+pub const EVICTION_SHARE: usize = 16;
+
+/// The key of the per-account rule.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AccountKey {
+    /// The SHA-256 of the normalised typed text (a login name or an e-mail address, of an
+    /// account or not).
+    Typed([u8; 32]),
+    /// The internal id of an existing account.
+    Id(i64),
+}
+
+/// The throttle key of a typed account name: SHA-256 of the normalised text.
 #[must_use]
-pub fn account_key(typed: &str) -> [u8; 32] {
-    Sha256::digest(normalize_identifier(typed).as_bytes()).into()
+pub fn account_key(typed: &str) -> AccountKey {
+    AccountKey::Typed(Sha256::digest(normalize_identifier(typed).as_bytes()).into())
+}
+
+/// The throttle key of an existing account.
+#[must_use]
+pub const fn id_key(user_id: i64) -> AccountKey {
+    AccountKey::Id(user_id)
+}
+
+/// What one key has done: its failures and the attempts being checked right now.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct Entry {
+    failures: Failures,
+    in_flight: u32,
+}
+
+/// How an attempt ended, for one key.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Outcome {
+    /// It failed: one more failure.
+    Failed,
+    /// It was not checked or does not count: nothing changes.
+    Refunded,
+    /// It succeeded: the key's failures are forgotten.
+    Succeeded,
 }
 
 /// One bounded table of failures.
@@ -71,7 +131,7 @@ pub fn account_key(typed: &str) -> [u8; 32] {
 struct Table<K> {
     rule: Rule,
     capacity: usize,
-    entries: Mutex<HashMap<K, Failures>>,
+    entries: Mutex<HashMap<K, Entry>>,
 }
 
 impl<K: Eq + Hash + Copy> Table<K> {
@@ -83,44 +143,174 @@ impl<K: Eq + Hash + Copy> Table<K> {
         }
     }
 
-    fn wait(&self, key: K, now: i64) -> Option<i64> {
-        let entries = self.entries.lock().unwrap_or_else(PoisonError::into_inner);
-        entries
-            .get(&key)
-            .and_then(|failures| self.rule.wait(*failures, now))
+    fn lock(&self) -> std::sync::MutexGuard<'_, HashMap<K, Entry>> {
+        self.entries.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    fn fail(&self, key: K, now: i64) {
-        let mut entries = self.entries.lock().unwrap_or_else(PoisonError::into_inner);
-        if !entries.contains_key(&key) && entries.len() >= self.capacity {
-            let rule = self.rule;
-            entries.retain(|_key, failures| !rule.is_stale(*failures, now));
-            if entries.len() >= self.capacity
-                && let Some(oldest) = entries
-                    .iter()
-                    .min_by_key(|(_key, failures)| failures.last_at)
-                    .map(|(key, _failures)| *key)
-            {
-                let _dropped = entries.remove(&oldest);
-            }
+    /// Makes room for one more key in a full table (see the module documentation); `false`
+    /// when every key has an attempt running.
+    fn make_room(&self, entries: &mut HashMap<K, Entry>, now: i64) -> bool {
+        if entries.len() < self.capacity {
+            return true;
         }
-        let current = entries.get(&key).copied().unwrap_or_default();
-        let _previous = entries.insert(key, self.rule.fail(current, now));
+        let rule = self.rule;
+        let mut candidates: Vec<((bool, u32, i64), K)> = entries
+            .iter()
+            .filter(|(_key, entry)| entry.in_flight == 0)
+            .map(|(key, entry)| {
+                let failures = entry.failures;
+                (
+                    (
+                        !rule.is_stale(failures, now),
+                        failures.count,
+                        failures.last_at,
+                    ),
+                    *key,
+                )
+            })
+            .collect();
+        let share = (self.capacity / EVICTION_SHARE)
+            .max(1)
+            .min(candidates.len());
+        let Some(last) = share.checked_sub(1) else {
+            return false;
+        };
+        let _partitioned = candidates.select_nth_unstable_by_key(last, |(rank, _key)| *rank);
+        for (_rank, key) in candidates.iter().take(share) {
+            let _dropped = entries.remove(key);
+        }
+        true
     }
 
-    fn forget(&self, key: K) {
-        let _dropped = self
-            .entries
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .remove(&key);
+    /// Takes a place for an attempt of `key` at `now`, unless it has to wait: then the wait.
+    fn reserve(&self, key: K, now: i64) -> Result<(), i64> {
+        let mut entries = self.lock();
+        let entry = entries.get(&key).copied().unwrap_or_default();
+        if let Some(wait) = self
+            .rule
+            .wait_in_flight(entry.failures, entry.in_flight, now)
+        {
+            return Err(wait);
+        }
+        if !entries.contains_key(&key) && !self.make_room(&mut entries, now) {
+            return Err(self.rule.base_ms);
+        }
+        let _previous = entries.insert(
+            key,
+            Entry {
+                in_flight: entry.in_flight.saturating_add(1),
+                ..entry
+            },
+        );
+        Ok(())
+    }
+
+    /// Ends an attempt of `key` (`reserved`: whether it took a place) with `outcome` at `now`.
+    fn settle(&self, key: K, reserved: bool, outcome: Outcome, now: i64) {
+        let mut entries = self.lock();
+        let mut entry = entries.get(&key).copied().unwrap_or_default();
+        if reserved {
+            entry.in_flight = entry.in_flight.saturating_sub(1);
+        }
+        entry.failures = match outcome {
+            Outcome::Failed => self.rule.fail(entry.failures, now),
+            Outcome::Refunded => entry.failures,
+            Outcome::Succeeded => Failures::default(),
+        };
+        if entry == Entry::default() {
+            let _dropped = entries.remove(&key);
+        } else if entries.contains_key(&key) || self.make_room(&mut entries, now) {
+            let _previous = entries.insert(key, entry);
+        }
+    }
+
+    /// Counts an attempt of `key` at `now` as a failure right away, unless it has to wait:
+    /// then the wait (and nothing is counted).
+    fn attempt(&self, key: K, now: i64) -> Option<i64> {
+        let mut entries = self.lock();
+        let entry = entries.get(&key).copied().unwrap_or_default();
+        if let Some(wait) = self
+            .rule
+            .wait_in_flight(entry.failures, entry.in_flight, now)
+        {
+            return Some(wait);
+        }
+        if !entries.contains_key(&key) && !self.make_room(&mut entries, now) {
+            return Some(self.rule.base_ms);
+        }
+        let _previous = entries.insert(
+            key,
+            Entry {
+                failures: self.rule.fail(entry.failures, now),
+                ..entry
+            },
+        );
+        None
+    }
+
+    /// Drops the keys whose window has passed and that have nothing running; returns how many.
+    fn sweep(&self, now: i64) -> usize {
+        let mut entries = self.lock();
+        let before = entries.len();
+        let rule = self.rule;
+        entries.retain(|_key, entry| entry.in_flight > 0 || !rule.is_stale(entry.failures, now));
+        before.saturating_sub(entries.len())
     }
 
     fn len(&self) -> usize {
-        self.entries
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner)
-            .len()
+        self.lock().len()
+    }
+}
+
+/// The client addresses that logged in to each account, and when.
+#[derive(Debug, Default)]
+struct KnownTable {
+    accounts: HashMap<AccountKey, Vec<(Bucket, i64)>>,
+    pairs: usize,
+}
+
+impl KnownTable {
+    fn is_known(&self, account: AccountKey, client: Bucket, now: i64) -> bool {
+        self.accounts.get(&account).is_some_and(|addresses| {
+            addresses
+                .iter()
+                .any(|(bucket, at)| *bucket == client && now.saturating_sub(*at) < KNOWN_FOR_MS)
+        })
+    }
+
+    fn record(&mut self, account: AccountKey, client: Bucket, now: i64, capacity: usize) {
+        if let Some(addresses) = self.accounts.get_mut(&account) {
+            if let Some(slot) = addresses.iter_mut().find(|(bucket, _at)| *bucket == client) {
+                slot.1 = now;
+                return;
+            }
+            if addresses.len() >= KNOWN_PER_ACCOUNT {
+                if let Some(oldest) = addresses.iter_mut().min_by_key(|(_bucket, at)| *at) {
+                    *oldest = (client, now);
+                }
+                return;
+            }
+        }
+        if self.pairs >= capacity {
+            return;
+        }
+        self.accounts
+            .entry(account)
+            .or_default()
+            .push((client, now));
+        self.pairs = self.pairs.saturating_add(1);
+    }
+
+    fn sweep(&mut self, now: i64) -> usize {
+        let before = self.pairs;
+        let mut pairs = 0_usize;
+        self.accounts.retain(|_account, addresses| {
+            addresses.retain(|(_bucket, at)| now.saturating_sub(*at) < KNOWN_FOR_MS);
+            pairs = pairs.saturating_add(addresses.len());
+            !addresses.is_empty()
+        });
+        self.pairs = pairs;
+        before.saturating_sub(pairs)
     }
 }
 
@@ -128,15 +318,98 @@ impl<K: Eq + Hash + Copy> Table<K> {
 #[derive(Debug)]
 pub struct Throttles {
     clients: Table<Bucket>,
-    accounts: Table<[u8; 32]>,
+    accounts: Table<AccountKey>,
     registrations: Table<Bucket>,
-    known: Mutex<HashMap<([u8; 32], Bucket), i64>>,
+    known: Mutex<KnownTable>,
     capacity: usize,
 }
 
 impl Default for Throttles {
     fn default() -> Self {
         Self::with_capacity(CAPACITY)
+    }
+}
+
+/// The places one attempt holds in the throttles until its answer is known; see the module
+/// documentation. Dropping it unsettled books a failure.
+#[derive(Debug)]
+#[must_use = "an attempt that is never settled counts as a failure when it is dropped"]
+pub struct Reservation<'a> {
+    throttles: &'a Throttles,
+    client: Bucket,
+    /// The account keys, and whether each took a place (a known address skips the rule).
+    accounts: Vec<(AccountKey, bool)>,
+    exemptions: bool,
+    at: i64,
+    settled: bool,
+}
+
+impl Reservation<'_> {
+    /// Adds an account key to the attempt. A client address that logged in to the account
+    /// within [`KNOWN_FOR_MS`] skips its rule (when exemptions are allowed for this attempt),
+    /// but a failure still counts on it.
+    ///
+    /// # Errors
+    ///
+    /// The wait in milliseconds when the account rule refuses the attempt; the key is then not
+    /// part of it.
+    pub fn add_account(&mut self, account: AccountKey, now: i64) -> Result<(), i64> {
+        let exempt = self.exemptions && self.throttles.is_known(account, self.client, now);
+        if !exempt {
+            self.throttles.accounts.reserve(account, now)?;
+        }
+        self.accounts.push((account, !exempt));
+        Ok(())
+    }
+
+    /// The attempt failed: one failure for the address and every account key.
+    pub fn failed(mut self, now: i64) {
+        self.settle(Outcome::Failed, Outcome::Failed, now);
+    }
+
+    /// The attempt was not checked, or the check passed without being a login (a valid reset
+    /// token, a correct current password): nothing is counted.
+    pub fn refund(mut self) {
+        let at = self.at;
+        self.settle(Outcome::Refunded, Outcome::Refunded, at);
+    }
+
+    /// The login succeeded: the account's failures are forgotten and the client address becomes
+    /// known for it (when exemptions are allowed). The address's own failures stay: logging in to
+    /// one's own account must not reset the count of guesses at others.
+    pub fn succeeded(mut self, now: i64) {
+        self.settle(Outcome::Refunded, Outcome::Succeeded, now);
+        if self.exemptions {
+            let mut known = self
+                .throttles
+                .known
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+            for (account, _reserved) in &self.accounts {
+                known.record(*account, self.client, now, self.throttles.capacity);
+            }
+        }
+    }
+
+    fn settle(&mut self, client: Outcome, accounts: Outcome, now: i64) {
+        if std::mem::replace(&mut self.settled, true) {
+            return;
+        }
+        self.throttles
+            .clients
+            .settle(self.client, true, client, now);
+        for (account, reserved) in &self.accounts {
+            self.throttles
+                .accounts
+                .settle(*account, *reserved, accounts, now);
+        }
+    }
+}
+
+impl Drop for Reservation<'_> {
+    fn drop(&mut self) {
+        let at = self.at;
+        self.settle(Outcome::Failed, Outcome::Failed, at);
     }
 }
 
@@ -148,77 +421,77 @@ impl Throttles {
             clients: Table::new(CLIENT_RULE, capacity),
             accounts: Table::new(ACCOUNT_RULE, capacity),
             registrations: Table::new(REGISTER_RULE, capacity),
-            known: Mutex::new(HashMap::new()),
+            known: Mutex::new(KnownTable::default()),
             capacity,
         }
     }
 
-    fn is_known(&self, account: [u8; 32], client: Bucket, now: i64) -> bool {
+    fn is_known(&self, account: AccountKey, client: Bucket, now: i64) -> bool {
         self.known
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
-            .get(&(account, client))
-            .is_some_and(|at| now.saturating_sub(*at) < KNOWN_FOR_MS)
+            .is_known(account, client, now)
     }
 
-    /// How long a login attempt for `account` from `client` has to wait; `None` when it may be
-    /// checked.
-    #[must_use]
-    pub fn login_wait(&self, client: Bucket, account: [u8; 32], now: i64) -> Option<i64> {
-        let by_client = self.clients.wait(client, now);
-        let by_account = if self.is_known(account, client, now) {
-            None
-        } else {
-            self.accounts.wait(account, now)
-        };
-        by_client.max(by_account)
-    }
-
-    /// Records a failed login (or a wrong current password).
-    pub fn login_failed(&self, client: Bucket, account: [u8; 32], now: i64) {
-        self.clients.fail(client, now);
-        self.accounts.fail(account, now);
-    }
-
-    /// Records a successful login: the account's failures are forgotten and the client address
-    /// becomes known for it. The address's own failures stay (logging in to one's own account
-    /// must not reset the count of guesses at others).
-    pub fn login_succeeded(&self, client: Bucket, account: [u8; 32], now: i64) {
-        self.accounts.forget(account);
-        let mut known = self.known.lock().unwrap_or_else(PoisonError::into_inner);
-        if !known.contains_key(&(account, client)) && known.len() >= self.capacity {
-            known.retain(|_pair, at| now.saturating_sub(*at) < KNOWN_FOR_MS);
-            if known.len() >= self.capacity
-                && let Some(oldest) = known
-                    .iter()
-                    .min_by_key(|(_pair, at)| **at)
-                    .map(|(pair, _at)| *pair)
-            {
-                let _dropped = known.remove(&oldest);
-            }
+    /// Reserves a login attempt (or a password change) for `account` from `client` at `now`.
+    /// `exemptions`: whether a known address may skip the account rule (not behind an unlisted
+    /// proxy).
+    ///
+    /// # Errors
+    ///
+    /// The wait in milliseconds when a rule refuses the attempt; nothing is counted then.
+    pub fn reserve_login(
+        &self,
+        client: Bucket,
+        account: AccountKey,
+        exemptions: bool,
+        now: i64,
+    ) -> Result<Reservation<'_>, i64> {
+        let mut reservation = self.reserve_client(client, now)?;
+        reservation.exemptions = exemptions;
+        if let Err(wait) = reservation.add_account(account, now) {
+            reservation.refund();
+            return Err(wait);
         }
-        let _previous = known.insert((account, client), now);
+        Ok(reservation)
     }
 
-    /// How long an attempt from `client` has to wait by the address rule alone.
-    #[must_use]
-    pub fn client_wait(&self, client: Bucket, now: i64) -> Option<i64> {
-        self.clients.wait(client, now)
-    }
-
-    /// Records a failure that counts against the address only (a wrong reset token).
-    pub fn client_failed(&self, client: Bucket, now: i64) {
-        self.clients.fail(client, now);
+    /// Reserves an attempt that counts against the address only (a reset token).
+    ///
+    /// # Errors
+    ///
+    /// The wait in milliseconds when the address rule refuses the attempt.
+    pub fn reserve_client(&self, client: Bucket, now: i64) -> Result<Reservation<'_>, i64> {
+        self.clients.reserve(client, now)?;
+        Ok(Reservation {
+            throttles: self,
+            client,
+            accounts: Vec::with_capacity(2),
+            exemptions: false,
+            at: now,
+            settled: false,
+        })
     }
 
     /// Counts a registration attempt from `client`, unless it has to wait: then the wait.
     #[must_use]
     pub fn register_attempt(&self, client: Bucket, now: i64) -> Option<i64> {
-        let wait = self.registrations.wait(client, now);
-        if wait.is_none() {
-            self.registrations.fail(client, now);
-        }
-        wait
+        self.registrations.attempt(client, now)
+    }
+
+    /// Drops every key whose window has passed and every known address older than
+    /// [`KNOWN_FOR_MS`]; returns how many entries went. Runs with the periodic purge.
+    pub fn sweep(&self, now: i64) -> usize {
+        let known = self
+            .known
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .sweep(now);
+        self.clients
+            .sweep(now)
+            .saturating_add(self.accounts.sweep(now))
+            .saturating_add(self.registrations.sweep(now))
+            .saturating_add(known)
     }
 
     /// The number of keys in the tables (clients, accounts, registrations, known pairs).
@@ -231,267 +504,11 @@ impl Throttles {
             self.known
                 .lock()
                 .unwrap_or_else(PoisonError::into_inner)
-                .len(),
+                .pairs,
         ]
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use std::net::IpAddr;
-
-    use super::*;
-
-    fn client(text: &str) -> Bucket {
-        Bucket::of(text.parse::<IpAddr>().unwrap())
-    }
-
-    #[test]
-    fn the_rules_have_their_documented_values() {
-        assert_eq!(
-            CLIENT_RULE,
-            Rule {
-                free: 20,
-                base_ms: 1000,
-                max_ms: 900_000,
-                window_ms: 3_600_000,
-            }
-        );
-        assert_eq!(
-            ACCOUNT_RULE,
-            Rule {
-                free: 10,
-                base_ms: 1000,
-                max_ms: 900_000,
-                window_ms: 3_600_000,
-            }
-        );
-        assert_eq!(
-            REGISTER_RULE,
-            Rule {
-                free: 5,
-                base_ms: 60_000,
-                max_ms: 3_600_000,
-                window_ms: 21_600_000,
-            }
-        );
-        assert_eq!(KNOWN_FOR_MS, 2_592_000_000);
-    }
-
-    #[test]
-    fn a_failure_of_a_key_in_a_full_table_drops_nothing() {
-        let throttles = Throttles::with_capacity(2);
-        let (a, b) = (client("192.0.2.1"), client("192.0.2.2"));
-        throttles.client_failed(a, 0);
-        throttles.client_failed(b, 10);
-        throttles.client_failed(a, 20);
-        let entries = throttles.clients.entries.lock().unwrap();
-        assert_eq!(
-            entries.get(&a),
-            Some(&Failures {
-                count: 2,
-                last_at: 20
-            })
-        );
-        assert_eq!(
-            entries.get(&b),
-            Some(&Failures {
-                count: 1,
-                last_at: 10
-            })
-        );
-    }
-
-    #[test]
-    fn a_repeated_login_in_a_full_known_table_drops_nothing() {
-        let throttles = Throttles::with_capacity(2);
-        let key = account_key("alice");
-        let (a, b) = (client("192.0.2.1"), client("192.0.2.2"));
-        throttles.login_succeeded(a, key, 10);
-        throttles.login_succeeded(b, key, 0);
-        throttles.login_succeeded(a, key, 20);
-        assert_eq!(throttles.sizes()[3], 2);
-        assert!(throttles.is_known(key, a, 20));
-        assert!(throttles.is_known(key, b, 20));
-    }
-
-    #[test]
-    fn a_known_address_expires_exactly_after_thirty_days() {
-        let throttles = Throttles::with_capacity(2);
-        let key = account_key("alice");
-        throttles.login_succeeded(client("192.0.2.1"), key, 0);
-        throttles.login_succeeded(client("192.0.2.2"), key, 0);
-        // Both are exactly 30 days old: a new pair in the full table purges both.
-        throttles.login_succeeded(client("192.0.2.3"), key, KNOWN_FOR_MS);
-        assert_eq!(throttles.sizes()[3], 1);
-        assert!(throttles.is_known(key, client("192.0.2.3"), KNOWN_FOR_MS));
-    }
-
-    #[test]
-    fn account_keys_ignore_case_and_whitespace() {
-        assert_eq!(account_key(" Alice "), account_key("alice"));
-        assert_ne!(account_key("alice"), account_key("bob"));
-    }
-
-    #[test]
-    fn the_address_rule_throttles_after_twenty_failures() {
-        let throttles = Throttles::default();
-        let a = client("192.0.2.1");
-        for n in 0..20 {
-            assert_eq!(
-                throttles.login_wait(a, account_key(&format!("u{n}")), 0),
-                None
-            );
-            throttles.login_failed(a, account_key(&format!("u{n}")), 0);
-        }
-        assert_eq!(throttles.login_wait(a, account_key("fresh"), 0), None);
-        throttles.login_failed(a, account_key("fresh"), 0);
-        assert_eq!(throttles.login_wait(a, account_key("other"), 0), Some(1000));
-        assert_eq!(throttles.client_wait(a, 999), Some(1));
-        assert_eq!(throttles.client_wait(a, 1000), None);
-        // Another address is not affected.
-        assert_eq!(
-            throttles.login_wait(client("192.0.2.2"), account_key("other"), 0),
-            None
-        );
-        // The same /64 is the same client.
-        assert_eq!(
-            throttles.client_wait(client("2001:db8::1"), 0),
-            throttles.client_wait(client("2001:db8::2"), 0)
-        );
-    }
-
-    #[test]
-    fn the_account_rule_throttles_after_ten_failures_from_anywhere() {
-        let throttles = Throttles::default();
-        let key = account_key("alice");
-        for n in 0..10 {
-            let from = client(&format!("198.51.100.{n}"));
-            assert_eq!(throttles.login_wait(from, key, 0), None);
-            throttles.login_failed(from, key, 0);
-        }
-        let attacker = client("198.51.100.200");
-        assert_eq!(throttles.login_wait(attacker, key, 0), None);
-        throttles.login_failed(attacker, key, 0);
-        assert_eq!(
-            throttles.login_wait(client("203.0.113.1"), key, 10),
-            Some(990)
-        );
-        // Other accounts are not affected.
-        assert_eq!(throttles.login_wait(attacker, account_key("bob"), 10), None);
-    }
-
-    #[test]
-    fn an_address_that_logged_in_before_skips_the_account_rule() {
-        let throttles = Throttles::default();
-        let key = account_key("alice");
-        let home = client("192.0.2.7");
-        throttles.login_succeeded(home, key, 0);
-        for n in 0..12 {
-            throttles.login_failed(client(&format!("198.51.100.{n}")), key, 100);
-        }
-        assert!(
-            throttles
-                .login_wait(client("203.0.113.9"), key, 100)
-                .is_some()
-        );
-        assert_eq!(throttles.login_wait(home, key, 100), None);
-        // The exemption ends after 30 days.
-        assert!(throttles.login_wait(home, key, KNOWN_FOR_MS - 1).is_none());
-        for n in 0..11 {
-            throttles.login_failed(client(&format!("198.51.100.{n}")), key, KNOWN_FOR_MS);
-        }
-        assert!(throttles.login_wait(home, key, KNOWN_FOR_MS).is_some());
-    }
-
-    #[test]
-    fn a_success_forgets_the_account_but_not_the_address() {
-        let throttles = Throttles::default();
-        let key = account_key("alice");
-        let a = client("192.0.2.1");
-        for _ in 0..21 {
-            throttles.login_failed(a, key, 0);
-        }
-        throttles.login_succeeded(a, key, 0);
-        assert_eq!(throttles.sizes()[1], 0);
-        assert_eq!(throttles.login_wait(a, key, 0), Some(1000));
-    }
-
-    #[test]
-    fn reset_token_failures_count_against_the_address() {
-        let throttles = Throttles::default();
-        let a = client("192.0.2.1");
-        for _ in 0..21 {
-            throttles.client_failed(a, 0);
-        }
-        assert_eq!(throttles.client_wait(a, 0), Some(1000));
-        assert_eq!(throttles.sizes(), [1, 0, 0, 0]);
-    }
-
-    #[test]
-    fn registrations_are_counted_per_address() {
-        let throttles = Throttles::default();
-        let a = client("192.0.2.1");
-        for _ in 0..5 {
-            assert_eq!(throttles.register_attempt(a, 0), None);
-        }
-        assert_eq!(throttles.register_attempt(a, 0), None);
-        assert_eq!(throttles.register_attempt(a, 0), Some(MINUTE_MS));
-        // A refused attempt does not count.
-        assert_eq!(throttles.register_attempt(a, MINUTE_MS - 1), Some(1));
-        assert_eq!(throttles.register_attempt(a, MINUTE_MS), None);
-        assert_eq!(
-            throttles.register_attempt(a, MINUTE_MS),
-            Some(2 * MINUTE_MS)
-        );
-        assert_eq!(throttles.register_attempt(client("192.0.2.2"), 0), None);
-    }
-
-    #[test]
-    fn tables_are_bounded() {
-        let throttles = Throttles::with_capacity(3);
-        for n in 0..5_i64 {
-            throttles.login_failed(
-                client(&format!("192.0.2.{n}")),
-                account_key(&n.to_string()),
-                n,
-            );
-            throttles.login_succeeded(
-                client(&format!("192.0.2.{n}")),
-                account_key(&n.to_string()),
-                n,
-            );
-        }
-        assert_eq!(throttles.sizes(), [3, 0, 0, 3]);
-        // The oldest were dropped: the newest addresses are still counted.
-        let table = &throttles.clients;
-        let entries = table.entries.lock().unwrap();
-        assert!(entries.contains_key(&client("192.0.2.4")));
-        assert!(!entries.contains_key(&client("192.0.2.0")));
-        drop(entries);
-        let known = throttles.known.lock().unwrap();
-        assert!(known.contains_key(&(account_key("4"), client("192.0.2.4"))));
-        assert!(!known.contains_key(&(account_key("0"), client("192.0.2.0"))));
-        drop(known);
-        // Stale keys go first, before anything recent is dropped.
-        let throttles = Throttles::with_capacity(2);
-        throttles.client_failed(client("192.0.2.1"), 0);
-        throttles.client_failed(client("192.0.2.2"), HOUR_MS);
-        throttles.client_failed(client("192.0.2.3"), HOUR_MS);
-        let entries = throttles.clients.entries.lock().unwrap();
-        assert!(entries.contains_key(&client("192.0.2.2")));
-        assert!(entries.contains_key(&client("192.0.2.3")));
-        drop(entries);
-        // An existing key is updated without dropping anything.
-        throttles.client_failed(client("192.0.2.2"), HOUR_MS);
-        assert_eq!(throttles.sizes()[0], 2);
-        let known = Throttles::with_capacity(2);
-        known.login_succeeded(client("192.0.2.1"), account_key("a"), 0);
-        known.login_succeeded(client("192.0.2.2"), account_key("a"), KNOWN_FOR_MS);
-        known.login_succeeded(client("192.0.2.3"), account_key("a"), KNOWN_FOR_MS);
-        assert!(known.is_known(account_key("a"), client("192.0.2.2"), KNOWN_FOR_MS));
-        assert!(known.is_known(account_key("a"), client("192.0.2.3"), KNOWN_FOR_MS));
-        known.login_succeeded(client("192.0.2.3"), account_key("a"), KNOWN_FOR_MS + 1);
-        assert_eq!(known.sizes()[3], 2);
-    }
-}
+#[path = "throttle_tests.rs"]
+mod tests;

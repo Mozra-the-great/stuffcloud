@@ -384,6 +384,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `docs/TEMPLATE-SETUP.md`: secrets, runner choice, rulesets and costs of a new repo.
 
 ### Changed
+- CI: `claude-review` is now a tiered Claude review. Agents with pinned models in
+  `.claude/agents/review-*.md`: haiku triage, sonnet CLAUDE.md and documentation
+  checks, two opus bug hunters, an opus security reviewer after Anthropic's
+  `/security-review`, and an opus validator per finding; Sonnet only orchestrates
+  and posts. Replaces the code-review plugin run (#155).
 - Writes to the settings groups need the permission `admin:settings:write` (an admin session or
   a token with that scope owned by an admin) instead of the interim admin-session check; `403`
   is now documented for them and the `detail` of `401` and `403` names the permission. Reads of

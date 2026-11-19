@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   are purged every 10 minutes. `STUFFCLOUD_BOOTSTRAP_ADMIN_*` now creates the first admin. New
   problem types `invalid-credentials`, `signup-closed`, `limit-reached`, `too-many-requests`,
   field error code `taken`, fuzz targets `account` and `forwarded_for`, migration
-  `0003_accounts`; the `argon2` crate (MIT OR Apache-2.0) is the only new dependency. (#142)
+  `0003_accounts`; the `argon2` crate (MIT OR Apache-2.0) is the only new dependency. CodeQL: two query excludes with their reasons in `.github/codeql/codeql-config.yml` (`rust/hard-coded-cryptographic-value`: all hits are fixed test passwords; `rust/weak-sensitive-data-hashing`: SHA-256 is only the lookup key into the public offline breached-password list). `Writable` gets an associated `RULES` list (default: none) and a default `validate`, so a resource without rules (`signup`) needs no empty override. (#142)
 - PDF merge, split and page tools (T-10, #15): three client-side tools (`pdf-merge`, `pdf-split`,
   `pdf-pages`) on pdf-lib 1.17.1 (MIT) for editing and pdf.js 6.5.438 (Apache-2.0) for page
   pictures, both in workers (two pools of two). Merge orders any number of files with

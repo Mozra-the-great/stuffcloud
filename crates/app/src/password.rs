@@ -552,6 +552,57 @@ mod tests {
     }
 
     #[test]
+    fn the_dummy_check_never_matches_not_even_its_own_password() {
+        let passwords = cheap();
+        let hash = passwords.hash_now("the one and only passphrase").unwrap();
+        // The same password and a valid hash: a real check matches, a dummy check does not.
+        let real = verify_blocking(
+            &passwords.params,
+            "the one and only passphrase",
+            &hash,
+            true,
+        )
+        .unwrap();
+        assert!(real.matches);
+        let dummy = verify_blocking(
+            &passwords.params,
+            "the one and only passphrase",
+            &hash,
+            false,
+        )
+        .unwrap();
+        assert_eq!(
+            dummy,
+            Verified {
+                matches: false,
+                rehash: None
+            }
+        );
+    }
+
+    #[test]
+    fn the_calibration_is_the_time_of_one_hash() {
+        // A hash of 32 MiB with three passes takes far longer than a millisecond, in every
+        // build profile; 0 or 1 would mean the measurement is thrown away.
+        let measured = Passwords::new(
+            Argon2Settings {
+                memory_kib: 32_768,
+                iterations: 3,
+                parallelism: 1,
+            },
+            PasswordPolicy::default(),
+            Blocklist::default(),
+            1,
+        )
+        .unwrap();
+        assert!(
+            measured.calibration_ms() > 1,
+            "{}",
+            measured.calibration_ms()
+        );
+        assert!(measured.calibration_ms() < 60_000);
+    }
+    #[test]
     fn policy_breach_and_calibration() {
         let passwords = cheap();
         assert_eq!(passwords.policy(), &PasswordPolicy::default());

@@ -376,6 +376,22 @@ mod tests {
         )
     }
 
+    /// The error `start` refuses with. A start that does not refuse would serve until the
+    /// process ends; the thread and the time limit turn that into a failed test (and a
+    /// caught mutant) instead of a hung test run.
+    fn refusal(config: &Config) -> String {
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let config = config.clone();
+        let _detached = std::thread::spawn(move || {
+            let _sent = sender.send(start(&config));
+        });
+        match receiver.recv_timeout(Duration::from_secs(10)) {
+            Ok(Err(error)) => error,
+            Ok(Ok(())) => panic!("the app started and stopped instead of refusing"),
+            Err(error) => panic!("the app did not refuse to start: {error}"),
+        }
+    }
+
     #[test]
     fn usage_errors() {
         for args in [vec!["nope"], vec!["serve", "extra"], vec!["openapi", "x"]] {
@@ -521,7 +537,7 @@ mod tests {
                 dir.path().join("missing.json").to_str().unwrap(),
             );
         let config = config::from_env(&env).unwrap();
-        let error = start(&config).unwrap_err();
+        let error = refusal(&config);
         assert!(
             error.starts_with("cannot read the bootstrap configuration"),
             "{error}"
@@ -534,7 +550,7 @@ mod tests {
             ..config
         };
         std::fs::create_dir(config.database_path()).unwrap();
-        let error = start(&config).unwrap_err();
+        let error = refusal(&config);
         assert!(error.starts_with("cannot open the database"), "{error}");
     }
 
@@ -556,7 +572,7 @@ mod tests {
             );
         let config = config::from_env(&env).unwrap();
         assert_eq!(
-            start(&config).unwrap_err(),
+            refusal(&config),
             "STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD: this password is on the list of breached or common passwords; choose another"
         );
         // Nothing was created.
@@ -569,7 +585,7 @@ mod tests {
             },
             ..config
         };
-        let error = start(&missing).unwrap_err();
+        let error = refusal(&missing);
         assert!(
             error.starts_with("cannot read STUFFCLOUD_PASSWORD_BLOCKLIST_FILE "),
             "{error}"
@@ -662,7 +678,7 @@ mod tests {
                 &taken.local_addr().unwrap().to_string(),
             );
         let config = config::from_env(&env).unwrap();
-        let error = start(&config).unwrap_err();
+        let error = refusal(&config);
         assert!(error.starts_with("cannot listen on 127.0.0.1:"), "{error}");
     }
 }

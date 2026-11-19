@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::body::Writable;
+use crate::body::{Rule, Writable};
 use crate::field::{FieldError, FieldErrorCode, JsonPointer};
 use crate::subdomain::Subdomain;
 
@@ -43,12 +43,9 @@ impl ReservedNames {
             .filter_map(|name| Subdomain::parse(name).ok())
             .collect()
     }
-}
 
-impl Writable for ReservedNames {
-    const FIELDS: &'static [&'static str] = &["names"];
-
-    fn validate(&self) -> Vec<FieldError> {
+    /// The one rule: at most [`MAX_RESERVED_NAMES`] names, each a valid site name, none twice.
+    fn check_names(&self) -> Vec<FieldError> {
         let field = JsonPointer::root().key("names");
         let mut errors = Vec::new();
         if self.names.len() > MAX_RESERVED_NAMES {
@@ -81,6 +78,11 @@ impl Writable for ReservedNames {
         }
         errors
     }
+}
+
+impl Writable for ReservedNames {
+    const FIELDS: &'static [&'static str] = &["names"];
+    const RULES: &'static [Rule<Self>] = &[Self::check_names];
 }
 
 /// Who may create a local account (SPEC 6, ADR 0005 decision 5).
@@ -127,11 +129,7 @@ impl Signup {
 
 impl Writable for Signup {
     const FIELDS: &'static [&'static str] = &["mode"];
-
-    fn validate(&self) -> Vec<FieldError> {
-        // Every value of the enum is valid; serde refuses anything else.
-        Vec::new()
-    }
+    // No rules: every value of the enum is valid, and serde refuses anything else.
 }
 
 #[cfg(test)]

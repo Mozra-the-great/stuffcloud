@@ -27,14 +27,24 @@ pub const META_FIELD: &str = "meta";
 pub const MAX_FIELD_ERRORS: usize = 100;
 
 /// A resource shape that clients write in full with `PUT`.
-pub trait Writable: Serialize + DeserializeOwned {
+pub trait Writable: Serialize + DeserializeOwned + 'static {
     /// Names of the writable fields. All of them are required.
     const FIELDS: &'static [&'static str];
 
-    /// Checks the rules of the resource and returns every violation, with pointers
-    /// relative to the document root. Empty when the value is valid.
-    fn validate(&self) -> Vec<FieldError>;
+    /// The rules of the resource beyond its shape; each returns every violation it finds,
+    /// with pointers relative to the document root. A resource that has no invalid value
+    /// (an enum, whose every variant deserialises into a valid document) has none.
+    const RULES: &'static [Rule<Self>] = &[];
+
+    /// Runs every rule and returns every violation, in the order of the rules. Empty when
+    /// the value is valid.
+    fn validate(&self) -> Vec<FieldError> {
+        Self::RULES.iter().flat_map(|rule| rule(self)).collect()
+    }
 }
+
+/// A rule of a [`Writable`] resource: every violation it finds in the value.
+pub type Rule<T> = fn(&T) -> Vec<FieldError>;
 
 /// Why a request body is not a valid resource document.
 #[derive(Debug, Clone, PartialEq, Eq)]

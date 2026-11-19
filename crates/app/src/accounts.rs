@@ -689,6 +689,14 @@ mod tests {
     use super::*;
 
     #[test]
+    fn the_documented_durations_hold() {
+        // A reset link is valid for 60 minutes; the failed-login audit row is written once a
+        // minute per account.
+        assert_eq!(RESET_TTL_MS, 3_600_000);
+        assert_eq!(LOGIN_AUDIT_INTERVAL.as_secs(), 60);
+    }
+
+    #[test]
     fn registration_follows_the_sign_up_mode() {
         let state = crate::state::tests::state();
         assert!(admit_registration(&state, SignupMode::Open, false, "POST").is_ok());

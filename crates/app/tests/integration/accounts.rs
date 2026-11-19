@@ -20,7 +20,7 @@ use axum::http::{Method, Request};
 use serde_json::{Value, json};
 use stuffcloud_core::account::{Email, Login};
 use stuffcloud_core::session::{Role, UserKind};
-use stuffcloud_db::{NewAccount, Registration, User};
+use stuffcloud_db::{AuditEntry, NewAccount, Registration, User};
 
 use crate::common::{APP_ORIGIN, Browser, CSRF, EPOCH, Policy, Reply, TestApp, csrf_headers};
 
@@ -795,6 +795,26 @@ async fn an_admin_reset_link_works_once_within_the_hour() {
         .assert_problem(422, "validation-failed");
 }
 
+/// The `login.failed` audit entries, polled until there are at least `wanted` of them (the
+/// audit write runs in the background).
+async fn failed_login_entries(app: &TestApp, wanted: usize) -> Vec<AuditEntry> {
+    let mut failed = Vec::new();
+    for _ in 0..200 {
+        failed = app
+            .db
+            .audit_log()
+            .unwrap()
+            .into_iter()
+            .filter(|entry| entry.action == "login.failed")
+            .collect();
+        if failed.len() >= wanted {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
+    failed
+}
+
 #[tokio::test]
 async fn the_audit_log_names_no_one() {
     let app = TestApp::new(Policy::Production);
@@ -807,26 +827,17 @@ async fn the_audit_log_names_no_one() {
         ALICE_PASSWORD,
     )
     .await;
+    // The failed login is written in the background, once a minute per account: the first
+    // failure is written (inverting the limiter's answer fails here, with a single failure)...
     let _ = login(&app, "alice", "wrong password").await;
+    let failed = failed_login_entries(&app, 1).await;
+    // ...and the later ones within the minute are not.
     let _ = login(&app, "alice", "wrong again").await;
     let _ = login(&app, "nobody", "wrong").await;
     let _ = login(&app, "alice", ALICE_PASSWORD).await;
     let _ = invite(&app, &admin, &json!({"email": "bob@example.com"})).await;
-    // The failed login is written in the background, once a minute per account.
-    let mut failed = Vec::new();
-    for _ in 0..200 {
-        failed = app
-            .db
-            .audit_log()
-            .unwrap()
-            .into_iter()
-            .filter(|entry| entry.action == "login.failed")
-            .collect();
-        if !failed.is_empty() {
-            break;
-        }
-        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
-    }
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    assert_eq!(failed_login_entries(&app, 1).await.len(), 1);
     assert_eq!(failed.len(), 1);
     assert_eq!(failed[0].key, alice.id.to_string());
     assert_eq!(failed[0].category, "security");

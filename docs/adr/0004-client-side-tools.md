@@ -70,3 +70,13 @@ libraries that exist are JavaScript or WASM and run in the browser. Some assets 
 - [SPEC 1](../SPEC.md#1-vision), [2](../SPEC.md#2-goals-and-non-goals), [3](../SPEC.md#3-license-and-reuse-policy), [7](../SPEC.md#7-toolbox), [13](../SPEC.md#13-internationalisation-and-privacy), [16](../SPEC.md#16-decisions-on-the-former-open-questions)
 - Issues [#12](https://github.com/Mozra-the-great/stuffcloud/issues/12) (T-04), [#18](https://github.com/Mozra-the-great/stuffcloud/issues/18) (T-13), [#21](https://github.com/Mozra-the-great/stuffcloud/issues/21) (T-16), [#29](https://github.com/Mozra-the-great/stuffcloud/issues/29) (T-25)
 - [ADR 0001](0001-stack.md), [ADR 0007](0007-test-strategy.md)
+
+## Addendum: manifest, registry and worker pool (2026-11-19, T-04)
+
+The manifest of decision 2 and the Web Worker rule of decision 3 are specified by
+[ADR 0012](0012-tool-registry-and-worker-pool.md) (issue [#12](https://github.com/Mozra-the-great/stuffcloud/issues/12),
+PR [#128](https://github.com/Mozra-the-great/stuffcloud/pull/128)): a tool is a directory with a
+schema-checked manifest, the registry builds navigation, search and routes from it, a failing
+schema breaks the build, and `runsIn: server` is refused by the schema. The decisions of this
+record stand; the privacy promise of decision 1 is now a required manifest value plus a source
+scan.

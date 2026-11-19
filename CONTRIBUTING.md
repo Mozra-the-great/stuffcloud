@@ -61,7 +61,11 @@ pnpm build       # Vite production build + package emit checks
 pnpm format      # Prettier --write
 ```
 
-Layout: `apps/web` (Svelte + Vite single-page app), `packages/tools` (tool modules),
+A new tool starts with `pnpm new-tool <id>` (manifest, page, test, German and English texts;
+`--worker` adds the worker setup); `pnpm check-tools` validates every manifest and `pnpm build`
+fails on a bad one (ADR 0012).
+
+Layout: `apps/web` (Svelte + Vite single-page app), `packages/tools` (manifest schema, worker pool),
 `packages/api-client` (typed client; `pnpm --filter @stuffcloud/api-client generate
 -- --input <openapi.json>` writes `src/generated/schema.d.ts` once `app` exports its
 OpenAPI document). All settings come from `tsconfig.base.json` (`strict`,

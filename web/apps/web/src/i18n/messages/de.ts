@@ -40,6 +40,12 @@ export const de: Readonly<Record<MessageKey, Message>> = {
   'tools.empty': 'Noch keine Tools',
   'tools.count': { one: '{count} Tool', other: '{count} Tools' },
 
+  'tool.localOnly': 'Deine Dateien bleiben in diesem Browser. Es wird nichts hochgeladen.',
+  'tool.unsupported': 'Dieser Browser kann dieses Tool nicht ausführen. Es fehlt: {features}.',
+  'capability.wasm': 'WebAssembly',
+  'capability.webcrypto': 'Web Crypto (braucht eine sichere Verbindung)',
+  'capability.worker': 'Web Workers',
+
   'category.pdf': 'PDF',
   'category.image': 'Bilder',
   'category.convert': 'Konvertieren',

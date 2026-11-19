@@ -17,7 +17,13 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     coverage: {
       provider: 'v8',
-      include: ['src/**/*.{ts,svelte}', 'scripts/tokens.ts', 'bench/**/*.ts'],
+      include: [
+        'src/**/*.{ts,svelte}',
+        'scripts/tokens.ts',
+        'scripts/tool-check.ts',
+        'scripts/scaffold.ts',
+        'bench/**/*.ts',
+      ],
       // Process wiring that only runs against a real Chrome (the page adapters and the driver);
       // everything with logic in `bench/` is counted. The browser run is recorded in ADR 0008.
       exclude: ['bench/page.ts', 'bench/run.ts'],

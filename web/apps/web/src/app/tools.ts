@@ -1,18 +1,14 @@
+import {
+  isToolCategory,
+  TOOL_CATEGORIES,
+  type Capability,
+  type StickerName,
+  type ToolCategory,
+} from '@stuffcloud/tools';
 import { LOCALES, type Locale, type MessageKey } from '../i18n/index.ts';
 import type { RouteModule } from './router/router.svelte.ts';
 
-/** Tool areas of SPEC 7, in navigation order. */
-export const TOOL_CATEGORIES = [
-  'pdf',
-  'image',
-  'convert',
-  'parse',
-  'network',
-  'text',
-  'extra',
-] as const;
-
-export type ToolCategory = (typeof TOOL_CATEGORIES)[number];
+export { isToolCategory, TOOL_CATEGORIES, type ToolCategory };
 
 export const CATEGORY_LABELS: Readonly<Record<ToolCategory, MessageKey>> = {
   pdf: 'category.pdf',
@@ -24,23 +20,32 @@ export const CATEGORY_LABELS: Readonly<Record<ToolCategory, MessageKey>> = {
   extra: 'category.extra',
 };
 
-export function isToolCategory(value: string): value is ToolCategory {
-  return (TOOL_CATEGORIES as readonly string[]).includes(value);
-}
-
 /**
  * What the shell needs to know about a tool: where it lives, how it is listed and found.
- * The tool registry (T-04, #12) builds these from the tool manifests; the tool itself is
- * loaded lazily and renders its own `<h1>`.
+ * The tool registry (`registry.ts`) builds these from the tool manifests, with the texts
+ * resolved for every shipped language; the tool itself is loaded lazily and renders its page
+ * through `ToolFrame` (exactly one `<h1>`).
  */
 export interface ToolEntry {
   /** Lowercase id; the tool lives at `/tools/<id>`. */
   readonly id: string;
   readonly category: ToolCategory;
-  /** The name in every shipped language. */
+  /** The text in every shipped language. */
   readonly name: Readonly<Record<Locale, string>>;
+  readonly description: Readonly<Record<Locale, string>>;
+  /** Extra search terms, separated by spaces. */
+  readonly keywords: Readonly<Record<Locale, string>>;
+  readonly sticker: StickerName;
+  /** Browser features the tool cannot work without. */
+  readonly requires: readonly Capability[];
   readonly load: () => Promise<RouteModule>;
 }
+
+export const CAPABILITY_LABELS: Readonly<Record<Capability, MessageKey>> = {
+  wasm: 'capability.wasm',
+  webcrypto: 'capability.webcrypto',
+  worker: 'capability.worker',
+};
 
 export function toolPath(id: string): string {
   return `/tools/${encodeURIComponent(id)}`;
@@ -68,8 +73,8 @@ export function foldText(text: string): string {
 }
 
 /**
- * Tools whose id or name (in any language) contains every word of `query`, sorted by the
- * name in `locale`. An empty query finds nothing: the caller shows the whole list instead.
+ * Tools whose id, name or keywords (in any language) contain every word of `query`, sorted by
+ * the name in `locale`. An empty query finds nothing: the caller shows the whole list instead.
  */
 export function searchTools(
   entries: readonly ToolEntry[],
@@ -84,7 +89,9 @@ export function searchTools(
   }
   return entries
     .filter((entry) => {
-      const haystack = foldText([entry.id, ...LOCALES.map((l) => entry.name[l])].join(' '));
+      const haystack = foldText(
+        [entry.id, ...LOCALES.flatMap((l) => [entry.name[l], entry.keywords[l]])].join(' '),
+      );
       return words.every((word) => haystack.includes(word));
     })
     .toSorted((a, b) => a.name[locale].localeCompare(b.name[locale], locale));

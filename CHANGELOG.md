@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `web/`: tool registry, manifest schema, worker pool and `pnpm new-tool` (T-04, #12). A tool is a
+  directory `src/tools/<id>/` with a `manifest.ts` (id, category, message keys for name, description
+  and keywords, design sticker, `runsIn`, required capabilities, size budget, lazy `load()`); the
+  registry builds navigation, search (id, name, keywords in both languages) and one lazy route per
+  tool from the manifests alone, and `ToolFrame` gives every tool page its one `<h1>`, the sticker, the
+  description, the "files stay in this browser" note and a notice when the browser lacks WebAssembly,
+  Web Crypto or Workers. The schema reports every violated rule, rejects unknown fields, requires
+  `fileContent: "stays-in-browser"` and refuses `runsIn: "server"`; a Vite plugin runs it over
+  `src/tools` so a bad manifest fails `vite build`, and a source scan fails on any network API in a
+  tool. `tools.config.json` disables tools until the admin toggle (A-09). `@stuffcloud/tools` gets a
+  worker pool with progress, cancellation (aborting stops the worker), a FIFO queue and crash
+  recovery, plus `serveWorker` for the worker side. `pnpm new-tool <id> [--worker]` scaffolds the tool,
+  its test and both catalogue texts. No new external dependency. `docs/adr/0012-tool-registry-and-worker-pool.md`,
+  addendum to ADR 0004, SPEC 7. (#128)
 - `web/`: app shell, router and i18n (T-03, #11). Header with tool navigation, search dialog
   (Ctrl+K / Cmd+K) and language switch, footer, skip link, offline notice; a small History-API
   router with lazy-loaded pages and one lazy route per tool (`/tools/<id>`, deep links), not-found

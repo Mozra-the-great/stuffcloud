@@ -1,6 +1,7 @@
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
+import { STICKER_NAMES } from '@stuffcloud/tools';
 import { build } from 'vite';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { appRoot } from './helpers.ts';
@@ -62,10 +63,16 @@ describe('production build output', () => {
     }
   });
 
-  it('emits the nine mascot svgs and the logo as files and never inlines them', () => {
+  it('emits the nine mascot svgs, the logo and every tool sticker as files and never inlines them', () => {
     const svgs = [...files.keys()].filter((name) => name.endsWith('.svg'));
-    expect(svgs).toHaveLength(10);
+    expect(svgs).toHaveLength(10 + STICKER_NAMES.length);
     expect(svgs.filter((name) => name.startsWith('assets/logo-'))).toHaveLength(1);
+    for (const sticker of STICKER_NAMES) {
+      expect(
+        svgs.some((name) => name.startsWith(`assets/sticker-${sticker}-`)),
+        `sticker ${sticker} is missing from the build`,
+      ).toBe(true);
+    }
     for (const name of svgs) {
       expect(name.startsWith('assets/')).toBe(true);
     }

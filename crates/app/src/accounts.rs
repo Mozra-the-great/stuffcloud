@@ -847,6 +847,31 @@ mod tests {
         assert_eq!(state.accounts().throttles().sizes(), [0, 0, 0, 0]);
     }
 
+    #[tokio::test]
+    async fn a_login_that_fails_with_an_error_counts_as_a_failure() {
+        let state = crate::state::tests::state();
+        let db = state.database();
+        let alice = db
+            .create_user("alice", UserKind::Person, Role::User, None, 0)
+            .unwrap();
+        // A stored hash that is no PHC string: the check is an internal error, not "busy".
+        let _ended = db
+            .set_password(alice.id, "not a phc string", None, 0)
+            .unwrap();
+        let request = Request::builder()
+            .method("POST")
+            .uri("/api/v1/auth/login")
+            .header("content-type", "application/json")
+            .body(Body::from(
+                r#"{"login":"alice","password":"a long enough passphrase"}"#,
+            ))
+            .unwrap();
+        let response = login(State(state.clone()), request).await;
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        // The reservation was not refunded: the address and both account keys count it.
+        assert_eq!(state.accounts().throttles().sizes(), [1, 2, 0, 0]);
+    }
+
     #[test]
     fn handlers_refuse_a_request_without_an_account() {
         let parts = Request::new(()).into_parts().0;

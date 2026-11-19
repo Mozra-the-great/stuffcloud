@@ -710,11 +710,23 @@ mod tests {
         assert_eq!(BUSY_RETRY_MS, 1000);
     }
 
-    /// Waits until `count` requests are queued for a slot.
+    /// Waits until `count` requests are queued for a slot; fails after two seconds, so a broken
+    /// queue fails the test instead of hanging it.
     async fn queued(passwords: &Passwords, count: usize) {
-        while passwords.waiting.load(Ordering::Acquire) != count {
-            tokio::task::yield_now().await;
-        }
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while passwords.waiting.load(Ordering::Acquire) != count {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("the request never queued");
+    }
+
+    /// The answer of `work`, which must come at once (no waiting in the queue).
+    async fn at_once<T>(work: impl Future<Output = T>) -> T {
+        tokio::time::timeout(Duration::from_secs(2), work)
+            .await
+            .expect("the request waited instead of being answered at once")
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -732,8 +744,10 @@ mod tests {
         queued(&passwords, 1).await;
         // ...the next one is refused at once, and nothing was checked.
         for refused in [
-            passwords.verify("anything", None).await.unwrap_err(),
-            passwords.hash("anything").await.unwrap_err(),
+            at_once(passwords.verify("anything", None))
+                .await
+                .unwrap_err(),
+            at_once(passwords.hash("anything")).await.unwrap_err(),
         ] {
             assert_eq!(refused.kind(), crate::problem::ProblemKind::TooManyRequests);
             assert_eq!(refused.retry_after(), Some(1));

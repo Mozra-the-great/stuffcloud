@@ -497,6 +497,29 @@ fn registrations_are_counted_per_address() {
 }
 
 #[test]
+fn a_full_registration_table_makes_room_only_for_a_new_key() {
+    let throttles = Throttles::with_capacity(2);
+    let (a, b, c) = (
+        client("192.0.2.1"),
+        client("192.0.2.2"),
+        client("192.0.2.3"),
+    );
+    for _ in 0..3 {
+        assert_eq!(throttles.register_attempt(a, 0), None);
+    }
+    assert_eq!(throttles.register_attempt(b, 10), None);
+    // Another attempt of a known key drops nothing.
+    assert_eq!(throttles.register_attempt(b, 20), None);
+    assert_eq!(throttles.sizes()[2], 2);
+    assert!(throttles.registrations.lock().contains_key(&a));
+    // A new key makes room (the one with fewer attempts goes) and the table stays bounded.
+    assert_eq!(throttles.register_attempt(c, 30), None);
+    assert_eq!(throttles.sizes()[2], 2);
+    assert!(throttles.registrations.lock().contains_key(&a));
+    assert!(!throttles.registrations.lock().contains_key(&b));
+}
+
+#[test]
 fn the_sweep_drops_forgotten_keys_only() {
     let throttles = Throttles::default();
     let (a, b) = (client("192.0.2.1"), client("192.0.2.2"));

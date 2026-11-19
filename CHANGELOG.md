@@ -54,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   below 100 as 19xx. New `TextArea` in `src/app` (kern candidate, #121). Tests: unit, property and
   component tests per tool (JWT keys and signatures are generated at run time, signatures come from
   `node:crypto`) and a Playwright spec per tool (axe gate in both browsers, keyboard routes, live
-  regions, German, 320 px; a runaway pattern is stopped and the page works again afterwards).
+  regions, German, 320 px; a runaway pattern is stopped and the page works again afterwards). (#149)
 - PDF merge, split and page tools (T-10, #15): three client-side tools (`pdf-merge`, `pdf-split`,
   `pdf-pages`) on pdf-lib 1.17.1 (MIT) for editing and pdf.js 6.5.438 (Apache-2.0) for page
   pictures, both in workers (two pools of two). Merge orders any number of files with

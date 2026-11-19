@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Dev environment (F-04, #7): `compose.dev.yml` starts Caddy and Mailpit with one command. Caddy
+  serves the real web build on the app address with the index fallback for deep links (a missing
+  asset stays a 404), a placeholder site on every name below the site base, the Mailpit UI, and a
+  `501` problem document on `/api/*` until `app` exists; two listeners as in ADR 0009 (the tunnel
+  listener is not published, every name that is not a public site gets the same `404`). Names are
+  `*.localhost` only; `.env.example` documents every variable (checked against the compose file,
+  no secrets, reserved names only), `secrets/` is git-ignored. Every service is non-root, read-only,
+  `cap_drop: ALL`, `no-new-privileges`, health-checked, pinned by digest and bound to loopback; CI job
+  `dev-stack` enforces this with `scripts/ci/check_container_hardening.py` for every compose file
+  and Dockerfile it finds (and on the running containers), validates the Caddyfile and runs
+  `scripts/ci/dev_stack_smoke.py` (deep link, cookie isolation between app and site origin, tunnel
+  listener, SMTP into Mailpit). Dependabot gets the `docker` and `docker-compose` ecosystems. The
+  Rust Dockerfiles follow with `app` (A-01) and `edge` (H-19), as decided in SF1.
 - `web/`: tool registry, manifest schema, worker pool and `pnpm new-tool` (T-04, #12). A tool is a
   directory `src/tools/<id>/` with a `manifest.ts` (id, category, message keys for name, description
   and keywords, design sticker, `runsIn`, required capabilities, size budget, lazy `load()`); the

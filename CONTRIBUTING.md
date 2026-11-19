@@ -65,6 +65,14 @@ A new tool starts with `pnpm new-tool <id>` (manifest, page, test, German and En
 `--worker` adds the worker setup); `pnpm check-tools` validates every manifest and `pnpm build`
 fails on a bad one (ADR 0012).
 
+Browser tests: `pnpm e2e` runs Playwright in Chromium and Firefox against the built app (once:
+`pnpm --filter @stuffcloud/web exec playwright install chromium firefox`; details in
+`web/apps/web/e2e/README.md`). Accessibility is checked on every PR: each e2e state calls
+`a11y.check(page, '<state>')` (axe, WCAG 2.2 AA, zero violations), and every tool brings a spec that
+also walks it with the keyboard alone (`pnpm new-tool` creates it). The gate, the keyboard map and
+the focus and live-region rules are in [`docs/ACCESSIBILITY.md`](docs/ACCESSIBILITY.md); the
+reduced-motion test needs no work from a tool as long as it does not animate on its own.
+
 Layout: `apps/web` (Svelte + Vite single-page app), `packages/tools` (manifest schema, worker pool),
 `packages/api-client` (typed client; `pnpm --filter @stuffcloud/api-client generate
 -- --input <openapi.json>` writes `src/generated/schema.d.ts` once `app` exports its

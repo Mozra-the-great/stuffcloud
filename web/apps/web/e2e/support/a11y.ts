@@ -11,10 +11,10 @@ export interface A11yGate {
 }
 
 /**
- * The seam for the accessibility gate. The specs call `a11y.check(page, '<state>')` after each
- * state they put on screen; with no runner the call does nothing, so the gate is off. T-05 (#13)
- * turns it on by passing an axe runner to `createA11yGate` in `fixtures.ts`, without touching
- * a single spec.
+ * The accessibility gate. The specs call `a11y.check(page, '<state>')` after each state they put
+ * on screen. `fixtures.ts` passes the axe runner (`axe.ts`, T-05 #13), so every call scans the page
+ * and fails the test on a violation; without a runner (`createA11yGate()`) the call does nothing,
+ * which only the unit tests of this module use.
  */
 export function createA11yGate(runner?: A11yRunner): A11yGate {
   return {

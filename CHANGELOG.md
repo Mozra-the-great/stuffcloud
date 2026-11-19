@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `web/`: accessibility baseline and automated checks (T-05, #13), `docs/ACCESSIBILITY.md`. The `a11y`
+  gate of the e2e job now runs axe (`@axe-core/playwright`) after every state the specs put on screen,
+  in Chromium and Firefox: any violation of the WCAG 2.0 to 2.2 A/AA or best-practice rules fails the
+  build, whatever its impact, with the rule, element and help link in the report. New specs: `a11y`
+  (the gate can fail; German, phone, every category tab, search dialog, error page, gallery with dialog
+  and toasts, worker lab states, missing capability; reflow at 320 px), `keyboard` (every page walked
+  with Tab in document order without a trap, visible and uncovered focus, search dialog, phone menu,
+  tabs arrow keys, dialog focus return, drop zone and a tool used with the keyboard only, live
+  regions) and `motion` (`prefers-reduced-motion`: no running animation, no timed transition, no smooth
+  scroll on every page; the same pages move with the setting off; switching while open). axe also runs on
+  every component and on the shell in the unit tests (`tests/a11y-components.test.ts`). The keyboard
+  map, focus and live-region rules are documented; `pnpm new-tool` now also creates
+  `e2e/specs/<id>.spec.ts` (axe + keyboard-only walk), and from now on every tool and page needs it.
+  New dev dependencies `@axe-core/playwright` and `axe-core` (both MPL-2.0, already in the license
+  allow list; dev tooling only, never shipped). (#131)
 - `web/`: Playwright end-to-end tests in Chromium and Firefox (T-06, #14). New CI job `e2e` (in `needs` of
   `build`, no retries, report and smoke screenshots uploaded) runs against the built app: the app shell
   (focus on the `h1` and the live-region announcement after a navigation, 404, language switch without a

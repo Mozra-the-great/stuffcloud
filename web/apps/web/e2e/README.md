@@ -37,9 +37,17 @@ Their texts are in `e2e/app/messages.ts`.
   - **Uncaught errors** in the page fail the test.
 - `leaky-tool` proves the privacy check can fail (`specs/privacy.spec.ts`, "the check can fail").
   Those tests switch the enforcement off with `test.use({ enforcePrivacy: false })`; nothing else should.
-- Call `a11y.check(page, '<state>')` after each state a test puts on screen. The gate is off:
-  `support/a11y.ts` runs nothing until T-05 (#13) passes an axe runner to `createA11yGate` in
-  `support/fixtures.ts`.
+- Call `a11y.check(page, '<state>')` after each state a test puts on screen. It runs axe
+  (`support/axe.ts`, rule sets in `support/axe-report.ts`: WCAG 2.0 to 2.2 A/AA and best practice) in
+  the real browser and fails the test on any violation, whatever its impact, with a report of the
+  rule, the element and the help link. `specs/a11y.spec.ts` proves the gate can fail.
+- A tool's spec also calls `expectKeyboardOnly(page, '<tool>')` (`support/keyboard.ts`): Tab visits
+  every control in document order, nothing traps focus, every focused control shows a ring and is not
+  covered. `pnpm new-tool` creates a spec with both. Rules and keyboard map: `docs/ACCESSIBILITY.md`.
+- `specs/motion.spec.ts` runs with `prefers-reduced-motion: reduce` (the default of the config) and
+  checks that nothing animates; the same pages with the setting off do.
+- Wait for the first render (the `h1`) before you press a key or navigate: a navigation before the first
+  render counts as the first load and does not move focus.
 - No fixed sleeps: wait for something the user can see (`expect(...)`, `expect.poll`). No retries
   (`retries: 0`): a test that passes on the second try is a flaky test.
 - Screenshots are attached to the report (`attachScreenshot`), never compared with a stored image.

@@ -384,7 +384,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `docs/TEMPLATE-SETUP.md`: secrets, runner choice, rulesets and costs of a new repo.
 
 ### Changed
-- CSRF check: the final token comparison is written as a single expression; behaviour is unchanged (#157).
+- CSRF check: the final token comparison is written as a single expression; behaviour is unchanged (#158).
 - CI: `claude-review` is now a tiered Claude review. Agents with pinned models in
   `.claude/agents/review-*.md`: haiku triage, sonnet CLAUDE.md and documentation
   checks, two opus bug hunters, an opus security reviewer after Anthropic's

@@ -276,7 +276,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   and `concat!`-ed names, cookie libraries, `Cargo.toml`, Caddy files and `web/`
   (`document.cookie`), each bypass with a failing fixture; an `Origin` port with a leading zero
   is refused; the ADR 0005 addendum documents the accepted residual risks (cookie tossing logs a
-  user out, timeouts need a correct clock). New fuzz target `authorization`.
+  user out, timeouts need a correct clock). New fuzz target `authorization`. (#138)
 - `web/`: the indeterminate `Progress` bar animates `transform` only (stripes on a child one
   stripe period wider than the bar, moved by `translateX` in four steps) instead of
   `background-position`, so it no longer restyles and repaints at every display frame; style recalculations on

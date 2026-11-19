@@ -30,7 +30,7 @@ use utoipa::ToSchema;
 
 use crate::auth::Authentication;
 use crate::problem::{Problem, ProblemKind};
-use crate::state::{Access, AppState};
+use crate::state::AppState;
 
 /// The read-only part of a resource document.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
@@ -280,8 +280,8 @@ pub fn parse_document<T: Writable>(bytes: &[u8]) -> Result<T, Problem> {
 /// The audit actor of a request: the account of its session (`user:<id>`), none otherwise.
 fn actor_of(parts: &Parts) -> Option<String> {
     Authentication::of(parts)
-        .session()
-        .map(|session| stuffcloud_db::auth::actor(session.user.id))
+        .user()
+        .map(|user| stuffcloud_db::auth::actor(user.id))
 }
 
 fn with_etag(mut response: Response, stored: &Stored) -> Response {
@@ -309,14 +309,13 @@ fn not_found(kind: &str, key: &str) -> Problem {
 ///
 /// # Errors
 ///
-/// The problem to answer with (401/403 from the policy, 404, 500).
+/// The problem to answer with (404, 500). Who may read is decided by the route's guard
+/// ([`crate::access`]).
 pub async fn get<T: Writable + ToSchema + Send + 'static>(
     state: &AppState,
-    parts: &Parts,
     kind: &'static str,
     key: &'static str,
 ) -> Result<Response, Problem> {
-    state.policy().authorize(parts, Access::Read, kind)?;
     let stored = state
         .db(move |db| db.get(kind, key))
         .await?
@@ -329,7 +328,8 @@ pub async fn get<T: Writable + ToSchema + Send + 'static>(
 ///
 /// # Errors
 ///
-/// The problem to answer with (400, 401/403, 412, 413, 415, 422, 500).
+/// The problem to answer with (400, 412, 413, 415, 422, 500). Who may write is decided by the
+/// route's guard ([`crate::access`]), which runs before the handler.
 pub async fn put<T: Writable + ToSchema + Send + 'static>(
     state: &AppState,
     request: Request<Body>,
@@ -337,7 +337,6 @@ pub async fn put<T: Writable + ToSchema + Send + 'static>(
     key: &'static str,
 ) -> Result<Response, Problem> {
     let (parts, body) = request.into_parts();
-    state.policy().authorize(&parts, Access::Write, kind)?;
     let query = write_query(&parts)?;
     let preconditions = preconditions(&parts.headers)?;
     require_json(&parts.headers)?;
@@ -379,14 +378,14 @@ pub async fn put<T: Writable + ToSchema + Send + 'static>(
 ///
 /// # Errors
 ///
-/// The problem to answer with (400, 401/403, 404, 412, 500).
+/// The problem to answer with (400, 404, 412, 500). Who may delete is decided by the route's
+/// guard ([`crate::access`]).
 pub async fn delete<T: Writable + ToSchema + Send + 'static>(
     state: &AppState,
     parts: &Parts,
     kind: &'static str,
     key: &'static str,
 ) -> Result<Response, Problem> {
-    state.policy().authorize(parts, Access::Write, kind)?;
     let query = write_query(parts)?;
     let preconditions = preconditions(&parts.headers)?;
     let ctx = WriteContext {

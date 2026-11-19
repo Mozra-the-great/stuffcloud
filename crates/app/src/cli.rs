@@ -4,6 +4,7 @@
 //! stuffcloud-app [serve]     run the API (configuration from the environment)
 //! stuffcloud-app healthcheck exit 0 when the local API is ready (container health check)
 //! stuffcloud-app openapi     print the OpenAPI document (CI drift check)
+//! stuffcloud-app permissions print the permission matrix and route table (docs/api/permissions.md)
 //! stuffcloud-app version     print the version
 //! ```
 //!
@@ -17,9 +18,10 @@ use std::time::Duration;
 
 use stuffcloud_db::Database;
 
+use crate::access::{MatrixPolicy, permissions_markdown};
 use crate::auth::AuthSettings;
 use crate::config::{self, Config, Environment};
-use crate::state::{AdminWritePolicy, AppState, Clock, SystemClock};
+use crate::state::{AppState, Clock, SystemClock};
 use crate::{bootstrap, openapi, server, telemetry};
 
 /// Success.
@@ -32,7 +34,7 @@ pub const EXIT_USAGE: u8 = 2;
 /// How long the health check waits for a connection and an answer.
 pub const HEALTHCHECK_TIMEOUT: Duration = Duration::from_secs(3);
 
-const USAGE: &str = "usage: stuffcloud-app [serve | healthcheck | openapi | version]";
+const USAGE: &str = "usage: stuffcloud-app [serve | healthcheck | openapi | permissions | version]";
 
 /// Runs the command given by `args` (without the program name).
 pub fn run<E: Environment + ?Sized>(
@@ -47,6 +49,7 @@ pub fn run<E: Environment + ?Sized>(
             "serve" => serve(env, err),
             "healthcheck" => healthcheck(env, err),
             "openapi" => print_openapi(out, err),
+            "permissions" => print_permissions(out),
             "version" | "--version" => {
                 report(
                     out,
@@ -85,6 +88,17 @@ fn print_openapi(out: &mut dyn Write, err: &mut dyn Write) -> u8 {
             EXIT_FAILURE
         }
     }
+}
+
+fn print_permissions(out: &mut dyn Write) -> u8 {
+    let _ignored = out.write_all(permissions_document().as_bytes());
+    EXIT_OK
+}
+
+/// The text of `docs/api/permissions.md`: the matrix and the route table of this build.
+#[must_use]
+pub fn permissions_document() -> String {
+    permissions_markdown(&server::declared_routes())
 }
 
 /// The address the health check connects to: the listen address, with an unspecified IP
@@ -174,9 +188,10 @@ pub fn start(config: &Config) -> Result<(), String> {
         .purge_expired_sessions(&config.session, clock.now_millis())
         .map_err(|error| format!("cannot purge expired sessions: {error}"))?;
     tracing::info!(target: "stuffcloud::server", purged, "expired sessions purged");
+    server::check_routes().map_err(|error| error.to_string())?;
     let state = AppState::new(
         Arc::new(db),
-        Arc::new(AdminWritePolicy),
+        Arc::new(MatrixPolicy),
         Arc::new(clock),
         config.limits,
         AuthSettings {
@@ -251,6 +266,22 @@ mod tests {
         assert_eq!(code, EXIT_OK);
         assert!(err.is_empty());
         assert_eq!(out, openapi::to_json().unwrap());
+    }
+
+    #[test]
+    fn permissions_prints_the_matrix_and_the_routes() {
+        let (code, out, err) = call(&["permissions"], &MapEnvironment::default());
+        assert_eq!(code, EXIT_OK);
+        assert!(err.is_empty());
+        assert_eq!(out, permissions_document());
+        assert!(out.starts_with(
+            "# Permissions
+"
+        ));
+        assert!(
+            out.contains("| PUT | `/api/v1/settings/reserved-names` | `admin:settings:write` |")
+        );
+        assert!(out.contains("| GET | `/healthz` | public |"));
     }
 
     #[test]

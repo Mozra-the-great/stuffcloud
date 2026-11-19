@@ -34,6 +34,13 @@ pub const TOUCH_INTERVAL_MS: i64 = 60_000;
 pub const USER_KIND: &str = "user";
 /// Audit kind of session rows.
 pub const SESSION_KIND: &str = "session";
+/// Audit action of an authenticated request that the access policy refused (A-07). The row's
+/// kind is the permission area (`admin:settings`), its key the level and the rule that refused
+/// it (`write:insufficient_role`).
+pub const ACCESS_DENIED: &str = "access.denied";
+/// Audit action of an interactive login that was refused because the account is a service
+/// account (A-07). The row's kind is `user`, its key the internal id.
+pub const LOGIN_REFUSED: &str = "login.refused";
 
 /// The hash under which a token is stored.
 #[must_use]
@@ -616,6 +623,25 @@ impl Database {
         let purged = purge_expired(&tx, timeouts, now)?;
         tx.commit()?;
         Ok(purged)
+    }
+
+    /// Adds one security event to the audit log (a refused request or login). Like every
+    /// security row it holds internal ids only: `actor` is `user:<id>`, `kind` and `key` are
+    /// rule names or ids, never a login name, address or token.
+    ///
+    /// # Errors
+    ///
+    /// [`DbError::Sqlite`] or [`DbError::Poisoned`].
+    pub fn record_security_event(
+        &self,
+        actor: Option<&str>,
+        action: &str,
+        kind: &str,
+        key: &str,
+        now: i64,
+    ) -> Result<(), DbError> {
+        let conn = self.lock()?;
+        audit(&conn, now, actor, action, kind, key)
     }
 
     /// The number of stored sessions of an account (all, expired ones included until they

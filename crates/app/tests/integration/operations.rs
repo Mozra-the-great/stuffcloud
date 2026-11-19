@@ -5,11 +5,12 @@ use std::time::Duration;
 
 use axum::body::Body;
 use axum::http::{Method, Request};
+use stuffcloud_app::access::MatrixPolicy;
 use stuffcloud_app::auth::AuthSettings;
 use stuffcloud_app::config::Limits;
 use stuffcloud_app::middleware::SECURITY_HEADERS;
 use stuffcloud_app::server::router;
-use stuffcloud_app::state::{AdminWritePolicy, AppState, SystemClock};
+use stuffcloud_app::state::{AppState, SystemClock};
 use stuffcloud_db::Database;
 
 use crate::common::{APP_ORIGIN, Policy, TIMEOUTS, TestApp, csrf_headers};
@@ -39,7 +40,7 @@ async fn readiness_fails_on_an_unmigrated_database() {
     let db = Arc::new(Database::open(&dir.path().join("raw.sqlite3")).unwrap());
     let state = AppState::new(
         db,
-        Arc::new(AdminWritePolicy),
+        Arc::new(MatrixPolicy),
         Arc::new(SystemClock),
         Limits::default(),
         auth_settings(),
@@ -173,7 +174,7 @@ async fn slow_requests_hit_the_time_limit() {
     };
     let state = AppState::new(
         db,
-        Arc::new(AdminWritePolicy),
+        Arc::new(MatrixPolicy),
         Arc::new(SystemClock),
         limits,
         auth_settings(),

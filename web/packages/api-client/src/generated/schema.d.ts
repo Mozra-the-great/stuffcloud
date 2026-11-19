@@ -505,6 +505,15 @@ export interface operations {
                     readonly "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            /** @description Authenticated, but the account or token lacks the permission admin:settings:write (docs/api/permissions.md) */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
             /** @description If-Match / If-None-Match failed */
             readonly 412: {
                 headers: {
@@ -578,6 +587,15 @@ export interface operations {
             };
             /** @description Not authenticated */
             readonly 401: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Authenticated, but the account or token lacks the permission admin:settings:write (docs/api/permissions.md) */
+            readonly 403: {
                 headers: {
                     readonly [name: string]: unknown;
                 };

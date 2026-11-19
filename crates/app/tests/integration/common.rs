@@ -5,28 +5,28 @@ use std::sync::atomic::{AtomicI64, Ordering};
 
 use axum::Router;
 use axum::body::{Body, to_bytes};
-use axum::http::request::Parts;
 use axum::http::{HeaderMap, Method, Request, StatusCode};
 use serde_json::Value;
+use stuffcloud_app::access::{AccessPolicy, MatrixPolicy};
 use stuffcloud_app::auth::AuthSettings;
 use stuffcloud_app::config::Limits;
-use stuffcloud_app::problem::Problem;
 use stuffcloud_app::server::router;
-use stuffcloud_app::state::{Access, AccessPolicy, AdminWritePolicy, AppState, Clock};
+use stuffcloud_app::state::{AppState, Clock};
 use stuffcloud_core::csrf::Origin;
+use stuffcloud_core::policy::{Decision, Requirement, Subject};
 use stuffcloud_core::session::{Role, Timeouts, UserKind};
 use stuffcloud_core::token::Token;
 use stuffcloud_db::{Database, NewSession, Session, token_hash};
 use tower::ServiceExt;
 
-/// Lets every request through: stands in for the authorisation of A-07 in tests of the
-/// resource conventions.
+/// Lets every request through: for tests of the resource conventions, which are about bodies,
+/// preconditions and dry runs and not about who may write (the matrix tests are in `authz.rs`).
 #[derive(Debug)]
 pub(crate) struct AllowAll;
 
 impl AccessPolicy for AllowAll {
-    fn authorize(&self, _request: &Parts, _access: Access, _kind: &str) -> Result<(), Problem> {
-        Ok(())
+    fn decide(&self, _subject: &Subject<'_>, _requirement: Requirement) -> Decision {
+        Decision::Allow
     }
 }
 
@@ -137,7 +137,7 @@ impl TestApp {
         let _ = db.migrate().unwrap();
         let policy: Arc<dyn AccessPolicy> = match policy {
             Policy::AllowAll => Arc::new(AllowAll),
-            Policy::Production => Arc::new(AdminWritePolicy),
+            Policy::Production => Arc::new(MatrixPolicy),
         };
         let clock = Arc::new(SteppingClock::default());
         let shared_clock: Arc<dyn Clock> = Arc::<SteppingClock>::clone(&clock);

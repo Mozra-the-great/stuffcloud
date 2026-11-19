@@ -231,3 +231,46 @@ pub async fn delete_sessions(State(state): State<AppState>, request: Request<Bod
         .await
         .unwrap_or_else(IntoResponse::into_response)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use super::*;
+    use crate::access::MatrixPolicy;
+    use crate::auth::AuthSettings;
+    use crate::config::Limits;
+    use crate::state::SystemClock;
+
+    #[tokio::test]
+    async fn the_handlers_still_refuse_a_request_without_a_session() {
+        // The route guard turns anonymous clients away before the handlers run; the handlers
+        // do not rely on it for the type they need.
+        let dir = tempfile::tempdir().unwrap();
+        let db = Arc::new(stuffcloud_db::Database::open(&dir.path().join("s.sqlite3")).unwrap());
+        let state = AppState::new(
+            db,
+            Arc::new(MatrixPolicy),
+            Arc::new(SystemClock),
+            Limits::default(),
+            AuthSettings {
+                app_origin: stuffcloud_core::csrf::Origin::parse(b"https://app.example.com")
+                    .unwrap(),
+                timeouts: stuffcloud_core::session::Timeouts::default(),
+            },
+        );
+        let one = end_session(&state, Request::new(Body::empty()))
+            .await
+            .unwrap_err();
+        let all = end_all_sessions(&state, Request::new(Body::empty()))
+            .await
+            .unwrap_err();
+        for problem in [one, all] {
+            assert_eq!(problem.kind(), ProblemKind::Unauthenticated);
+            assert_eq!(
+                problem.body().detail.as_deref(),
+                Some("there is no session")
+            );
+        }
+    }
+}

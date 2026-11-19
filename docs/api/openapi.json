@@ -284,6 +284,16 @@
               }
             }
           },
+          "403": {
+            "description": "Authenticated, but the account or token lacks the permission admin:settings:write (docs/api/permissions.md)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
           "412": {
             "description": "If-Match / If-None-Match failed",
             "content": {
@@ -378,6 +388,16 @@
           },
           "401": {
             "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated, but the account or token lacks the permission admin:settings:write (docs/api/permissions.md)",
             "content": {
               "application/problem+json": {
                 "schema": {

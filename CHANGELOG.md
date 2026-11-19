@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   when a button is pressed and copies the result as JSON. Tests: a corpus of 69 real user-agent
   strings and 108 CRON expressions with German and English text, seeded random inputs for both
   parsers, DST and half-hour zones, component tests and a Playwright spec per tool (axe gate in both
-  browsers, keyboard routes, live regions, German, 320 px). (#PR)
+  browsers, keyboard routes, live regions, German, 320 px). (#143)
 - Colour picker and unit converter (T-18, #23): two client-side tools, no new dependency. The
   colour picker reads and writes HEX, RGB, HSL, OKLCH and CMYK (an OKLCH colour outside sRGB loses
   chroma until it fits, and says so), copies each format, checks the WCAG 2.2 contrast of two

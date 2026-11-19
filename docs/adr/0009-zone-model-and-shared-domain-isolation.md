@@ -166,3 +166,33 @@ site headers, `edge`) are unchanged. Each site is still its own origin.
 - [SPEC 4](../SPEC.md#4-architecture-overview), [5](../SPEC.md#5-network-zones-domains-and-addressing), [6](../SPEC.md#6-users-roles-and-authentication), [8.3](../SPEC.md#83-access-options-per-site), [8.5](../SPEC.md#85-sandbox-and-isolation-static-only), [9](../SPEC.md#9-data-model-sketch), [14](../SPEC.md#14-quality-ci-and-testing), [16](../SPEC.md#16-decisions-on-the-former-open-questions)
 - Issues [#117](https://github.com/Mozra-the-great/stuffcloud/issues/117), [#45](https://github.com/Mozra-the-great/stuffcloud/issues/45) (H-01), [#46](https://github.com/Mozra-the-great/stuffcloud/issues/46) (H-02), [#47](https://github.com/Mozra-the-great/stuffcloud/issues/47) (H-03), [#54](https://github.com/Mozra-the-great/stuffcloud/issues/54) (H-10), [#104](https://github.com/Mozra-the-great/stuffcloud/issues/104) (H-19), [#32](https://github.com/Mozra-the-great/stuffcloud/issues/32) (A-02)
 - [ADR 0002](0002-static-hosting-and-origin-isolation.md), [ADR 0005](0005-auth-model.md), [ADR 0006](0006-edge-and-core.md)
+
+## Addendum: visibility of anonymous and signed-in sites (2026-11-19, SF10)
+
+Owner question SF10 (open point 1 above) is answered, so decision 4 is no longer provisional.
+Nothing in decisions 2 to 4 changes; the answer fixes the rule and says how decision 2 and
+decision 3 combine:
+
+- **Anonymous sites are always `internal`.** An anonymous client can never create or switch to a
+  `public` site, in any zone, whatever the zone settings say. There is no per-zone or
+  instance-wide setting for anonymous public sites; that variant (SF10 b/c) was not chosen. The
+  zone setting "anonymous hosting" only decides whether anonymous clients may host (internal,
+  temporary, no JavaScript) at all.
+- **Signed-in users choose per site.** An account that may host in a zone (decision 3, "who may
+  host") picks `internal` or `public` for each of its sites, at creation and later, on the same
+  zone.
+- **The zone limits the choice.** The choice exists only if the zone's setting "public sites
+  allowed" (decision 3, default off) is on. With it off, every site in the zone is `internal`
+  and the form offers no choice; the API refuses `public` (rule `public_not_allowed`).
+  Switching the setting off while public sites exist is refused with the list of those sites
+  (ADR 0010 decision 9).
+- **One function decides.** `stuffcloud_core::hosting::may_host` already implements exactly this
+  (A-07): anonymous plus `public` is refused (`anonymous_public`), a signed-in account plus
+  `public` needs `public_sites` (`public_not_allowed`), `internal` needs nothing beyond the
+  hosting rule. The UI, the API and the CLI all go through it; tests cover both sides of each
+  rule (`crates/core/src/hosting.rs`, `crates/core/tests/policy_properties.rs`).
+
+SF10 as asked offered "anonymous public sites per zone" as an option; the owner chose a variant of
+the default: no anonymous public sites at all, signed-in users choose per site within what the zone
+allows. This keeps the largest abuse vector (anonymous content reachable from the internet) out of
+the product and leaves the zone policy as the only operator lever.

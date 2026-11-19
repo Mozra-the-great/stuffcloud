@@ -81,6 +81,17 @@ jobs:
       - name: No crypto misuse in product code
         run: python3 scripts/ci/check_crypto.py
 
+      # Operator-domain gate (SC-D, SF11, CLAUDE.md "Instance-neutral"): no tracked file may
+      # name a domain from the operator's list. The list is never in the repository: it is the
+      # Actions secret or variable STUFFCLOUD_FORBIDDEN_DOMAINS (a secret wins; the value is
+      # one domain per line or comma separated). Pull requests from forks and Dependabot get
+      # no secrets, so the step then prints a notice and passes: a reduced check. The output
+      # never repeats a listed domain. The tests of the script run in the unittest step above.
+      - name: No operator domain in tracked files
+        env:
+          STUFFCLOUD_FORBIDDEN_DOMAINS: ${{ secrets.STUFFCLOUD_FORBIDDEN_DOMAINS || vars.STUFFCLOUD_FORBIDDEN_DOMAINS }}
+        run: python3 scripts/ci/check_operator_domains.py
+
       # The hash of the design sources must match docs/design/pdf-source.sha256,
       # which build.py writes with the PDF. Fails when docs/design changed without
       # a PDF rebuild.

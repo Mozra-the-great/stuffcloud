@@ -270,3 +270,142 @@ of decision 3, and the choices it left open:
   `openapi` job only enforces that the committed document and the TypeScript client match the
   handlers. Alternatives: `openapi-diff` (Apache-2.0, needs a Java runtime in CI) and
   `openapi-changes` (MIT, reports but does not classify breaking changes by severity).
+
+## Addendum: write-only secrets (2026-11-19, SF12)
+
+Owner question SF12 (open point 4 above) is answered with option b: configuration may still use
+only references, **and** a secret can also be set as a write-only value through the API and the
+admin UI. The value is never returned and never appears in plain text in the database, the audit
+log, an export or `plan` output. The owner left the storage open and accepted the queue's
+recommendation, recorded here. This addendum fills the gap in decision 4; it replaces nothing:
+a reference stays a first-class way to supply a secret, and the declarative file still carries
+no secret value.
+
+**Which fields.** A field is a secret only if its Rust type is `Secret` (the list is code, shown
+in the OpenAPI document with `format: secret`): the OIDC client secret and the SMTP password
+(settings groups `oidc`, `smtp`), and later secrets of the same kind. The DNS-01 credentials of a
+zone (ADR 0009 decision 3) stay a reference: Caddy needs them at boot, outside `app`, so a value
+in the database could not reach it; this is revisited only if `app` ever pushes configuration to
+the proxy.
+
+**Shape in the API.** A secret field is a tagged object with exactly one of these forms (anything
+else is a field error):
+
+| Form | Meaning | Where allowed |
+|---|---|---|
+| `{"ref": "STUFFCLOUD_SECRET_SMTP"}` | the secret is the named deployment variable or `_FILE` (decision 4); a stored value of the field is deleted | API, UI, declarative file |
+| `{"value": "..."}` | write-only: store this value | API, UI, CLI; **refused in a declarative file** (`validate` and `plan` fail) |
+| `{"stored": true}` | keep the stored value; this is what `GET` returns for a stored secret, so `GET` then `PUT` leaves it as it is | API, UI, declarative file ("the UI or API owns it") |
+| absent or `null` | no secret | everywhere |
+
+- `GET` never returns the value, the ciphertext, a hash, a length or a fingerprint (a hash of a
+  low-entropy secret can be guessed offline). `meta` carries when the secret was set and the key
+  id only.
+- A `value` write is always reported `updated`: the stored value cannot be compared with the
+  request, and the new ciphertext uses a fresh nonce. `{"stored": true}` and a `ref` equal to
+  the current one stay `unchanged`. A dry run says "secret would be replaced" or "kept", never
+  the value, and `plan` prints the same words; a plan therefore cannot show drift of the secret
+  itself, which is the price of write-only.
+- Requirements: `admin:settings:write` for the group, as for any field of it; nothing grants
+  reading a value, so no scope or role can.
+- **A secret is bound to what it authenticates against.** A `PUT` that keeps a stored secret
+  (`{"stored": true}`) but changes a binding field of the same group (SMTP host and port, the
+  OIDC issuer and endpoints) is refused with the problem `secret-needs-reentry`: otherwise an
+  admin-scoped token that cannot read the secret could send it to a server of its choosing.
+- **A reference resolves only names with the prefix `STUFFCLOUD_SECRET_`** (and the matching
+  `_FILE` form), never the encryption key variable or any other variable of the process. A
+  reference to another name is a field error. This closes the same exfiltration path for
+  references that the binding rule closes for stored values (an admin could otherwise name any
+  variable of the process as the "SMTP password").
+
+**Storage: AEAD-encrypted in the database.**
+
+- Table `secrets` (owner kind and key, field name, key id, nonce, ciphertext, version, set-at):
+  one row per stored secret, written in the same transaction as the settings row that points to
+  it, so the configuration stays consistent, and a backup or export of the database holds only
+  ciphertext.
+- Cipher: **XChaCha20-Poly1305** (RustCrypto `chacha20poly1305`, MIT or Apache-2.0; its licence
+  is checked against `deny.toml` and the licence policy when it is added). A fresh 24-byte nonce
+  from the operating system's random source per write (192 bits make random nonces safe).
+  Associated data = format tag, owner kind and key, field name and key id, so a ciphertext cannot
+  be moved to another field, group or zone and still decrypt.
+- Plaintext lives only in memory while it is used (opening the SMTP connection, the OIDC token
+  request), in a `Secret` type that prints as `[redacted]` in `Debug` and `Display`, refuses to
+  serialise, is zeroised on drop and is never part of an error, a log line, a metric label or a
+  trace. Request bodies are never logged (already true) and the problem details of an invalid
+  secret field name the field, never the value.
+- The ETag of a group with a secret derives from the row version, not from the secret.
+- Audit: a secret write is a normal `resource` audit entry (`secret.set`, `secret.clear`, owner
+  and field name, the actor's internal id) and says nothing about the value.
+- Export: the per-user export (SPEC 11) and any configuration export contain no secrets and no
+  ciphertext; the `secrets` table is not part of any API response.
+
+**The key: deployment configuration only.**
+
+- `STUFFCLOUD_SECRETS_KEY_FILE` (or `STUFFCLOUD_SECRETS_KEY`, discouraged; the `_FILE`
+  convention of decision 8): one or more lines `<key id>:<32 random bytes, base64>`. The first
+  line is the **active** key (used to encrypt), the others only decrypt. Key ids are
+  `[a-z0-9-]{1,32}`. The key is never stored in the database, a backup, the declarative file or
+  the API. `stuffcloud-app secrets generate-key <id>` prints a fresh line to standard output and
+  stores nothing.
+- **Rotation without downtime and without re-entering secrets:** (1) generate a new key, put it
+  on the first line, keep the old one below it, restart; (2) `stuffcloud-app secrets rewrap`
+  (also `POST /api/v1/admin/secrets/rewrap`, scope `admin:settings:write`, CLI
+  `admin secrets rewrap`) re-encrypts every row under the active key, in batches of one
+  transaction each, and is safe to repeat; (3) when `secrets status` (counts per key id, no
+  secret material) shows no row under the old key, remove its line. Old backups need the key
+  they were written under: keep an old key as long as such a backup may still be restored.
+  After a suspected key leak, re-wrapping is not enough: the secrets themselves must be replaced
+  at their providers, because a leaked key opens every ciphertext made with it.
+- **Key lost or wrong:** ciphertext without its key cannot be recovered, by design. The app still
+  starts. The affected secrets are reported as `unavailable` (`meta`, a log warning per group,
+  metric `stuffcloud_secrets_unavailable`; `/readyz` stays ready), the features that need them
+  fail closed (no mail, no OIDC login; the local break-glass admin still works), and the admin
+  sets the values again or switches to references.
+- **No key configured:** write-only secrets are **disabled**, not weakened. A `value` is refused
+  with the problem `secrets-not-configured`, the UI shows the field as unavailable with the
+  reason, and nothing is ever stored unencrypted as a fallback. References and every other
+  setting work exactly as before, so an instance that wants no secret in its database simply
+  never configures a key. A stored secret found while no key is configured is `unavailable` as
+  above.
+
+**Residual risks (documented, accepted).** Whoever has the key and a copy of the database can
+read the secrets, so the key must live where the database does not (a secret store, another file
+system or host); as an environment variable it is exactly as exposed as a referenced secret. An
+attacker who can run code in the app process sees the plaintext while it is in use, as with a
+reference. The app trusts its admin to set a secret of their choosing; the binding rule only
+stops an admin from *exfiltrating* one.
+
+**Consequences.**
+
+- Positive: the admin UI and automation can set or rotate OIDC and SMTP secrets without a
+  deployment change and restart; backups and exports stay free of plaintext secrets; an instance
+  without a key keeps the stricter references-only behaviour.
+- Negative: one more piece of key management (generation, keeping the key apart from the
+  database backup, rotation) for operators who use it; a lost key means re-entering secrets;
+  `plan` cannot see drift of a stored secret; the `Secret` type, the `secrets` table, rewrap and
+  the canary tests (a distinctive value must be absent from every response, log line, metric,
+  audit row, export and problem detail, and from the database file except as ciphertext) are new
+  code to build and keep green.
+- Implementation: [#152](https://github.com/Mozra-the-great/stuffcloud/issues/152); the first
+  consumers are A-09 ([#39](https://github.com/Mozra-the-great/stuffcloud/issues/39)) and A-10
+  ([#40](https://github.com/Mozra-the-great/stuffcloud/issues/40)). Nothing of this is
+  implemented yet.
+
+**Alternatives considered (for the storage).**
+
+- **Encrypted files next to the database:** rejected; they need the same key, add a second
+  storage path to back up and keep consistent with the settings row, and cannot be written in one
+  transaction with it.
+- **The key in the database, or derived from an admin password:** rejected; a copy of the
+  database would carry its own key.
+- **Envelope encryption with an external KMS or Vault:** not required for a self-hosted
+  single-binary tool; the key file can be fed by one, and a provider interface can be added later
+  without changing the resource shapes.
+- **AES-256-GCM:** equally sound, but with 96-bit random nonces it needs a nonce-reuse argument
+  at scale; XChaCha20-Poly1305 has no such limit and no hardware dependency.
+- **Hashing instead of encrypting:** impossible; the app has to present the secret to the SMTP
+  server and the OIDC provider.
+- **Only references (SF12 option a) or only write-only values (option c):** a is the behaviour
+  without a key; c would give up the secret-free declarative file and the choice of operators who
+  want no secret in their database at all.

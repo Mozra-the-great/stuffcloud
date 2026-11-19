@@ -8,6 +8,10 @@
 //! what the site may do ([`HostingGrant`]): an anonymous site is internal, temporary and has no
 //! JavaScript; an account's site may be permanent and run JavaScript.
 //!
+//! Visibility (owner answer SF10, ADR 0009 addendum): an anonymous site is always internal,
+//! in every zone; a signed-in account chooses internal or public per site, but public only where
+//! the zone's `public_sites` switch (default off) is on.
+//!
 //! No zone is special: every rule reads the [`ZonePolicy`] it is given and nothing else. The
 //! defaults are those of SPEC 5.2.
 

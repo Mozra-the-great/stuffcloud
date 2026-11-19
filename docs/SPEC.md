@@ -156,7 +156,7 @@ configuration, and every example uses the RFC 2606 names (`example.com`, `exampl
   | Enabled | on | a disabled zone serves nothing and accepts no new sites |
   | Who may host | roles `user` and above | roles allowed to create sites; an optional allow-list of accounts replaces the role rule ("trusted accounts only") |
   | Anonymous hosting | off | anonymous clients may create (internal) sites here |
-  | Public sites | off | sites in this zone may be `public`; needs public DNS and the tunnel |
+  | Public sites | off | signed-in users may choose `public` per site in this zone (anonymous sites are always `internal`); needs public DNS and the tunnel |
   | Reserved names | empty | extra names for this zone, on top of the built-in and instance-wide lists |
   | Sub-level | none | see above |
   | Interstitial | on | warning page before public sites of this zone (section 16.7) |
@@ -173,8 +173,9 @@ configuration, and every example uses the RFC 2606 names (`example.com`, `exampl
 - **Visibility is per site:** `internal` (served only to the LAN) or `public` (served to the
   LAN and through the tunnel). The owner chooses it when creating the site and can change
   it later, within the zone's settings. Public needs an account and a zone with public
-  sites enabled; **anonymous sites are always internal** (section 6; open owner question
-  SF10).
+  sites enabled (default off, so a signed-in user chooses `internal` or `public` per site only
+  where the zone allows public sites). **Anonymous sites are always internal**, in every zone
+  (section 6; owner answer SF10, ADR 0009 addendum "visibility").
 - Subdomain: randomly generated (10 symbols from a 32-symbol lowercase alphabet
   without `l`, `o`, `0`, `1`: 50 bits of entropy, above the 40-bit minimum) or, for
   accounts, a chosen name subject to the reserved names. Rules, implemented in
@@ -459,7 +460,8 @@ password_hash?, burn_after_read, size_bytes, status), `site_files`, `pastes`
 (edit mode, token hash), `builder_projects`, `reports`, `blocklist`, `zones` (domain,
 sub-level?, enabled, hosting roles, anonymous allowed, public allowed, interstitial,
 DNS provider reference), `zone_reserved_names`, `zone_hosters` (allow-list of accounts),
-`settings`, `audit_log` (resource changes and security events, internal ids only, no IP
+`settings`, `secrets` (write-only secret values, AEAD ciphertext only; section 10.2),
+`audit_log` (resource changes and security events, internal ids only, no IP
 addresses). Every configurable row has a natural key and an ETag (section
 10.2). Versioned migrations; SQLite WAL; a `StorageBackend`
 interface (`put/get/delete/list/usage`).
@@ -509,10 +511,17 @@ configuration can be managed as code.
   response carries a field-level diff, nothing changes.
 - Errors are RFC 9457 problem details with a stable `type` and every invalid field at once
   (JSON Pointer per field); the types are documented in `docs/api/problems.md`.
-- Secrets are never values in the API: settings that need one (OIDC client secret, SMTP
-  password, DNS-01 credentials) hold a reference to deployment configuration (an environment
-  variable or secret file name). Token secrets are the only secrets the API returns, once.
-  Whether write-only secret values are added later is owner question SF12.
+- Secrets are never *returned* by the API. A settings field that needs one (OIDC client secret,
+  SMTP password) takes either a **reference** to deployment configuration (the name of an
+  environment variable or secret file, prefix `STUFFCLOUD_SECRET_`) or a **write-only value**
+  (owner answer SF12, ADR 0010 addendum "write-only secrets"); `GET` shows only that a value is
+  stored (`{"stored": true}`). A value is stored AEAD-encrypted (XChaCha20-Poly1305) in the
+  database under a key that exists only in deployment configuration (`STUFFCLOUD_SECRETS_KEY_FILE`,
+  rotation with `secrets rewrap`); without a key write-only values are disabled and references
+  still work. A secret never appears in plain text in the database, the audit log, an export,
+  `plan` or dry-run output, logs or errors, and a value is refused in a declarative file. The
+  DNS-01 credentials of a zone stay a reference (the proxy reads them at boot). Token secrets are
+  the only secrets the API returns, once. Not implemented yet ([#152](https://github.com/Mozra-the-great/stuffcloud/issues/152)).
 
 ### 10.3 Zones and settings as resources
 - A zone resource carries the policy of section 5.2: `domain` (key), `sub_level`, `enabled`,
@@ -552,7 +561,8 @@ configuration can be managed as code.
 ### 10.6 Declarative configuration
 - A configuration file (`stuffcloud.yaml`, YAML or JSON, with a `version` field) lists the
   desired resources in the API's writable shape; its JSON Schema is generated from the same
-  types and published with each release. It never contains secrets or passwords.
+  types and published with each release. It never contains secret values or passwords (a secret
+  is a reference, or `stored: true` for "owned by the UI or API"; a `value` is refused).
 - `stuffcloud validate -f` checks it offline; `stuffcloud plan -f` prints the diff from
   server-side dry runs and changes nothing; `stuffcloud apply -f` writes in dependency order,
   each `PUT` with the `If-Match` of its own read (a concurrent change stops the run with exit
@@ -576,7 +586,8 @@ zones:
 
 ### 10.7 Bootstrap
 - The app address and all secrets come from environment variables, each also as a `_FILE`
-  variant (section 11).
+  variant (section 11); so does the key for write-only secrets (`STUFFCLOUD_SECRETS_KEY_FILE`),
+  which is optional.
 - On the first start with an empty database the app creates the first admin (the local
   break-glass admin, section 6; since A-03) from `STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN`, `_EMAIL`
   (optional) and `_PASSWORD` or `_PASSWORD_FILE` (checked against the password policy), optionally a service
@@ -597,8 +608,13 @@ zones:
 ## 11. Operations
 
 - Docker Compose; configuration through environment variables; secrets from env or
-  files (`_FILE` variants), never in the repo and never through the API; bootstrap without
+  files (`_FILE` variants), never in the repo and never returned by the API; bootstrap without
   clicks (section 10.7).
+- Optional write-only secrets (section 10.2, ADR 0010 addendum): `STUFFCLOUD_SECRETS_KEY_FILE`
+  holds one or more `<id>:<base64 key>` lines (first = active); `stuffcloud-app secrets
+  generate-key|status|rewrap` creates, inspects and rotates. Keep the key apart from the database
+  backup: a backup holds only ciphertext, and old backups need the key they were written under.
+  A lost key means the stored secrets must be entered again; without a key the feature is off.
 - Behind a reverse proxy the deployment sets `STUFFCLOUD_TRUSTED_PROXIES` to the proxy's
   address or network, so the login throttles see each client (the app warns when it is missing).
   Bootstrap secrets come from `_FILE` variables and leave the deployment after the first start.
@@ -696,7 +712,7 @@ On every PR and push (`ci.yml`):
 | `e2e` | Playwright in Chromium and Firefox against the built app: app shell, tool registry, worker pool in a real browser, and the privacy test (no request carries file content, no request leaves the own origin or is anything but a `GET` of an own asset); no retries; axe joins with T-05 |
 | `codeql` | CodeQL `security-extended` for Rust, Python and the workflows (JavaScript/TypeScript with `web/`); fails on any result, also weekly on `main` |
 | `supply-chain` | `cargo-deny`: RustSec advisories (incl. unmaintained, unsound, yanked), licenses (section 3), crates.io only, no wildcard versions |
-| `repo-checks` | CI helper tests, design PDF is current, cookie scope gate (`check_cookies.py`: no `Domain` attribute, `Set-Cookie` only in the cookie module), crypto misuse gate (`check_crypto.py`) |
+| `repo-checks` | CI helper tests, design PDF is current, cookie scope gate (`check_cookies.py`: no `Domain` attribute, `Set-Cookie` only in the cookie module), crypto misuse gate (`check_crypto.py`), operator-domain gate (`check_operator_domains.py`) |
 
 Nightly and on demand (`deep-tests.yml`, not required, failures handled like a red
 PR): fuzzing for 45 minutes per target that grows and minimises the shared
@@ -752,6 +768,20 @@ Test layers and what each must cover:
   in product code (outside tests and `#[cfg(test)]`) a salted password hash, a key or salt from
   literal bytes and SHA-2 hashing may appear only at the reviewed call sites listed with their
   reason and exact count; MD5, MD4 and SHA-1 fail in code and as a dependency.
+- **Secret tests** (planned with write-only secrets, [#152](https://github.com/Mozra-the-great/stuffcloud/issues/152)):
+  a distinctive canary value set through the API must be absent from every response, log line,
+  metric, audit row, export, problem detail and `plan`/dry-run output, and from the database file
+  except as ciphertext; a ciphertext moved to another field does not decrypt; rotation keeps every
+  secret working; a missing or wrong key leaves the app running with the affected features failing
+  closed.
+- **Operator-domain check** (SC-D, owner answer SF11): `scripts/ci/check_operator_domains.py`
+  searches every tracked file and file name for the domains of the maintainer's list, which is
+  never in the repository: the Actions secret (or variable) `STUFFCLOUD_FORBIDDEN_DOMAINS`
+  (CONTRIBUTING.md describes how to set it). A listed domain is found case-insensitively, as
+  itself and as any subdomain; the reserved names of RFC 2606 / 6761 are always allowed. The
+  output names file and line, never the domain. Without the list (pull requests from forks and
+  Dependabot receive no secrets) the step prints a notice and passes: a reduced check. Its
+  tests use only reserved names.
 - **Listener tests** (hosting): on the tunnel listener the app address, internal sites
   and unknown names give the same response; forged `Host`, `X-Forwarded-*` and tunnel
   headers on the LAN listener never make a request count as coming from the internet.
@@ -831,14 +861,17 @@ Hosting ships after auth and quotas on purpose: it is the security-critical part
     and rejected ([ADR 0008](adr/0008-pixel-art-animation-runtime.md)).
 12. **Zone model (2026-11-16, SF5):** any number of zones, each usable on the LAN and from
     the internet; visibility per site; per-zone hosting policy (who may host, anonymous,
-    public sites, reserved names, sub-level, interstitial); the app on its own address,
+    public sites, reserved names, sub-level, interstitial); anonymous sites always internal,
+    signed-in users choosing internal or public per site where the zone allows public sites
+    (SF10, 2026-11-19); the app on its own address,
     possibly on a domain shared with sites, protected by `__Host-` cookies without
     `Domain=`, an `Origin` check and CSRF tokens; internet origin decided by a separate
     tunnel listener, never by a header; a PSL entry optional
     ([ADR 0009](adr/0009-zone-model-and-shared-domain-isolation.md)).
 13. **API-first and configuration as code (2026-11-16, #116, SF9):** no UI-only features;
-    resources with natural keys, idempotent `PUT`, `ETag`/`If-Match`, dry-run; secrets only as
-    references; scoped tokens incl. admin scopes and service accounts; full CLI parity with
+    resources with natural keys, idempotent `PUT`, `ETag`/`If-Match`, dry-run; secrets as
+    references or write-only values (SF12, encrypted in the database, key only from deployment
+    configuration); scoped tokens incl. admin scopes and service accounts; full CLI parity with
     `validate`/`plan`/`apply -f`; bootstrap from environment and files; own Ansible collection
     and OpenTofu provider later, location decided when built (section 10,
     [ADR 0010](adr/0010-api-first-and-configuration-as-code.md)).

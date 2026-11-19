@@ -203,10 +203,11 @@ describe('routing and focus', () => {
     await user.click(screen.getByRole('link', { name: 'Open the tools' }));
     await heading('Tools');
     await user.click(screen.getByRole('link', { name: /Quiet/ }));
-    await settle();
+    await vi.waitFor(() => {
+      expect(document.activeElement).toBe(screen.getByRole('main'));
+    });
 
     expect(window.location.pathname).toBe('/tools/quiet');
-    expect(document.activeElement).toBe(screen.getByRole('main'));
     expect(document.title).toBe('stuffcloud');
   });
 });

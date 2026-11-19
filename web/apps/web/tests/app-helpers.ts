@@ -26,9 +26,9 @@ export function createRouter(tools: readonly ToolEntry[]): Router {
 
 /** Lets pending promises and Svelte effects settle (route loading is asynchronous). */
 export async function settle(): Promise<void> {
-  for (let round = 0; round < 5; round += 1) {
+  for (let round = 0; round < 10; round += 1) {
     await new Promise<void>((resolve) => {
-      setTimeout(resolve, 0);
+      setTimeout(resolve, 5);
     });
   }
 }

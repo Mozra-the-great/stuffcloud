@@ -218,6 +218,24 @@ describe('loading', () => {
     stop();
   });
 
+  it('does not touch the page when the shell goes away while a page is loading', async () => {
+    const slow = deferred();
+    const tool = makeTool('slow', 'text', 'Slow', 'Langsam', () => slow.promise);
+    window.history.replaceState(null, '', '/');
+    const router = createRouter([tool]);
+    const { unmount } = render(Shell, { props: { router, tools: [tool] } });
+    await screen.findByRole('heading', { level: 1, name: 'Your stuff, in your cloud.' });
+
+    router.navigate('/tools/slow');
+    await settle();
+    unmount();
+    slow.resolve();
+    await settle();
+
+    // A late page must neither throw (an unhandled rejection fails the run) nor change the title.
+    expect(screen.queryByRole('main')).toBeNull();
+  });
+
   it('builds a route per tool and a lazy not-found route', async () => {
     const { routes, notFound } = buildRoutes([makeTool('a', 'pdf', 'A', 'A')]);
     expect(routes.map((route) => route.path)).toEqual(['/', '/tools', '/tools/a']);

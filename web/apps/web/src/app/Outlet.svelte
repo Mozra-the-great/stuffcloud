@@ -23,7 +23,8 @@
     readonly target: ResolvedRoute;
   }
 
-  let main: HTMLElement | undefined = $state();
+  // `bind:this` resets it to null when the element is destroyed.
+  let main: HTMLElement | null = $state(null);
   let view: View | undefined = $state.raw();
   let loading = $state(false);
   let showProgress = $state(false);
@@ -72,7 +73,7 @@
     loading = false;
     stopProgress();
     await tick();
-    if (mine !== generation || main === undefined) {
+    if (mine !== generation || main === null) {
       return;
     }
     shownPath = target.path;
@@ -102,7 +103,7 @@
     }
     titleSignature = signature;
     void tick().then(() => {
-      if (main !== undefined) {
+      if (main !== null) {
         document.title = documentTitle(headingText(main));
       }
     });

@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `web/`: Playwright end-to-end tests in Chromium and Firefox (T-06, #14). New CI job `e2e` (in `needs` of
+  `build`, no retries, report and smoke screenshots uploaded) runs against the built app: the app shell
+  (focus on the `h1` and the live-region announcement after a navigation, 404, language switch without a
+  reload, Ctrl/Cmd+K search, phone menu), the sample tool of the registry in navigation, search and
+  routing, and the worker pool with real workers (queueing, progress, cancelling terminates the worker,
+  upload, drop and download). Privacy test (SPEC 14): every e2e test fails when the page sends anything
+  but a `GET` of an own asset or a piece of an uploaded file appears in any request (raw, hex, base64,
+  base64url, percent-escaped; workers included); a test-only tool that leaks four ways proves the check
+  can fail. `e2e/support/a11y.ts` is the seam for the axe gate of T-05 (off). New dev dependency
+  `@playwright/test` (Apache-2.0). `docs/SPEC.md` 14. (#129)
 - `web/`: tool registry, manifest schema, worker pool and `pnpm new-tool` (T-04, #12). A tool is a
   directory `src/tools/<id>/` with a `manifest.ts` (id, category, message keys for name, description
   and keywords, design sticker, `runsIn`, required capabilities, size budget, lazy `load()`); the

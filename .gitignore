@@ -24,6 +24,10 @@ desktop.ini
 node_modules/
 npm-debug.log*
 dist/
+# End-to-end build and Playwright output (web/apps/web)
+dist-e2e/
+test-results/
+playwright-report/
 build/
 coverage/
 

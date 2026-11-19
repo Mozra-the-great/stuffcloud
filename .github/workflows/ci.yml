@@ -13,9 +13,9 @@ name: CI
 # mutation testing of the changed code, a short fuzz run per target and the
 # supply-chain gate. The long runs (fuzzing for an hour, full mutation run, Miri,
 # fresh advisories) are in deep-tests.yml. The Svelte frontend (web/) has the job
-# `web` (lint, typecheck, unit tests with the coverage floor, production build);
-# Playwright + axe join it with T-06 / T-05. Every new job goes into `needs` of
-# `build`.
+# `web` (lint, typecheck, unit tests with the coverage floor, production build) and
+# the job `e2e` (Playwright in Chromium and Firefox against the built app, T-06; axe joins
+# it with T-05). Every new job goes into `needs` of `build`.
 #
 # Jobs never skip themselves on changed paths: the aggregate treats a skipped job
 # as a failure, so a frontend job that is skipped on a Rust-only PR would turn
@@ -327,6 +327,69 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  # ── Frontend (web/): end-to-end tests in real browsers ─────────────────────
+  # Playwright runs against the built app (`vite build` + `vite preview`, never the dev
+  # server) in Chromium and Firefox: the app shell, the tool registry, the worker pool, and the
+  # privacy test (no tool sends file content, SPEC 14). The build is the production app plus
+  # the test-only tools of web/apps/web/e2e/app/tools. No retries: a flaky test stays red.
+  # The HTML report and the smoke screenshots are uploaded for every run.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    env:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: web/.nvmrc
+          package-manager-cache: false
+      - name: Enable pnpm (corepack, version from packageManager)
+        run: corepack enable
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+      # The browser build follows the Playwright version, which the lockfile pins.
+      - name: Cache the Playwright browsers
+        id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
+      - name: Install the browsers and their system libraries
+        if: ${{ steps.browsers.outputs.cache-hit != 'true' }}
+        run: pnpm --filter @stuffcloud/web exec playwright install --with-deps chromium firefox
+      - name: Install the system libraries of the cached browsers
+        if: ${{ steps.browsers.outputs.cache-hit == 'true' }}
+        run: pnpm --filter @stuffcloud/web exec playwright install-deps chromium firefox
+      - name: Build the app for the end-to-end run
+        run: pnpm --filter @stuffcloud/web e2e:build
+      - name: Playwright (Chromium and Firefox)
+        run: pnpm --filter @stuffcloud/web e2e
+      - name: Upload the report and the screenshots
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: |
+            web/apps/web/playwright-report
+            web/apps/web/test-results
+          if-no-files-found: ignore
+          retention-days: 14
+
   # ── Licenses: npm gate and the THIRD-PARTY.md report ───────────────────────
   # The npm counterpart of `supply-chain` (cargo-deny): every package of the web/
   # workspace, production and dev, including the native packages of other
@@ -405,7 +468,7 @@ jobs:
   # ── Required check: everything above passed ────────────────────────────────
   build:
     if: ${{ always() }}
-    needs: [repo-checks, fmt, clippy, test, docs, coverage, mutants, fuzz, web, licenses, supply-chain, codeql]
+    needs: [repo-checks, fmt, clippy, test, docs, coverage, mutants, fuzz, web, e2e, licenses, supply-chain, codeql]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

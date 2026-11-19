@@ -1,0 +1,30 @@
+//! `app`: the LAN API of stuffcloud (SPEC 4 and 10, ADR 0010).
+//!
+//! - [`config`]: configuration from the environment, every secret also as `_FILE`.
+//! - [`server`]: the axum router with its middleware ([`middleware`]) and graceful shutdown.
+//! - [`resource`]: the resource conventions of ADR 0010 (idempotent `PUT`, `ETag` and
+//!   preconditions, dry runs with a diff), built once for every resource; [`settings`] are
+//!   the first resources that use them.
+//! - [`problem`]: RFC 9457 problem details, the only error format.
+//! - [`health`], [`metrics`], [`telemetry`]: probes, Prometheus metrics, structured logs
+//!   without client addresses or tokens.
+//! - [`bootstrap`]: the one-time bootstrap from a configuration file.
+//! - [`openapi`]: the OpenAPI document generated from the handlers.
+//! - [`cli`]: the `stuffcloud-app` command line (`serve`, `healthcheck`, `openapi`).
+//!
+//! Database work runs on the blocking thread pool ([`state::AppState::db`]), never on an
+//! async worker.
+
+pub mod bootstrap;
+pub mod cli;
+pub mod config;
+pub mod health;
+pub mod metrics;
+pub mod middleware;
+pub mod openapi;
+pub mod problem;
+pub mod resource;
+pub mod server;
+pub mod settings;
+pub mod state;
+pub mod telemetry;

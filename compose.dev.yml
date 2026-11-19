@@ -6,8 +6,12 @@
 #   caddy    reverse proxy and static web server: the web app on the app address with the index
 #            fallback for deep links, a placeholder site on every name below the site base, the
 #            Mailpit UI; two listeners (docker/caddy/Caddyfile.dev, ADR 0009)
+#   app      the LAN API (crates/app, docker/app/Dockerfile): `/api/*` on the app address goes
+#            here; not published on the host, Caddy is the only way in. Its database lives in
+#            the named volume `app-data`; on the first start it applies
+#            docker/app/bootstrap.dev.json once (SPEC 10.7)
 #   mailpit  mail catcher (A-10 uses it): SMTP on 1025, UI through Caddy
-#   Later: `app` (A-01, #31) and `edge` (H-19, #104) join with their Dockerfiles.
+#   Later: `edge` (H-19, #104) joins with its Dockerfile.
 #
 # Every service is hardened the same way and CI enforces it for every service in this file
 # and every Dockerfile in the repository (scripts/ci/check_container_hardening.py):
@@ -69,8 +73,39 @@ services:
       retries: 10
       start_period: 5s
     depends_on:
+      app:
+        condition: service_healthy
       mailpit:
         condition: service_healthy
+
+  app:
+    <<: *hardened
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    image: stuffcloud-dev-app:local
+    environment:
+      STUFFCLOUD_APP_URL: http://${STUFFCLOUD_APP_HOST:-stuff.localhost}:${STUFFCLOUD_HTTP_PORT:-8080}
+      STUFFCLOUD_LISTEN: 0.0.0.0:8000
+      STUFFCLOUD_DATA_DIR: /data
+      STUFFCLOUD_LOG_FORMAT: text
+      STUFFCLOUD_BOOTSTRAP_CONFIG: /etc/stuffcloud/bootstrap.json
+    volumes:
+      # The only writable path: the database (reset with `docker compose down --volumes`).
+      - type: volume
+        source: app-data
+        target: /data
+      - type: bind
+        source: ./docker/app/bootstrap.dev.json
+        target: /etc/stuffcloud/bootstrap.json
+        read_only: true
+    healthcheck:
+      # distroless has no shell or curl: the binary probes GET /readyz itself.
+      test: ["CMD", "/usr/local/bin/stuffcloud-app", "healthcheck"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
   mailpit:
     <<: *hardened
@@ -93,3 +128,6 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+
+volumes:
+  app-data:

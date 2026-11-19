@@ -68,12 +68,10 @@ http://{$STUFFCLOUD_APP_HOST}:8080 {
 		respond "A host-only cookie was set on {host}. Open /__dev/echo-cookie here and on a site origin to compare." 200
 	}
 
-	# Placeholder until `app` exists (A-01, #31): the API answers with a problem document
-	# (RFC 9457, ADR 0010). Replace by `reverse_proxy app:<port>` together with the service.
+	# The API (A-01): `app` answers every path below /api/ with JSON or RFC 9457 problem
+	# documents. Its probes and metrics (/healthz, /readyz, /metrics) are not routed from here.
 	handle /api/* {
-		header Content-Type application/problem+json
-		header Cache-Control no-store
-		respond `{"type":"about:blank","title":"Not Implemented","status":501,"detail":"The API does not exist yet; this is the development placeholder."}` 501
+		reverse_proxy app:8000
 	}
 
 	handle {

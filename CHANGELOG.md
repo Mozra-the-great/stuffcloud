@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- API skeleton (A-01, #31): `crates/app` (axum) serves the LAN API under `/api/v1` with the
+  resource conventions of ADR 0010 built once for every resource: idempotent `PUT`
+  (`created` / `updated` / `unchanged`, an unchanged write touches nothing and writes no audit
+  row), `GET` with the writable shape plus `meta`, strong `ETag` with `If-Match` /
+  `If-None-Match` (`412`), `?dry_run=true` with a field diff, strict bodies (unknown fields
+  other than `meta` refused) and RFC 9457 problem details listing every invalid field with a
+  JSON Pointer (`docs/api/problems.md`). First resource: the settings group `reserved-names`;
+  writes answer `401` until accounts exist. `crates/db`: SQLite via `rusqlite` in WAL mode with
+  a checksummed migration runner, the resource store and the audit log (ADR 0001 addendum).
+  Configuration from the environment, validated at startup with every problem listed, secrets
+  also as `_FILE`; one-time bootstrap from a configuration file (SPEC 10.7). `/healthz`,
+  `/readyz`, Prometheus `/metrics`, JSON logs without client addresses, tokens or query
+  strings (redaction tests), security headers, body size and time limits, graceful shutdown on
+  SIGTERM. The OpenAPI document is generated from the handlers (`docs/api/openapi.json`, also
+  served at `/api/v1/openapi.json`) and the typed client of `web/packages/api-client` from it;
+  the new CI job `openapi` fails when either is stale. New fuzz targets `entity_tags`,
+  `write_query` and `writable_body`; `mutants` runs in six shards. Docker image `app`
+  (multi-stage, pinned toolchain, distroless, non-root) joins the dev stack: Caddy proxies
+  `/api/*` to it instead of the `501` placeholder, the smoke test drives the API. The OpenAPI
+  breaking-change check will use `oasdiff` (ADR 0010 addendum) (#132).
 - `web/`: accessibility baseline and automated checks (T-05, #13), `docs/ACCESSIBILITY.md`. The `a11y`
   gate of the e2e job now runs axe (`@axe-core/playwright`) after every state the specs put on screen,
   in Chromium and Firefox: any violation of the WCAG 2.0 to 2.2 A/AA or best-practice rules fails the

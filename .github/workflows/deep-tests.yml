@@ -41,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [safe_rel_path, subdomain]
+        target: [safe_rel_path, subdomain, entity_tags, write_query, writable_body]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -83,9 +83,16 @@ jobs:
           path: fuzz/artifacts
           retention-days: 90
 
+  # Sharded like the PR job in ci.yml: the app crate's mutants each rebuild it and run its
+  # integration tests, which is too much for one runner.
   mutants-full:
+    name: mutants-full (${{ matrix.shard }}/6)
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -95,13 +102,15 @@ jobs:
       - uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21 # v2.90.4
         with:
           tool: cargo-mutants@27.1.0
-      - name: All mutants
-        run: cargo mutants --workspace --no-shuffle -vV
+      - name: All mutants (one shard)
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: cargo mutants --workspace --no-shuffle -vV --shard "$SHARD/6"
       - name: Upload mutants report
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: mutants-out
+          name: mutants-out-${{ matrix.shard }}
           path: mutants.out
           retention-days: 30
 
@@ -115,12 +124,14 @@ jobs:
       - name: Install nightly with Miri
         run: rustup toolchain install "$NIGHTLY" --profile minimal --component miri,rust-src
       # Isolation off only so proptest can read its config; few cases, because
-      # Miri interprets every instruction.
+      # Miri interprets every instruction. Only `core`: `db` and `app` call into C (SQLite)
+      # and the operating system (sockets, processes), which Miri cannot interpret; they
+      # contain no unsafe code of their own (`unsafe_code = "forbid"`).
       - name: Miri
         env:
           MIRIFLAGS: -Zmiri-disable-isolation -Zmiri-strict-provenance
           PROPTEST_CASES: '16'
-        run: cargo +"$NIGHTLY" miri test --workspace --all-features --locked
+        run: cargo +"$NIGHTLY" miri test -p stuffcloud-core --all-features --locked
 
   proptest-deep:
     runs-on: ubuntu-latest
@@ -134,7 +145,7 @@ jobs:
       - name: Property tests, 500 000 cases each
         env:
           PROPTEST_CASES: '500000'
-        run: cargo test --workspace --all-features --locked --release --test properties
+        run: cargo test --workspace --all-features --locked --release --test properties --test api_properties
 
   advisories:
     runs-on: ubuntu-latest

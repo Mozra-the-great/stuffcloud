@@ -35,7 +35,7 @@ docker compose -f compose.dev.yml up --build     # or: export COMPOSE_FILE=compo
 
 | URL | What |
 |---|---|
-| <http://stuff.localhost:8080> | the web app (static build; every path that is not an asset falls back to `index.html`, so deep links such as `/tools/<id>` work); `/api/*` answers `501` until `app` exists (A-01) |
+| <http://stuff.localhost:8080> | the web app (static build; every path that is not an asset falls back to `index.html`, so deep links such as `/tools/<id>` work); `/api/*` goes to the API (`app`), for example <http://stuff.localhost:8080/api/v1/openapi.json> |
 | `http://<any name>.sites.localhost:8080` | a placeholder site; any random name works, the site base `sites.localhost` itself and unknown names are `404` |
 | <http://mail.localhost:8080> | Mailpit web UI; SMTP is `mailpit:1025` inside the stack and `127.0.0.1:1025` on the host |
 
@@ -66,19 +66,48 @@ docker compose -f compose.dev.yml exec caddy curl -si -H 'Host: public.sites.loc
 docker compose -f compose.dev.yml exec caddy curl -si -H 'Host: stuff.localhost' http://127.0.0.1:8090/
 ```
 
+**The API.** `app` (`crates/app`, image from `docker/app/Dockerfile`) serves `/api/v1` behind
+Caddy; it is not published on the host. On its first start it applies
+`docker/app/bootstrap.dev.json` once (the settings group `reserved-names`), so
+<http://stuff.localhost:8080/api/v1/settings/reserved-names> answers with data right away. Writes
+answer `401` until accounts exist (A-02); errors are RFC 9457 problem documents
+([`docs/api/problems.md`](docs/api/problems.md)). Without Docker, from the repository root:
+
+```sh
+mkdir -p target/dev-data
+STUFFCLOUD_APP_URL=http://stuff.localhost:8000 STUFFCLOUD_DATA_DIR=target/dev-data \
+  STUFFCLOUD_LOG_FORMAT=text cargo run -p stuffcloud-app
+curl -s http://127.0.0.1:8000/readyz
+```
+
+Every variable is listed in `crates/app/src/config.rs`; secrets are also read from a file with
+the `_FILE` suffix. After a handler change regenerate the OpenAPI document and the client
+(CI job `openapi` fails otherwise):
+
+```sh
+cargo run -q -p stuffcloud-app -- openapi > docs/api/openapi.json
+cd web && pnpm --filter @stuffcloud/api-client generate -- --input ../../../docs/api/openapi.json
+```
+
+**Resource baseline of `app`** (CI job `dev-stack`, `docker stats` after the smoke test, idle
+apart from it, 2026-11-19): about 2.4 MiB
+memory, 0 % CPU, 6 threads (Caddy: 12 MiB, Mailpit: 9 MiB). The numbers are printed in every run
+(step "Resource baseline"); the production compose of T-26 sets limits with headroom above them.
+
 **After changing the web app** run the first command again (`--build`). For UI work with hot
 reload use `pnpm --filter @stuffcloud/web dev` in `web/`; the stack is for the proxy, the zones
 and the services around it.
 
 **Reset the data.** `docker compose -f compose.dev.yml down --volumes` stops the stack and
-deletes its named volumes. Today nothing is persistent: Caddy's state and Mailpit's messages live
-on tmpfs mounts and are gone whenever a container is recreated. Named volumes arrive with `app`
-(database, site files), and `down --volumes` is the reset for them.
+deletes its named volumes: the database of `app` (volume `app-data`, so the bootstrap file is
+applied again on the next start). Caddy's state and Mailpit's messages live on tmpfs mounts and
+are gone whenever a container is recreated.
 
 **Hardening is enforced.** Every service runs as an unprivileged user with a read-only root
 filesystem, all capabilities dropped and `no-new-privileges`, has a health check, and every image
 is pinned by tag and digest; published ports bind to the loopback address. CI job `dev-stack`
 (`scripts/ci/check_container_hardening.py`) checks every compose file and Dockerfile in the
 repository, so a new service or image is covered without registering it, and checks the running
-containers again. A new service copies the `x-hardened` block in `compose.dev.yml`. `app` and
-`edge` join with their own Dockerfiles in A-01 and H-19.
+containers again. A new service copies the `x-hardened` block in `compose.dev.yml`. `app` runs from a
+distroless image without a shell (its health check is `stuffcloud-app healthcheck`); `edge` joins
+with its own Dockerfile in H-19.

@@ -8,8 +8,17 @@ license.workspace = true
 repository.workspace = true
 publish.workspace = true
 
+[features]
+# OpenAPI schemas for the request and response types (`app` enables it; `edge` and the
+# fuzz targets do not need it).
+openapi = ["dep:utoipa"]
+
 [dependencies]
+serde.workspace = true
+serde_json.workspace = true
+serde_path_to_error.workspace = true
 unicode-normalization.workspace = true
+utoipa = { workspace = true, optional = true }
 
 [dev-dependencies]
 proptest.workspace = true

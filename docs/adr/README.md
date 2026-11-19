@@ -9,7 +9,7 @@ stuffcloud is, an ADR says *why* a core choice was made and what it costs.
 
 | ADR | Title | Status | Date |
 |---|---|---|---|
-| [0001](0001-stack.md) | Stack: Rust backend, Svelte/Vite SPA frontend | Accepted (SQLite driver open) | 2026-11-14 |
+| [0001](0001-stack.md) | Stack: Rust backend, Svelte/Vite SPA frontend | Accepted (SQLite driver: rusqlite, addendum 2026-11-19) | 2026-11-14 |
 | [0002](0002-static-hosting-and-origin-isolation.md) | Static-only hosting and origin isolation | Partly superseded by ADR 0009 | 2026-11-05 |
 | [0003](0003-storage-abstraction.md) | Storage abstraction with a filesystem default | Accepted | 2026-11-05 |
 | [0004](0004-client-side-tools.md) | Client-side-first tool execution and asset loading | Accepted | 2026-11-05 |

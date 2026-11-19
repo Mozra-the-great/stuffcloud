@@ -1,4 +1,5 @@
-# libFuzzer dictionary for both targets: tokens that matter to paths and labels.
+# libFuzzer dictionary for every target: tokens that matter to paths, labels, entity tags,
+# query strings and resource documents.
 "/"
 ".."
 "."
@@ -28,3 +29,16 @@
 "-"
 "www"
 "wpad"
+"W/"
+"\""
+"*"
+", "
+"dry_run"
+"=true"
+"=false"
+"&"
+"{\"names\":["
+"\"meta\":"
+"null"
+"[]"
+"{}"

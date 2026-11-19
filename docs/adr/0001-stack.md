@@ -1,6 +1,6 @@
 # ADR 0001: Stack: Rust backend, Svelte/Vite SPA frontend
 
-- Status: Accepted (the SQLite driver is open, see "Open points")
+- Status: Accepted (SQLite driver: `rusqlite`, see "Addendum: SQLite driver")
 - Date: 2026-11-14 (Rust backend, SPEC draft 0.3); 2026-11-16 (Vite SPA variant, implemented in #106)
 - Decided in: [SPEC 4 and 16.9](../SPEC.md#4-architecture-overview), [PR #101](https://github.com/Mozra-the-great/stuffcloud/pull/101), [PR #106](https://github.com/Mozra-the-great/stuffcloud/pull/106)
 
@@ -63,10 +63,9 @@ question open: plain Vite single-page app (SPEC 4) or SvelteKit with `adapter-st
 
 ## Open points
 
-- **SQLite driver (`sqlx` or `rusqlite`): Proposed, not decided.** It is decided in A-01
-  ([#31](https://github.com/Mozra-the-great/stuffcloud/issues/31)) together with `crates/db`,
-  and that PR adds an "Addendum" section to this ADR with the decision, its date and the
-  alternatives. Constraints already set for it: SQLite in WAL mode, versioned migrations with
+- **SQLite driver (`sqlx` or `rusqlite`):** decided in A-01
+  ([#31](https://github.com/Mozra-the-great/stuffcloud/issues/31)): `rusqlite`, see
+  "Addendum: SQLite driver" below. Constraints already set for it: SQLite in WAL mode, versioned migrations with
   a tested runner, CPU-heavy work on `spawn_blocking`, a licence that passes `cargo-deny`, a
   static `distroless` build. `edge` ([ADR 0006](0006-edge-and-core.md)) reads the same
   database, so the choice must work for both processes.
@@ -100,3 +99,38 @@ The open point "The router for the SPA is not chosen yet" is closed by
 PR [#127](https://github.com/Mozra-the-great/stuffcloud/pull/127)): a small own History-API router
 with lazy routes and typed i18n catalogues, no router library. The decision of this record
 (plain Vite SPA, not SvelteKit) stands; T-03 found that client-side routing is all the shell needs.
+
+## Addendum: SQLite driver (2026-11-19, A-01)
+
+The open point "SQLite driver (`sqlx` or `rusqlite`)" is closed by A-01
+([#31](https://github.com/Mozra-the-great/stuffcloud/issues/31)): **`rusqlite`** with the
+`bundled` feature (SQLite compiled into the binary), in `crates/db`.
+
+- **Synchronous by design.** SQLite has one writer and every call is a local file operation;
+  an async driver only moves that work onto its own thread pool. `crates/db` is synchronous and
+  reads no clock; `app` runs every database call through `tokio::task::spawn_blocking`
+  (`AppState::db`), which is the rule this ADR already sets for CPU-heavy work. One connection
+  behind a mutex is enough for the LAN API; a pool can be added behind the same methods.
+- **Own migration runner** (`crates/db/src/migrate.rs`, about 100 lines with its tests): SQL
+  files compiled into the binary, numbered from 1, each applied in its own transaction and
+  recorded with a SHA-256 checksum. An edited applied migration and a schema newer than the
+  build are refused at startup.
+- **WAL is checked, not assumed:** `Database::open` sets `journal_mode = WAL` and fails when
+  SQLite keeps another mode; foreign keys on, `trusted_schema` off, a busy timeout so `edge`
+  (ADR 0006) can read the same file from its own process.
+- **Static build:** `bundled` needs only a C compiler at build time (the Rust build image has
+  one); the `distroless/cc` runtime image needs no `libsqlite3`. License: MIT (`rusqlite`,
+  `libsqlite3-sys`), SQLite itself is public domain; `cargo deny` passes.
+
+Alternatives considered:
+
+- **`sqlx`:** async, compile-time checked queries and a migration runner. Rejected: the
+  checked macros need a database or a committed offline cache at build time (one more thing to
+  keep in sync in CI and in the Docker build), its SQLite driver runs on a worker thread anyway,
+  its dependency tree is several times larger (more to audit and gate), and its migrator does
+  not refuse edited migrations by default. The queries of stuffcloud are few and simple; the
+  integration tests run each of them.
+- **`rusqlite` with `rusqlite_migration` or `refinery`:** one more dependency for what the
+  ~100-line runner does, with less control over the checks above.
+- **A system `libsqlite3`:** rejected for the distroless image (no package manager, and the
+  SQLite version would depend on the base image).

@@ -869,6 +869,7 @@ name = "stuffcloud-app"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "getrandom",
  "prometheus-client",
  "proptest",
  "serde",

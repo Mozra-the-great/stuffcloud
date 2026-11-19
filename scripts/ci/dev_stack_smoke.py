@@ -10,8 +10,11 @@ script, no DNS or hosts entry needed):
 - the web app answers on the app address, a deep link gets the index fallback, a missing
   asset is a 404 and a real asset is cached for good (ADR 0011, decision 3)
 - the API (`app`) answers through Caddy: the settings group the dev bootstrap file created,
-  with an ETag and the security headers; the OpenAPI document; a write is refused with a
-  401 problem document (no accounts yet); an unknown API path is a 404 problem document;
+  with an ETag and the security headers; the OpenAPI document; a write without `Origin` or
+  from a site origin is refused as cross-site (403), the session endpoint hands out a
+  `__Host-` CSRF cookie without `Domain`, and a write that passes the CSRF checks is refused
+  with a 401 problem document (nobody can log in yet); an unknown API path is a 404 problem
+  document;
   the probes of `app` are not reachable from outside
 - a placeholder site answers on a random name below the site base, the site base itself and
   an unknown name do not
@@ -159,17 +162,67 @@ def api() -> None:
     spec = get(url(APP_HOST, "/api/v1/openapi.json"))
     check("API serves its OpenAPI document", spec.status == 200 and '"openapi"' in spec.body, str(spec.status))
 
+    document_body = json.dumps({"names": ["other"]}).encode()
     write = request(
         "PUT",
         url(APP_HOST, "/api/v1/settings/reserved-names"),
-        body=json.dumps({"names": ["other"]}).encode(),
+        body=document_body,
         headers={"Content-Type": "application/json", "If-Match": etag},
     )
     check(
-        "API refuses writes without authentication (401 problem+json)",
-        write.status == 401 and write.headers.get("content-type", "").startswith("application/problem+json")
-        and problem_type(write).endswith("#unauthenticated"),
+        "API refuses a write without Origin (403 csrf-rejected)",
+        write.status == 403 and problem_type(write).endswith("#csrf-rejected"),
         f"{write.status} {write.body[:200]}",
+    )
+
+    session = get(url(APP_HOST, "/api/v1/auth/session"))
+    try:
+        state = json.loads(session.body)
+    except json.JSONDecodeError:
+        state = {}
+    token = str(state.get("csrf_token", ""))
+    set_cookie = session.headers.get("set-cookie", "")
+    attributes = [part.strip().lower() for part in set_cookie.split(";")[1:]]
+    check(
+        "session endpoint answers anonymously with a CSRF token",
+        session.status == 200 and state.get("authenticated") is False and len(token) == 64,
+        f"{session.status} {session.body[:200]}",
+    )
+    check(
+        "CSRF cookie is a __Host- cookie without Domain",
+        set_cookie.startswith(f"__Host-stuffcloud-csrf={token};")
+        and {"path=/", "secure", "httponly"} <= set(attributes)
+        and not any(attribute.startswith("domain") for attribute in attributes),
+        set_cookie,
+    )
+    csrf = {
+        "Content-Type": "application/json",
+        "If-Match": etag,
+        "X-CSRF-Token": token,
+        "Cookie": f"__Host-stuffcloud-csrf={token}",
+    }
+    foreign = request(
+        "PUT",
+        url(APP_HOST, "/api/v1/settings/reserved-names"),
+        body=document_body,
+        headers={**csrf, "Origin": f"http://site.{SITES_BASE}:{HTTP_PORT}"},
+    )
+    check(
+        "API refuses a write from a site origin (403 csrf-rejected)",
+        foreign.status == 403 and problem_type(foreign).endswith("#csrf-rejected"),
+        f"{foreign.status} {foreign.body[:200]}",
+    )
+    anonymous = request(
+        "PUT",
+        url(APP_HOST, "/api/v1/settings/reserved-names"),
+        body=document_body,
+        headers={**csrf, "Origin": f"http://{APP_HOST}:{HTTP_PORT}"},
+    )
+    check(
+        "API refuses a write that passes the CSRF checks without a session (401 problem+json)",
+        anonymous.status == 401 and anonymous.headers.get("content-type", "").startswith("application/problem+json")
+        and problem_type(anonymous).endswith("#unauthenticated"),
+        f"{anonymous.status} {anonymous.body[:200]}",
     )
     missing = get(url(APP_HOST, "/api/v1/does-not-exist"))
     check(

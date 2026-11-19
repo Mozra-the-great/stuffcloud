@@ -11,7 +11,7 @@ same gates but not listed. WASM modules, ML models, fonts and data files that
 come from neither package manager are in
 [`THIRD-PARTY-ASSETS.md`](THIRD-PARTY-ASSETS.md).
 
-## Rust (105)
+## Rust (108)
 
 | Name | Version | License | Source |
 |---|---|---|---|
@@ -38,6 +38,7 @@ come from neither package manager are in
 | futures-core | 0.3.34 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/futures-core/0.3.34) |
 | futures-task | 0.3.34 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/futures-task/0.3.34) |
 | futures-util | 0.3.34 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/futures-util/0.3.34) |
+| getrandom | 0.4.3 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/getrandom/0.4.3) |
 | hashbrown | 0.17.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/hashbrown/0.17.1) |
 | hashlink | 0.12.2 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/hashlink/0.12.2) |
 | http | 1.5.0 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/http/1.5.0) |
@@ -71,6 +72,8 @@ come from neither package manager are in
 | prometheus-client | 0.26.0 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/prometheus-client/0.26.0) |
 | prometheus-client-derive-encode | 0.5.1 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/prometheus-client-derive-encode/0.5.1) |
 | quote | 1.0.47 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/quote/1.0.47) |
+| r-efi | 6.0.0 | MIT OR Apache-2.0 OR LGPL-2.1-or-later | [crates.io](https://crates.io/crates/r-efi/6.0.0) |
+| rand_core | 0.10.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/rand_core/0.10.1) |
 | redox_syscall | 0.5.18 | MIT | [crates.io](https://crates.io/crates/redox_syscall/0.5.18) |
 | rsqlite-vfs | 0.2.0 | MIT | [crates.io](https://crates.io/crates/rsqlite-vfs/0.2.0) |
 | rusqlite | 0.43.0 | MIT | [crates.io](https://crates.io/crates/rusqlite/0.43.0) |

@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Auth data model, sessions and CSRF protection (A-02, #32; ADR 0005 addendum): migration
+  `0002_auth` adds `users`, `credentials`, `oidc_identities`, `recovery_codes`, `sessions` and a
+  `category` for security events in `audit_log`. Sessions use random tokens stored only as
+  SHA-256 hashes, `__Host-` cookies (`Secure`, `HttpOnly`, `Path=/`, never `Domain`), idle and
+  absolute timeouts (`STUFFCLOUD_SESSION_IDLE_MINUTES`, `STUFFCLOUD_SESSION_ABSOLUTE_HOURS`),
+  rotation, a new session on every login (fixation), logout and logout everywhere
+  (`GET`/`DELETE /api/v1/auth/session`, `DELETE /api/v1/auth/sessions`); a role change ends the
+  account's sessions. Every state-changing request without an `Authorization` header needs an
+  `Origin` equal to the app address, `Sec-Fetch-Site: same-origin` when sent and an
+  `X-CSRF-Token` matching the CSRF cookie and the session (`403 csrf-rejected`); the app reads
+  only its own cookie names, so cookies tossed by same-site hosted sites are ignored. Writes need
+  an admin session until A-07 (`403 forbidden` otherwise); resource writes and security events
+  are audited with internal ids only. The typed client sends the CSRF header (`csrfToken`
+  option). CI: the static cookie gate `scripts/ci/check_cookies.py` in `repo-checks`, an
+  integration test of every route's `Set-Cookie` and CSRF refusals, property tests, an attack
+  corpus and the fuzz targets `cookie_header`, `origin` and `csrf_check`. (#PR)
 - API skeleton (A-01, #31): `crates/app` (axum) serves the LAN API under `/api/v1` with the
   resource conventions of ADR 0010 built once for every resource: idempotent `PUT`
   (`created` / `updated` / `unchanged`, an unchanged write touches nothing and writes no audit

@@ -27,11 +27,18 @@ pub struct Migration {
 }
 
 /// The migrations of this build, in order.
-pub const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    name: "initial",
-    sql: include_str!("../migrations/0001_initial.sql"),
-}];
+pub const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        name: "initial",
+        sql: include_str!("../migrations/0001_initial.sql"),
+    },
+    Migration {
+        version: 2,
+        name: "auth",
+        sql: include_str!("../migrations/0002_auth.sql"),
+    },
+];
 
 /// What [`migrate`] did.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -28,6 +28,7 @@ use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 use utoipa::ToSchema;
 
+use crate::auth::Authentication;
 use crate::problem::{Problem, ProblemKind};
 use crate::state::{Access, AppState};
 
@@ -276,6 +277,13 @@ pub fn parse_document<T: Writable>(bytes: &[u8]) -> Result<T, Problem> {
     })
 }
 
+/// The audit actor of a request: the account of its session (`user:<id>`), none otherwise.
+fn actor_of(parts: &Parts) -> Option<String> {
+    Authentication::of(parts)
+        .session()
+        .map(|session| stuffcloud_db::auth::actor(session.user.id))
+}
+
 fn with_etag(mut response: Response, stored: &Stored) -> Response {
     if let Ok(value) = HeaderValue::from_str(&etag_header(stored)) {
         let _previous = response.headers_mut().insert(ETAG, value);
@@ -339,7 +347,7 @@ pub async fn put<T: Writable + ToSchema + Send + 'static>(
     let after = serde_json::to_value(&document).unwrap_or(Value::Null);
     let ctx = WriteContext {
         now: state.now_millis(),
-        actor: None,
+        actor: actor_of(&parts),
         dry_run: query.dry_run,
     };
     let outcome = state
@@ -383,7 +391,7 @@ pub async fn delete<T: Writable + ToSchema + Send + 'static>(
     let preconditions = preconditions(&parts.headers)?;
     let ctx = WriteContext {
         now: state.now_millis(),
-        actor: None,
+        actor: actor_of(parts),
         dry_run: query.dry_run,
     };
     let outcome = state

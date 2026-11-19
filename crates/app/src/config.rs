@@ -15,6 +15,8 @@
 //! | `STUFFCLOUD_LOG_FORMAT` | `json` | `json` or `text` |
 //! | `STUFFCLOUD_MAX_BODY_BYTES` | `1048576` | largest request body (1 KiB to 64 MiB) |
 //! | `STUFFCLOUD_REQUEST_TIMEOUT_SECS` | `30` | time limit per request (1 to 600) |
+//! | `STUFFCLOUD_SESSION_IDLE_MINUTES` | `480` | a session unused this long ends (5 to 10080) |
+//! | `STUFFCLOUD_SESSION_ABSOLUTE_HOURS` | `168` | a session ends this long after login (1 to 2160, at least the idle timeout) |
 //! | `STUFFCLOUD_BOOTSTRAP_CONFIG` | unset | configuration file applied on the first start |
 //! | `STUFFCLOUD_BOOTSTRAP_ADMIN_LOGIN`, `_EMAIL`, `_PASSWORD[_FILE]` | unset | first admin (needs accounts, A-03) |
 //! | `STUFFCLOUD_BOOTSTRAP_TOKEN_FILE` | unset | first service-account token (needs tokens, A-08) |
@@ -25,6 +27,8 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use axum::http::Uri;
+use stuffcloud_core::csrf::Origin;
+use stuffcloud_core::session::{HOUR_MS, MINUTE_MS, Timeouts};
 
 /// Default listen address: loopback only. The container sets `0.0.0.0:8000`.
 pub const DEFAULT_LISTEN: &str = "127.0.0.1:8000";
@@ -38,6 +42,16 @@ pub const MAX_BODY_BYTES: usize = 64 * 1024 * 1024;
 pub const DEFAULT_TIMEOUT_SECS: u64 = 30;
 /// Largest accepted request time limit in seconds.
 pub const MAX_TIMEOUT_SECS: u64 = 600;
+/// Default session idle timeout in minutes (8 hours).
+pub const DEFAULT_SESSION_IDLE_MINUTES: i64 = 480;
+/// Shortest accepted session idle timeout in minutes.
+pub const MIN_SESSION_IDLE_MINUTES: i64 = 5;
+/// Longest accepted session idle timeout in minutes (7 days).
+pub const MAX_SESSION_IDLE_MINUTES: i64 = 10_080;
+/// Default absolute session lifetime in hours (7 days).
+pub const DEFAULT_SESSION_ABSOLUTE_HOURS: i64 = 168;
+/// Longest accepted absolute session lifetime in hours (90 days).
+pub const MAX_SESSION_ABSOLUTE_HOURS: i64 = 2160;
 
 /// Where configuration values come from: the process environment in production, a map in
 /// tests.
@@ -110,7 +124,10 @@ pub enum LogFormat {
 
 /// The validated app address.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AppUrl(String);
+pub struct AppUrl {
+    text: String,
+    origin: Origin,
+}
 
 impl AppUrl {
     /// Validates an app address: `http` or `https`, a host, optionally a port, nothing else
@@ -140,17 +157,28 @@ impl AppUrl {
         if !matches!(uri.path(), "" | "/") || uri.query().is_some() {
             return Err("must not have a path, query or fragment".to_owned());
         }
-        Ok(Self(format!(
+        let text = format!(
             "{}://{}",
             uri.scheme_str().unwrap_or_default(),
             authority.as_str().to_ascii_lowercase()
-        )))
+        );
+        // The browser's `Origin` header is compared with this origin (CSRF, SPEC 5.5).
+        let origin = Origin::parse(text.as_bytes())
+            .map_err(|error| format!("is not a valid web origin: {error}"))?;
+        Ok(Self { text, origin })
     }
 
     /// The address, normalised (lowercase host, no trailing slash).
     #[must_use]
     pub fn as_str(&self) -> &str {
-        &self.0
+        &self.text
+    }
+
+    /// The origin of the address, which every state-changing request must name in its
+    /// `Origin` header.
+    #[must_use]
+    pub fn origin(&self) -> &Origin {
+        &self.origin
     }
 }
 
@@ -187,6 +215,8 @@ pub struct Config {
     pub log_format: LogFormat,
     /// Request limits.
     pub limits: Limits,
+    /// Session lifetimes.
+    pub session: Timeouts,
     /// Bootstrap configuration file, applied on the first start (SPEC 10.7).
     pub bootstrap_config: Option<PathBuf>,
 }
@@ -336,6 +366,34 @@ pub fn listen_from<E: Environment + ?Sized>(env: &E) -> Option<SocketAddr> {
     parse_listen(&text).ok()
 }
 
+/// The session timeouts; the absolute one may not be shorter than the idle one.
+fn session_timeouts<E: Environment + ?Sized>(reader: &mut Reader<'_, E>) -> Timeouts {
+    let idle_minutes = reader.number(
+        "STUFFCLOUD_SESSION_IDLE_MINUTES",
+        DEFAULT_SESSION_IDLE_MINUTES,
+        MIN_SESSION_IDLE_MINUTES,
+        MAX_SESSION_IDLE_MINUTES,
+    );
+    let absolute_hours = reader.number(
+        "STUFFCLOUD_SESSION_ABSOLUTE_HOURS",
+        DEFAULT_SESSION_ABSOLUTE_HOURS,
+        1,
+        MAX_SESSION_ABSOLUTE_HOURS,
+    );
+    // Both values are bounded above, so the products cannot overflow.
+    let session = Timeouts {
+        idle_ms: idle_minutes.saturating_mul(MINUTE_MS),
+        absolute_ms: absolute_hours.saturating_mul(HOUR_MS),
+    };
+    if session.absolute_ms < session.idle_ms {
+        reader.fail(
+            "STUFFCLOUD_SESSION_ABSOLUTE_HOURS",
+            "must not be shorter than STUFFCLOUD_SESSION_IDLE_MINUTES",
+        );
+    }
+    session
+}
+
 /// Reads and validates the whole configuration.
 ///
 /// # Errors
@@ -403,6 +461,8 @@ pub fn from_env<E: Environment + ?Sized>(env: &E) -> Result<Config, ConfigErrors
         )),
     };
 
+    let session = session_timeouts(&mut reader);
+
     let bootstrap_config = reader.var("STUFFCLOUD_BOOTSTRAP_CONFIG").map(PathBuf::from);
 
     // The first admin and the first token need accounts (A-03, #33) and tokens (A-08, #38),
@@ -434,6 +494,7 @@ pub fn from_env<E: Environment + ?Sized>(env: &E) -> Result<Config, ConfigErrors
             log_level,
             log_format,
             limits,
+            session,
             bootstrap_config,
         }),
         _ => Err(ConfigErrors(reader.errors)),
@@ -512,6 +573,70 @@ mod tests {
         assert_eq!(config.limits.max_body_bytes, 1_048_576);
         assert_eq!(config.limits.request_timeout, Duration::from_secs(30));
         assert_eq!(config.bootstrap_config, None);
+        assert_eq!(config.session, Timeouts::default());
+        assert_eq!(
+            config.app_url.origin(),
+            &Origin::parse(b"http://stuff.localhost:8080").unwrap()
+        );
+    }
+
+    #[test]
+    fn session_timeouts() {
+        let dir = tempfile::tempdir().unwrap();
+        let read = |idle: &str, absolute: &str| {
+            from_env(
+                &base(dir.path())
+                    .with("STUFFCLOUD_SESSION_IDLE_MINUTES", idle)
+                    .with("STUFFCLOUD_SESSION_ABSOLUTE_HOURS", absolute),
+            )
+        };
+        assert_eq!(
+            read("5", "1").unwrap().session,
+            Timeouts {
+                idle_ms: 300_000,
+                absolute_ms: 3_600_000
+            }
+        );
+        assert_eq!(
+            read("60", "1").unwrap().session,
+            Timeouts {
+                idle_ms: 3_600_000,
+                absolute_ms: 3_600_000
+            }
+        );
+        assert_eq!(
+            read("10080", "2160").unwrap().session,
+            Timeouts {
+                idle_ms: 604_800_000,
+                absolute_ms: 7_776_000_000
+            }
+        );
+        let message = |idle: &str, absolute: &str| match read(idle, absolute) {
+            Err(ConfigErrors(errors)) => errors.iter().map(ToString::to_string).collect::<Vec<_>>(),
+            Ok(config) => panic!("{config:?}"),
+        };
+        assert_eq!(
+            message("4", "1"),
+            vec!["STUFFCLOUD_SESSION_IDLE_MINUTES: must be a whole number from 5 to 10080"]
+        );
+        assert_eq!(
+            message("10081", "2160"),
+            vec!["STUFFCLOUD_SESSION_IDLE_MINUTES: must be a whole number from 5 to 10080"]
+        );
+        assert_eq!(
+            message("5", "0"),
+            vec!["STUFFCLOUD_SESSION_ABSOLUTE_HOURS: must be a whole number from 1 to 2160"]
+        );
+        assert_eq!(
+            message("5", "2161"),
+            vec!["STUFFCLOUD_SESSION_ABSOLUTE_HOURS: must be a whole number from 1 to 2160"]
+        );
+        assert_eq!(
+            message("61", "1"),
+            vec![
+                "STUFFCLOUD_SESSION_ABSOLUTE_HOURS: must not be shorter than STUFFCLOUD_SESSION_IDLE_MINUTES"
+            ]
+        );
     }
 
     #[test]
@@ -643,7 +768,13 @@ mod tests {
             ("http://192.0.2.1:8080", "http://192.0.2.1:8080"),
             ("http://[2001:db8::1]", "http://[2001:db8::1]"),
         ] {
-            assert_eq!(AppUrl::parse(text).unwrap().as_str(), expected, "{text}");
+            let url = AppUrl::parse(text).unwrap();
+            assert_eq!(url.as_str(), expected, "{text}");
+            assert_eq!(
+                url.origin().to_string(),
+                expected.replace(":443", ""),
+                "{text}"
+            );
         }
         for (text, message) in [
             ("not a url", "is not a valid URL"),
@@ -667,6 +798,10 @@ mod tests {
                 "must not have a path, query or fragment",
             ),
             ("http://:8080", "has no host"),
+            (
+                "http://stuff_host.example",
+                "is not a valid web origin: the origin has no valid host",
+            ),
         ] {
             assert_eq!(AppUrl::parse(text), Err(message.to_owned()), "{text}");
         }

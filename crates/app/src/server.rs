@@ -13,11 +13,12 @@ use crate::middleware::{
     observe, panic_response, problems_for_bare_errors, security_headers, timeout,
 };
 use crate::problem::{Problem, ProblemKind};
+use crate::sessions::{SESSION_PATH, SESSIONS_PATH, delete_session, delete_sessions, get_session};
 use crate::settings::{
     RESERVED_NAMES_PATH, delete_reserved_names, get_reserved_names, put_reserved_names,
 };
 use crate::state::AppState;
-use crate::{health, metrics, openapi};
+use crate::{auth, health, metrics, openapi};
 
 /// Answer for every path that is not a route.
 async fn not_found() -> Response {
@@ -28,6 +29,8 @@ async fn not_found() -> Response {
 fn api_v1() -> Router<AppState> {
     Router::new()
         .route("/openapi.json", get(openapi::openapi_json))
+        .route(SESSION_PATH, get(get_session).delete(delete_session))
+        .route(SESSIONS_PATH, axum::routing::delete(delete_sessions))
         .route(
             RESERVED_NAMES_PATH,
             get(get_reserved_names)
@@ -37,7 +40,9 @@ fn api_v1() -> Router<AppState> {
 }
 
 /// The complete application. Middleware, from the outside in: metrics and access log,
-/// security headers, panic guard, time limit, problem documents for bare router errors.
+/// security headers, panic guard, time limit, problem documents for bare router errors,
+/// authentication with the CSRF checks (`auth::authenticate`, for every path including
+/// unknown ones).
 pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/healthz", get(health::live))
@@ -45,6 +50,7 @@ pub fn router(state: AppState) -> Router {
         .route("/metrics", get(metrics::render))
         .nest("/api/v1", api_v1())
         .fallback(not_found)
+        .layer(from_fn_with_state(state.clone(), auth::authenticate))
         .layer(from_fn(problems_for_bare_errors))
         .layer(from_fn_with_state(state.clone(), timeout))
         .layer(CatchPanicLayer::custom(panic_response))

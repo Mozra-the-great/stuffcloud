@@ -29,6 +29,10 @@ pub enum ProblemKind {
     MalformedBody,
     /// 401: the request needs authentication the client did not provide.
     Unauthenticated,
+    /// 403: the client is authenticated but may not do this.
+    Forbidden,
+    /// 403: a state-changing request failed the `Origin` / CSRF checks (SPEC 5.5).
+    CsrfRejected,
     /// 404: no such resource or route.
     NotFound,
     /// 405: the route exists but not with this method.
@@ -58,6 +62,7 @@ impl ProblemKind {
         match self {
             Self::BadRequest | Self::MalformedBody => StatusCode::BAD_REQUEST,
             Self::Unauthenticated => StatusCode::UNAUTHORIZED,
+            Self::Forbidden | Self::CsrfRejected => StatusCode::FORBIDDEN,
             Self::NotFound => StatusCode::NOT_FOUND,
             Self::MethodNotAllowed => StatusCode::METHOD_NOT_ALLOWED,
             Self::PreconditionFailed => StatusCode::PRECONDITION_FAILED,
@@ -78,6 +83,8 @@ impl ProblemKind {
             Self::BadRequest => Some("bad-request"),
             Self::MalformedBody => Some("malformed-body"),
             Self::Unauthenticated => Some("unauthenticated"),
+            Self::Forbidden => Some("forbidden"),
+            Self::CsrfRejected => Some("csrf-rejected"),
             Self::NotFound => Some("not-found"),
             Self::MethodNotAllowed => Some("method-not-allowed"),
             Self::PreconditionFailed => Some("precondition-failed"),
@@ -107,6 +114,8 @@ impl ProblemKind {
             Self::BadRequest => "Bad request",
             Self::MalformedBody => "Malformed body",
             Self::Unauthenticated => "Authentication required",
+            Self::Forbidden => "Forbidden",
+            Self::CsrfRejected => "Cross-site request refused",
             Self::NotFound => "Not found",
             Self::MethodNotAllowed => "Method not allowed",
             Self::PreconditionFailed => "Precondition failed",
@@ -227,10 +236,12 @@ mod tests {
 
     use super::*;
 
-    const ALL: [ProblemKind; 13] = [
+    const ALL: [ProblemKind; 15] = [
         ProblemKind::BadRequest,
         ProblemKind::MalformedBody,
         ProblemKind::Unauthenticated,
+        ProblemKind::Forbidden,
+        ProblemKind::CsrfRejected,
         ProblemKind::NotFound,
         ProblemKind::MethodNotAllowed,
         ProblemKind::PreconditionFailed,
@@ -256,6 +267,8 @@ mod tests {
                 (400, "Bad request", t("bad-request")),
                 (400, "Malformed body", t("malformed-body")),
                 (401, "Authentication required", t("unauthenticated")),
+                (403, "Forbidden", t("forbidden")),
+                (403, "Cross-site request refused", t("csrf-rejected")),
                 (404, "Not found", t("not-found")),
                 (405, "Method not allowed", t("method-not-allowed")),
                 (412, "Precondition failed", t("precondition-failed")),

@@ -1,6 +1,10 @@
 import { cleanup, screen, waitFor, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  IEEE_REGISTRATION_AUTHORITY_TEXT,
+  IEEE_REGISTRATION_AUTHORITY_URL,
+} from '../../src/app/external-links.ts';
 import { i18n } from '../../src/i18n/index.ts';
 import manifest from '../../src/tools/mac/manifest.ts';
 import type * as MacTask from '../../src/tools/mac/task.ts';
@@ -310,8 +314,8 @@ describe('vendor names from a list the visitor loads', () => {
     expect(
       screen.getByRole('heading', { level: 2, name: 'Vendor names (optional)' }),
     ).toBeDefined();
-    const link = screen.getByRole('link', { name: /standards\.ieee\.org/ });
-    expect(link.getAttribute('href')).toMatch(/^https:\/\/standards\.ieee\.org\//);
+    const link = screen.getByRole('link', { name: IEEE_REGISTRATION_AUTHORITY_TEXT });
+    expect(link.getAttribute('href')).toBe(IEEE_REGISTRATION_AUTHORITY_URL);
     expect(link.getAttribute('rel')).toBe('external noopener noreferrer');
     expect(screen.getByText(/stuffcloud ships no vendor list/)).toBeDefined();
     expect(screen.getByText(/read in this tab only/)).toBeDefined();

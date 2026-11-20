@@ -145,10 +145,9 @@ test.describe('mac', () => {
     await open(page);
     await input(page).fill('00:a0:b0:12:34:56');
     await expect(value(page, 'Vendor')).toHaveText(/No vendor list loaded/);
-    await expect(page.getByRole('link', { name: /standards\.ieee\.org/ })).toHaveAttribute(
-      'href',
-      /^https:\/\/standards\.ieee\.org\//,
-    );
+    await expect(
+      page.getByRole('link', { name: 'standards.ieee.org/products-programs/regauth', exact: true }),
+    ).toHaveAttribute('href', 'https://standards.ieee.org/products-programs/regauth/');
     await a11y.check(page, 'mac: before a list is loaded');
     const button = page.getByRole('button', { name: 'Choose IEEE CSV files' });
     await button.focus();

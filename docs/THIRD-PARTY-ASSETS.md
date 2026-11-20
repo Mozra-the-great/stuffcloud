@@ -62,4 +62,9 @@ license check of the exact artifact before use.
 | U²-Netp | model weights | Apache-2.0 per SPEC; confirm for the exact weights file | background removal |
 | BiRefNet-lite | model weights | MIT per SPEC; confirm for the exact weights file | background removal (opt-in) |
 | ONNX Runtime Web | WASM | MIT per SPEC; also covered by `THIRD-PARTY.md` as an npm package, check the shipped `.wasm` files | background removal |
-| IEEE OUI snapshot | data | terms of use of the IEEE registry data | MAC lookup |
+
+## Not shipped on purpose
+
+| Data | Why not | What the app does instead |
+|---|---|---|
+| IEEE OUI lists (`oui.csv`, `mam.csv`, `oui36.csv`) | IEEE names no licence for the files ("all rights reserved") and has said it does not authorise redistribution by third parties (decision SF17, option c). A snapshot in this public repository or in the build would be a redistribution. | The MAC address tool (T-20, #25) ships no vendor data and fetches none. A visitor downloads the lists from the IEEE Registration Authority and chooses the files in the page; they are read in a worker, kept in memory only and never sent anywhere. A bundled snapshot and its CI refresh stay open in #25 until the licence is clear. |

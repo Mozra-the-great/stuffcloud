@@ -354,8 +354,8 @@ Library candidates (license must be verified per version before adoption):
 | Convert | unit converter | own unit tables (no dependency; T-18) |
 | Parse | CRON expression | own parser, explainer (de/en) and next-run search; time zones through `Intl` (no dependency; T-19) |
 | Parse | user-agent | own rules, tested on a corpus of real strings (no dependency; T-19; `ua-parser-js` v2 is AGPL) |
-| Network | subnet calculator | ipaddr.js / ip-address |
-| Network | MAC lookup | bundled IEEE OUI snapshot, updated by a CI job, offline |
+| Network | subnet calculator (IPv4 and IPv6: details, split, summarise, contains, IPv4-mapped) | own implementation on `BigInt`, no dependency (T-20) |
+| Network | MAC address (formats, unicast/multicast and universal/local bits, OUI prefix; vendor names only from IEEE CSV lists the visitor loads) | own code; **no bundled IEEE data**, because IEEE publishes no licence for it (SF17); the lists are read in a worker and never leave the browser. A bundled snapshot with a CI refresh is deferred (T-20, #25) |
 | Text | lorem ipsum, UUID (v4/v7) | own word list; `crypto.getRandomValues` only, version 7 counts up inside a millisecond so UUIDs sort in the order they were made (no dependency; T-21) |
 | Text | QR code (text/URL, Wi-Fi, vCard; PNG and SVG) | `uqr` (MIT, encoder) and `jsQR` (Apache-2.0, reader for the scan test); own PNG writer; stuffcloud style at level H with an automatic scan test (T-21) |
 | Text | diff viewer | jsdiff (`diff`, BSD-3-Clause) in a worker with a time limit, lines or words, side by side or inline (T-21) |

@@ -430,7 +430,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   available; D6: workflows are copied per repo, no central reusable workflows).
 
 ### Fixed
-- **Nightly deep tests green again (#PR).** Miri reported 18 leaks from a test helper in
+- **Nightly deep tests green again (#163).** Miri reported 18 leaks from a test helper in
   `core::cookie` that leaked every header on purpose; it now takes the `'static` literals it is
   given. The beta toolchain (1.101) adds lints that would break the build on the next stable:
   `chunks_exact` with a constant size is now `as_chunks` (`core::token`, `core::client_ip`; the

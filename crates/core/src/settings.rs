@@ -147,12 +147,12 @@ mod tests {
 
     #[test]
     fn valid_lists() {
-        assert!(names(&[]).validate().is_empty());
-        assert!(names(&["intranet", "wiki", "a-b"]).validate().is_empty());
+        assert_eq!(names(&[]).validate(), Vec::new());
+        assert_eq!(names(&["intranet", "wiki", "a-b"]).validate(), Vec::new());
         let full: Vec<String> = (0..MAX_RESERVED_NAMES)
             .map(|i| format!("n{i:04}"))
             .collect();
-        assert!(ReservedNames { names: full }.validate().is_empty());
+        assert_eq!(ReservedNames { names: full }.validate(), Vec::new());
     }
 
     #[test]
@@ -252,7 +252,7 @@ mod tests {
             let parsed: Signup =
                 parse_writable(json!({ "mode": name }).to_string().as_bytes()).unwrap();
             assert_eq!(parsed.mode, mode);
-            assert!(parsed.validate().is_empty());
+            assert_eq!(parsed.validate(), Vec::new());
             assert_eq!(
                 serde_json::to_value(parsed).unwrap(),
                 json!({ "mode": name })

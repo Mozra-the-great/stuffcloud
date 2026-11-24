@@ -37,7 +37,7 @@ fn path_like() -> impl Strategy<Value = String> {
 
 fn assert_path_invariants(p: &SafeRelPath) {
     let s = p.as_str();
-    assert!(!s.is_empty());
+    assert_ne!(s, "");
     assert!(s.len() <= MAX_PATH_BYTES);
     assert!(is_nfc(s), "not NFC: {s:?}");
     assert!(!s.starts_with('/'));
@@ -46,7 +46,7 @@ fn assert_path_invariants(p: &SafeRelPath) {
     let comps: Vec<&str> = p.components().collect();
     assert!(!comps.is_empty() && comps.len() <= MAX_DEPTH);
     for c in &comps {
-        assert!(!c.is_empty());
+        assert_ne!(*c, "");
         assert!(!c.starts_with('.'));
         assert!(!c.ends_with('.') && !c.ends_with(' ') && !c.starts_with(' '));
         assert!(c.len() <= MAX_COMPONENT_BYTES);

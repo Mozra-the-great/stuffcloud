@@ -299,11 +299,10 @@ mod tests {
                 "{\"names\":[\"intranet\"]}".to_owned()
             )]
         );
-        assert!(parse_file(br#"{"version":1}"#).unwrap().is_empty());
-        assert!(
-            parse_file(br#"{"version":1,"settings":{}}"#)
-                .unwrap()
-                .is_empty()
+        assert_eq!(parse_file(br#"{"version":1}"#).unwrap(), Vec::new());
+        assert_eq!(
+            parse_file(br#"{"version":1,"settings":{}}"#).unwrap(),
+            Vec::new()
         );
     }
 

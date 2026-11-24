@@ -508,7 +508,7 @@ async fn an_account_is_counted_under_all_its_names() {
     assert_eq!(refused.status, wrong.status);
     assert_eq!(refused.body, wrong.body);
     assert!(refused.header("retry-after").is_none());
-    assert!(refused.set_cookies().is_empty());
+    assert_eq!(refused.set_cookies(), Vec::<String>::new());
     // Once the wait is over the right password works again.
     app.clock.advance(2000);
     let reply = login_from(&app, [203, 0, 113, 1], "alice@example.com", ALICE_PASSWORD).await;
@@ -594,7 +594,7 @@ async fn invite_only_refuses_open_registration() {
         problem["detail"],
         "registration needs an invitation (sign-up mode invite-only)"
     );
-    assert!(refused.set_cookies().is_empty());
+    assert_eq!(refused.set_cookies(), Vec::<String>::new());
     let unknown = "0".repeat(64);
     let reply = register(&app, &json!({"login": "bob", "email": "bob@example.com", "password": "bob's own passphrase", "invitation": unknown})).await;
     assert_eq!(

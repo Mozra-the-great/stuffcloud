@@ -824,7 +824,7 @@ mod tests {
     #[test]
     fn password_length_is_counted_in_characters_after_nfkc() {
         let policy = PasswordPolicy::default();
-        assert!(policy.check("correcthorse", &context(), false).is_empty());
+        assert_eq!(policy.check("correcthorse", &context(), false), Vec::new());
         assert_eq!(
             policy.check("correcthors", &context(), false),
             vec![PasswordProblem::TooShort {
@@ -833,12 +833,12 @@ mod tests {
             }]
         );
         // Twelve characters of two bytes each.
-        assert!(policy.check(&"äö".repeat(6), &context(), false).is_empty());
+        assert_eq!(policy.check(&"äö".repeat(6), &context(), false), Vec::new());
         // The ligature "ﬁ" becomes "fi" in NFKC: 6 + 6 characters.
         assert_eq!(normalize_password("ﬁ"), "fi");
-        assert!(policy.check(&"ﬁx".repeat(4), &context(), false).is_empty());
+        assert_eq!(policy.check(&"ﬁx".repeat(4), &context(), false), Vec::new());
         let longest = "ab".repeat(MAX_PASSWORD_CHARS / 2);
-        assert!(policy.check(&longest, &context(), false).is_empty());
+        assert_eq!(policy.check(&longest, &context(), false), Vec::new());
         assert_eq!(
             policy.check(&format!("{longest}c"), &context(), false),
             vec![PasswordProblem::TooLong]
@@ -885,7 +885,7 @@ mod tests {
             policy.check("aaaaaaaa", &context(), false),
             vec![PasswordProblem::OneCharacter]
         );
-        assert!(policy.check("aaaaaaab", &context(), false).is_empty());
+        assert_eq!(policy.check("aaaaaaab", &context(), false), Vec::new());
         assert_eq!(
             policy.check("unusual words", &context(), true),
             vec![PasswordProblem::Breached]

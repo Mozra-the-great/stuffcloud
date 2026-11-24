@@ -192,7 +192,7 @@ async fn a_dry_run_changes_nothing_and_returns_the_diff() {
         json!([{"pointer": "/names", "after": ["intranet"]}])
     );
     app.get(PATH).await.assert_problem(404, "not-found");
-    assert!(app.audit_actions().is_empty());
+    assert_eq!(app.audit_actions(), Vec::<String>::new());
 
     let real = app
         .put_json(PATH, &json!({"names": ["intranet"]}), &[])
@@ -283,7 +283,7 @@ async fn all_field_errors_come_back_in_one_response() {
         ]
     );
     assert_eq!(problem["detail"], "5 invalid fields");
-    assert!(app.audit_actions().is_empty());
+    assert_eq!(app.audit_actions(), Vec::<String>::new());
 
     let missing = app
         .put_json(PATH, &json!({}), &[])
@@ -407,5 +407,5 @@ async fn the_production_policy_refuses_every_write() {
         .assert_problem(401, "unauthenticated");
     // Reads are allowed.
     app.get(PATH).await.assert_problem(404, "not-found");
-    assert!(app.audit_actions().is_empty());
+    assert_eq!(app.audit_actions(), Vec::<String>::new());
 }

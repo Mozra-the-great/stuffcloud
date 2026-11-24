@@ -430,6 +430,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   available; D6: workflows are copied per repo, no central reusable workflows).
 
 ### Fixed
+- **Nightly deep tests green again (#PR).** Miri reported 18 leaks from a test helper in
+  `core::cookie` that leaked every header on purpose; it now takes the `'static` literals it is
+  given. The beta toolchain (1.101) adds lints that would break the build on the next stable:
+  `chunks_exact` with a constant size is now `as_chunks` (`core::token`, `core::client_ip`; the
+  unreachable odd-length branch in `Token::parse` is gone with it), `fetch_update` is
+  `try_update`, and `assert!(x.is_empty())` in tests is `assert_eq!`/`assert_ne!`, which shows
+  the value on failure. No check was relaxed.
 - **Login throttles hold under parallel requests and behind a proxy (#145, #146, #147; #150).**
   Attempts are reserved before the password check, so a burst of parallel logins or password
   changes gets exactly the free failures plus one check per key instead of one check per

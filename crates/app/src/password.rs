@@ -361,7 +361,7 @@ impl Passwords {
         let queue = self.queue;
         if self
             .waiting
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |waiting| {
+            .try_update(Ordering::AcqRel, Ordering::Acquire, |waiting| {
                 (waiting < queue).then_some(waiting.saturating_add(1))
             })
             .is_err()
@@ -464,7 +464,7 @@ mod tests {
         }
         .params()
         .unwrap_err();
-        assert!(!error.is_empty());
+        assert_ne!(error, "");
         assert!(
             Argon2Settings {
                 iterations: 0,

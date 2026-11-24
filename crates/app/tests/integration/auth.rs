@@ -392,7 +392,7 @@ async fn the_session_endpoint_hands_out_csrf_tokens() {
     let cookie = vec![header("cookie", &format!("__Host-stuffcloud-csrf={token}"))];
     let (reply, state) = session_state(&app, &cookie).await;
     assert_eq!(state["csrf_token"], token);
-    assert!(reply.set_cookies().is_empty());
+    assert_eq!(reply.set_cookies(), Vec::<String>::new());
     // A malformed cookie is replaced.
     let (reply, state) =
         session_state(&app, &[header("cookie", "__Host-stuffcloud-csrf=zz")]).await;
@@ -405,7 +405,7 @@ async fn a_session_gets_its_bound_token_or_a_new_one() {
     let app = TestApp::new(Policy::Production);
     let admin = app.login("alice", Role::Admin);
     let (reply, state) = session_state(&app, &admin.read_headers()).await;
-    assert!(reply.set_cookies().is_empty());
+    assert_eq!(reply.set_cookies(), Vec::<String>::new());
     assert_eq!(state["authenticated"], true);
     assert_eq!(state["csrf_token"], admin.csrf.to_hex());
     assert_eq!(
@@ -1102,7 +1102,7 @@ async fn a_cross_site_get_cannot_rebind_the_csrf_token() {
     // The same holds without a session: a cross-site navigation must not replace the CSRF
     // cookie of an open login form either.
     let (reply, _) = session_state(&app, &[header("sec-fetch-site", "cross-site")]).await;
-    assert!(reply.set_cookies().is_empty());
+    assert_eq!(reply.set_cookies(), Vec::<String>::new());
     let (reply, _) = session_state(&app, &[header("sec-fetch-site", "same-origin")]).await;
     assert_eq!(reply.set_cookies().len(), 1);
 }

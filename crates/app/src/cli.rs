@@ -402,7 +402,7 @@ mod tests {
         for args in [vec!["nope"], vec!["serve", "extra"], vec!["openapi", "x"]] {
             let (code, out, err) = call(&args, &MapEnvironment::default());
             assert_eq!(code, EXIT_USAGE, "{args:?}");
-            assert!(out.is_empty());
+            assert_eq!(out, "");
             assert_eq!(err.trim_end(), USAGE);
         }
     }
@@ -427,7 +427,7 @@ mod tests {
     fn openapi_prints_the_document() {
         let (code, out, err) = call(&["openapi"], &MapEnvironment::default());
         assert_eq!(code, EXIT_OK);
-        assert!(err.is_empty());
+        assert_eq!(err, "");
         assert_eq!(out, openapi::to_json().unwrap());
     }
 
@@ -435,7 +435,7 @@ mod tests {
     fn permissions_prints_the_matrix_and_the_routes() {
         let (code, out, err) = call(&["permissions"], &MapEnvironment::default());
         assert_eq!(code, EXIT_OK);
-        assert!(err.is_empty());
+        assert_eq!(err, "");
         assert_eq!(out, permissions_document());
         assert!(out.starts_with(
             "# Permissions
@@ -608,7 +608,7 @@ mod tests {
         // Before the first start the database is not ready.
         let (code, out, err) = call(&["reset-link", "alice"], &env);
         assert_eq!(code, EXIT_FAILURE);
-        assert!(out.is_empty());
+        assert_eq!(out, "");
         assert!(
             err.starts_with("the database is not ready (start the app once): "),
             "{err}"

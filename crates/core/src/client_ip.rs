@@ -213,8 +213,8 @@ impl Bucket {
             IpAddr::V6(v6) => {
                 let [a, b, c, d, ..] = v6.segments();
                 let mut prefix = [0_u8; 8];
-                for (slot, segment) in prefix.chunks_exact_mut(2).zip([a, b, c, d]) {
-                    slot.copy_from_slice(&segment.to_be_bytes());
+                for (slot, segment) in prefix.as_chunks_mut::<2>().0.iter_mut().zip([a, b, c, d]) {
+                    *slot = segment.to_be_bytes();
                 }
                 Self::V6(prefix)
             }

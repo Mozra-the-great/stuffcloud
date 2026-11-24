@@ -666,7 +666,7 @@ mod tests {
         assert_eq!(would_create.change, Change::Created);
         assert_eq!(would_create.current.etag, etag_for(KIND, KEY, "{\"a\":1}"));
         assert_eq!(db.get(KIND, KEY).unwrap(), None);
-        assert!(actions(&db).is_empty());
+        assert_eq!(actions(&db), Vec::<String>::new());
 
         let created = written(
             db.put(
@@ -939,7 +939,7 @@ mod tests {
             Err(DbError::Sqlite(_))
         ));
         assert_eq!(db.get(KIND, KEY).unwrap(), None);
-        assert!(db.audit_log().unwrap().is_empty());
+        assert_eq!(db.audit_log().unwrap(), Vec::new());
         assert_eq!(
             db.bootstrap(&[(KIND, KEY, "{}".to_owned())], None, 2)
                 .unwrap(),

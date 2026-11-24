@@ -514,7 +514,7 @@ mod tests {
                 },
             ]
         );
-        assert!(diff(&fields, Some(&before), Some(&before)).is_empty());
+        assert_eq!(diff(&fields, Some(&before), Some(&before)), Vec::new());
         let created = diff(&["a"], None, Some(&after));
         assert_eq!(
             created,

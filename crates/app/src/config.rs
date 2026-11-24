@@ -1250,7 +1250,7 @@ mod tests {
         };
         let (value, errors) = read(&MapEnvironment::default().with(name, PASSWORD));
         assert_eq!(value.unwrap().expose(), PASSWORD);
-        assert!(errors.is_empty());
+        assert_eq!(errors, Vec::<String>::new());
 
         for contents in [
             PASSWORD.to_owned(),

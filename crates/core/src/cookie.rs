@@ -330,9 +330,8 @@ mod tests {
         assert!(set.to_string().contains(&token().to_hex()));
     }
 
-    fn one(header: &str, name: &str) -> Lookup<'static> {
-        let leaked: &'static str = Box::leak(header.to_owned().into_boxed_str());
-        lookup([leaked.as_bytes()], name)
+    fn one(header: &'static str, name: &str) -> Lookup<'static> {
+        lookup([header.as_bytes()], name)
     }
 
     #[test]

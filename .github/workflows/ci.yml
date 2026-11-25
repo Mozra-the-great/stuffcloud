@@ -188,7 +188,7 @@ jobs:
         run: |
           rustup toolchain install
           rustup component add llvm-tools-preview
-      - uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21 # v2.90.4
+      - uses: taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
         with:
           tool: cargo-llvm-cov@0.9.1
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -234,7 +234,7 @@ jobs:
           fetch-depth: 0
       - name: Install toolchain (rust-toolchain.toml)
         run: rustup toolchain install && rustup show active-toolchain
-      - uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21 # v2.90.4
+      - uses: taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
         with:
           tool: cargo-mutants@27.1.0
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -278,7 +278,7 @@ jobs:
           persist-credentials: false
       - name: Install nightly
         run: rustup toolchain install "$NIGHTLY" --profile minimal
-      - uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21 # v2.90.4
+      - uses: taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
         with:
           tool: cargo-fuzz@0.13.2
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -580,7 +580,7 @@ jobs:
           persist-credentials: false
       - name: Install toolchain (rust-toolchain.toml)
         run: rustup toolchain install && rustup show active-toolchain
-      - uses: taiki-e/install-action@4a76afe23f9e08d2d9550fb56e556444e8611d21 # v2.90.4
+      - uses: taiki-e/install-action@75a7c0f87bd666af3cdb75c5b9e9d03ab6044e6f # v2.90.6
         with:
           tool: cargo-deny@0.20.2
       # deny.toml: RustSec advisories (incl. unmaintained, unsound, yanked),

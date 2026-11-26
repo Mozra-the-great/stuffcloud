@@ -50,6 +50,6 @@ export const STICKER_NAMES = [
 
 export type StickerName = (typeof STICKER_NAMES)[number];
 
-export function isStickerName(value: string): value is StickerName {
-  return (STICKER_NAMES as readonly string[]).includes(value);
+export function isStickerName(value: unknown): value is StickerName {
+  return (STICKER_NAMES as readonly unknown[]).includes(value);
 }

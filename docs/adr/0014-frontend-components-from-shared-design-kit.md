@@ -174,6 +174,18 @@ instead of green and 75 selectors depend on `.tool-status`), `ReorderList` and `
 (`SortableList`, `SelectGrid`) and `Sticker` (`Mascot` with code art). `src/pdf/LiveStatus.svelte` keeps its
 two regions with `ToolStatus`.
 
+## Addendum: kern 0.13.4, short visible labels (2026-11-26, #121, PR #PR)
+
+kern 0.13.2 to 0.13.4 are additions and fixes only (pill-tab overflow kern#159; `accessibleLabel` on
+`CopyButton` and `DownloadButton` kern#166; `copyAccessibleLabel` on `Code` and `CodeBlock` kern#168).
+The two accepted differences of the previous addendum that came from the missing feature are gone: the
+copy button shows the word "Copy" again (it is no longer an icon-only button; the icon stays next to the
+word and turns into a check mark for two seconds), and a download button shows "Download", as in the
+design. The tool's longer label ("Copy HEX", "Download result") is the accessible name, so a screen reader
+still hears which value a button belongs to; `tests/button-names.test.ts` checks in both languages that
+every such name contains the visible word (WCAG 2.5.3 Label in Name), which kern documents but does not
+check. The gallery's code block uses `copyAccessibleLabel`.
+
 ## Links
 
 - Issue [#121](https://github.com/Mozra-the-great/stuffcloud/issues/121), kern

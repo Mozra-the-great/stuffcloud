@@ -3,7 +3,7 @@
   import { t } from '../i18n/index.ts';
 
   interface Props {
-    /** Visible text and accessible name, for example "Download .json". */
+    /** Accessible name; it contains the visible word, for example "Download result". */
     label: string;
     /** File name offered to the browser (kern cleans it). */
     name: string;
@@ -22,11 +22,14 @@
 </script>
 
 <!--
-  kern's DownloadButton with the app's texts. The file is made in this browser and handed to it as an
+  kern's DownloadButton with the app's texts: the short word "Download" on the button (the design), the
+  tool's longer label as its accessible name (kern#166; the name contains the visible word, which a test
+  over both catalogues checks). The file is made in this browser and handed to it as an
   object URL; nothing is sent anywhere (ADR 0014, privacy rules of the tools).
 -->
 <DownloadButton
-  {label}
+  label={t('tool.download')}
+  accessibleLabel={label}
   {name}
   {text}
   {blob}

@@ -61,7 +61,7 @@ describe('component gallery', () => {
     // code block
     // (kern names the box as a focusable region only while it scrolls, which jsdom never does)
     expect(screen.getByText('stuffcloud deploy ./dist --expires 7d')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Copy' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Copy deploy command' })).toBeTruthy();
     // dropzone
     expect(screen.getByRole('group', { name: 'drop PDFs here' })).toBeTruthy();
   });

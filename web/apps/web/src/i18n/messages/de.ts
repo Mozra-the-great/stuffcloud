@@ -233,6 +233,8 @@ export const de: Readonly<Record<MessageKey, Message>> = {
   'tool.unit-converter.keywords':
     'umrechnen umrechnung einheit länge masse gewicht temperatur daten bytes zeit geschwindigkeit fläche volumen',
   'tool.copied': '{value} kopiert',
+  'tool.copy': 'Kopieren',
+  'tool.download': 'Herunterladen',
   'tool.downloadStarted': 'Download gestartet',
   'tool.downloadFailed': 'Datei konnte nicht gespeichert werden.',
   'tool.copyFailed': 'Kopieren nicht möglich. Text markieren und von Hand kopieren.',

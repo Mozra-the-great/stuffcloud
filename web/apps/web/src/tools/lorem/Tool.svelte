@@ -64,7 +64,7 @@
       <div class="actions">
         <Button onclick={again} disabled={!result.ok}>{t('lorem.generate')}</Button>
       </div>
-      <StatusMessage data-tool-status message={status} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
     </section>
 
     <section class="block">

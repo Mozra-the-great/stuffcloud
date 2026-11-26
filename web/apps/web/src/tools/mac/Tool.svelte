@@ -298,7 +298,7 @@
         spellcheck={false}
         onchange={changed}
       />
-      <StatusMessage data-tool-status message={status} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
       <StatusMessage data-tool-status kind="alert" message={failure} />
     </section>
 

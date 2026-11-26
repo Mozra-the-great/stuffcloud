@@ -130,7 +130,7 @@
           onchange={announce}
         />
       </div>
-      <StatusMessage data-tool-status message={status} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
     </section>
 
     {#if schedule !== undefined}

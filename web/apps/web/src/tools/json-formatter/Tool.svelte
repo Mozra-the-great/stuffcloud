@@ -142,7 +142,7 @@
           <Checkbox label={t('json.strict')} bind:checked={strict} />
         </div>
       </div>
-      <StatusMessage data-tool-status message={status} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
       <StatusMessage data-tool-status kind="alert" message={failure} />
       {#if parsed?.ok === false}
         <div>

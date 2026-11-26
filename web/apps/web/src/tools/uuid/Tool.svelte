@@ -92,7 +92,7 @@
           disabled={countProblem !== ''}>{t('uuid.generate')}</Button
         >
       </div>
-      <StatusMessage data-tool-status message={status} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
     </section>
 
     <section class="block">

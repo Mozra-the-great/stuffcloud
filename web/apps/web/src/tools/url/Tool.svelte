@@ -141,7 +141,7 @@
           }}>{t('url.decode')}</Button
         >
       </div>
-      <StatusMessage data-tool-status message={status} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
       <StatusMessage data-tool-status kind="alert" message={failure} />
       {#if converted !== undefined}
         <Textarea label={t('url.result')} value={converted} readonly rows={4} />
@@ -165,7 +165,7 @@
         spellcheck={false}
         onchange={announceParse}
       />
-      <StatusMessage data-tool-status message={parseStatus} />
+      <StatusMessage data-tool-status tone="ok" message={parseStatus} />
       {#if url !== undefined}
         <table aria-label={t('url.parts.caption')}>
           <thead>

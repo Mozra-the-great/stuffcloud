@@ -59,8 +59,7 @@ test.describe('uuid', () => {
     await page.getByRole('button', { name: 'Generate new UUIDs' }).focus();
     await page.keyboard.press('Enter');
     await expect(status(page)).toHaveText('Generated 5 version 4 UUIDs.');
-    // A result line is green as designed (kern's StatusMessage is neutral; the local rule in
-    // styles/index.css waits for kern#173), a failure pink.
+    // A result line is green as designed (`tone="ok"`, kern#173), a failure pink.
     await expect(status(page)).toHaveCSS('color', 'rgb(61, 220, 132)');
     expect(await uuids(page)).not.toEqual(first);
     await a11y.check(page, 'uuid: new');

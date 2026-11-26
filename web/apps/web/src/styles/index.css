@@ -7,13 +7,3 @@
 @import './fonts.css';
 @import './tokens.css';
 @import './theme.css';
-
-/*
- * The result line of a tool is green in the design; kern's StatusMessage (kind="status") is neutral.
- * Waiting for kern#173 (`tone="ok"`): then this rule goes. The tools' `data-tool-status` attribute (also
- * the hook of their tests) selects the line; `p` and the two attributes keep it above kern's own
- * two-class selector without `!important`.
- */
-p[data-tool-status][role='status'] {
-  color: var(--green);
-}

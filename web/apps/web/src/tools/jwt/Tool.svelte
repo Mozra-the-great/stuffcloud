@@ -242,7 +242,7 @@
             >{t('jwt.verify.button')}</Button
           >
         </div>
-        <StatusMessage data-tool-status message={verifiedText} />
+        <StatusMessage data-tool-status tone="ok" message={verifiedText} />
         <StatusMessage data-tool-status kind="alert" message={failedText} />
         {#if verifiedText !== ''}
           <p class="note">{t('jwt.verify.validNote')}</p>

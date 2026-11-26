@@ -100,7 +100,7 @@
       <div>
         <Button onclick={again} disabled={!result.ok}>{t('password.generate')}</Button>
       </div>
-      <StatusMessage data-tool-status message={status} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
     </section>
 
     {#if result.ok}

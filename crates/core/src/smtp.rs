@@ -845,12 +845,12 @@ mod tests {
         assert_eq!(
             errors(json!({"host": "mailpit"})),
             vec![
-                ("/from".to_owned(), FieldErrorCode::MissingField),
-                ("/from_name".to_owned(), FieldErrorCode::MissingField),
-                ("/password".to_owned(), FieldErrorCode::MissingField),
                 ("/port".to_owned(), FieldErrorCode::MissingField),
                 ("/security".to_owned(), FieldErrorCode::MissingField),
                 ("/username".to_owned(), FieldErrorCode::MissingField),
+                ("/password".to_owned(), FieldErrorCode::MissingField),
+                ("/from".to_owned(), FieldErrorCode::MissingField),
+                ("/from_name".to_owned(), FieldErrorCode::MissingField),
             ]
         );
         let mut document = json!({

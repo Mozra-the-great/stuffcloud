@@ -121,5 +121,5 @@ because the tests execute the line and coverage does not check what it does.
 ## Links
 
 - [SPEC 4](../SPEC.md#4-architecture-overview), [14](../SPEC.md#14-quality-ci-and-testing), [15](../SPEC.md#15-phases)
-- PR [#101](https://github.com/Mozra-the-great/stuffcloud/pull/101) (pipeline), [#107](https://github.com/Mozra-the-great/stuffcloud/pull/107) (frontend jobs in `build`), [#109](https://github.com/Mozra-the-great/stuffcloud/pull/109) (npm license gate), PR #PRNUM (Python CI helpers, addendum)
+- PR [#101](https://github.com/Mozra-the-great/stuffcloud/pull/101) (pipeline), [#107](https://github.com/Mozra-the-great/stuffcloud/pull/107) (frontend jobs in `build`), [#109](https://github.com/Mozra-the-great/stuffcloud/pull/109) (npm license gate), PR [#171](https://github.com/Mozra-the-great/stuffcloud/pull/171) (Python CI helpers, addendum)
 - [ADR 0001](0001-stack.md), [ADR 0006](0006-edge-and-core.md)

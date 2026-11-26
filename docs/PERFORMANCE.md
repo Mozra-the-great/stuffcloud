@@ -68,7 +68,12 @@ Before T-25 the manifests carried budgets in minified, uncompressed KiB that nob
 `qr` 160, `json-yaml-xml` 150, 50 for most tools); the gzip numbers above replace them. Most tools were
 far below their old budget, so the new ones are tight on purpose.
 
-Raised since (reviewed; the rule was approved by the operator on 2026-11-26, stuffcloud SF20): `url` to 14 KiB(kern 0.14.0, #194), `pdf-pages` to 22 KiB and `pdf-split` to 24 KiB (kern 0.14.0 and its `SortableList` and`SelectGrid`, #195), and `pdf-merge` to 19 KiB: the approved 16 KiB fell 65 B short once #194 was merged (16.06 KiBmeasured in CI), so the rule was applied to that measurement. The unit test builds with `NODE_ENV=test` and is a fewhundred bytes to 2 KiB larger than `pnpm perf:build`; the budget has to hold for both, so a new budget is decided fromthe larger of the two.
+Raised since (reviewed; the rule was approved by the operator on 2026-11-26, stuffcloud SF20): `url` to 14 KiB
+(kern 0.14.0, #194), `pdf-pages` to 22 KiB and `pdf-split` to 24 KiB (kern 0.14.0 and its `SortableList` and
+`SelectGrid`, #195), and `pdf-merge` to 19 KiB: the approved 16 KiB fell 65 B short once #194 was merged (16.06 KiB
+measured in CI), so the rule was applied to that measurement. The unit test builds with `NODE_ENV=test` and is a few
+hundred bytes to 2 KiB larger than `pnpm perf:build`; the budget has to hold for both, so a new budget is decided from
+the larger of the two.
 
 ## Changing a budget
 

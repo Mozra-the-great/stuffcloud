@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { Input, Select, Button } from '@mozra-the-great/kern';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import TextArea from '../../app/TextArea.svelte';
+  import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
   import { saveText } from '../../app/download.ts';
   import CopyButton from '../../app/CopyButton.svelte';
@@ -126,7 +124,7 @@
   <div class="tool">
     <section class="block">
       <div class="field" bind:this={inputBox}>
-        <TextArea
+        <Textarea
           label={t('json.input')}
           bind:value={text}
           rows={12}
@@ -170,7 +168,7 @@
     {#if output !== undefined}
       <section class="block">
         <h2 class="heading">{t('json.result')}</h2>
-        <TextArea label={t('json.result')} value={output} readonly rows={12} spellcheck={false} />
+        <Textarea label={t('json.result')} value={output} readonly rows={12} spellcheck={false} />
         <div class="row">
           <CopyButton text={output} label={t('json.copy')} value={t('json.copied')} />
           <Button
@@ -199,7 +197,7 @@
         {#if found !== undefined && 'none' in found}
           <p class="path">{t('json.pathNone')}</p>
         {:else if found !== undefined && 'text' in found}
-          <TextArea
+          <Textarea
             label={t('json.pathValue')}
             value={found.text}
             readonly

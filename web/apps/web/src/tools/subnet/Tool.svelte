@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Input, Select, Button } from '@mozra-the-great/kern';
-  import TextArea from '../../app/TextArea.svelte';
+  import { Input, Select, Button, Textarea } from '@mozra-the-great/kern';
   import { tick } from 'svelte';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
@@ -361,11 +360,13 @@
     <section class="block">
       <Select label={t('subnet.mode')} options={modeOptions} bind:value={mode} onchange={onMode} />
       {#if mode === 'summary'}
-        <TextArea
+        <Textarea
+          keepHint
           label={t('subnet.list')}
           hint={t('subnet.listHint')}
           bind:value={listText}
           error={listError}
+          announce={false}
           rows={7}
           autocomplete="off"
           autocapitalize="off"

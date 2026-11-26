@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { Input, Select, Button } from '@mozra-the-great/kern';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import TextArea from '../../app/TextArea.svelte';
+  import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import { saveText } from '../../app/download.ts';
@@ -203,7 +201,7 @@
       <div>
         <Button variant="secondary" size="sm" onclick={swap}>{t('convert.swap')}</Button>
       </div>
-      <TextArea
+      <Textarea
         label={t('convert.input')}
         bind:value={text}
         rows={12}
@@ -249,7 +247,7 @@
     {#if result !== undefined}
       <section class="block">
         <h2 class="heading">{t('convert.result')}</h2>
-        <TextArea
+        <Textarea
           label={t('convert.result')}
           value={result}
           readonly

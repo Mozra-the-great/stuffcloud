@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { Input } from '@mozra-the-great/kern';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import TextArea from '../../app/TextArea.svelte';
+  import { Input, Checkbox, Textarea } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import ToolFrame from '../../app/ToolFrame.svelte';
@@ -184,7 +182,7 @@
           <Checkbox label={t(FLAG_KEYS[flag])} bind:checked={enabled[flag]} />
         {/each}
       </fieldset>
-      <TextArea
+      <Textarea
         label={t('regex.text')}
         bind:value={text}
         error={textProblem}

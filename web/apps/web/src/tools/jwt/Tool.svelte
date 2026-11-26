@@ -1,7 +1,5 @@
 <script lang="ts">
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import TextArea from '../../app/TextArea.svelte';
-  import { Button } from '@mozra-the-great/kern';
+  import { Button, Checkbox, Textarea } from '@mozra-the-great/kern';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
@@ -129,7 +127,8 @@
 <ToolFrame id="jwt">
   <div class="tool">
     <section class="block">
-      <TextArea
+      <Textarea
+        keepHint
         label={t('jwt.token')}
         hint={t('jwt.tokenHint')}
         bind:value={tokenText}
@@ -225,7 +224,8 @@
       <section class="block">
         <h2 class="heading">{t('jwt.verify')}</h2>
         <p class="note">{t('jwt.verify.intro', { algorithms: SUPPORTED_ALGORITHMS.join(', ') })}</p>
-        <TextArea
+        <Textarea
+          keepHint
           label={t('jwt.key')}
           hint={keyHint}
           bind:value={keyText}

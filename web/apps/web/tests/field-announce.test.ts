@@ -1,8 +1,9 @@
 import { screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { toast } from '@mozra-the-great/kern';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { i18n } from '../src/i18n/index.ts';
+import macManifest from '../src/tools/mac/manifest.ts';
 import userAgentManifest from '../src/tools/user-agent/manifest.ts';
 import { MAX_USER_AGENT_LENGTH } from '../src/tools/user-agent/user-agent.ts';
 import uuidManifest from '../src/tools/uuid/manifest.ts';
@@ -17,6 +18,7 @@ import { openTool } from './tool-helpers.ts';
  */
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   toast.clear();
   i18n.setLocale('en');
 });
@@ -60,6 +62,36 @@ describe('a field error is announced exactly once', () => {
     expect(regions[0]?.getAttribute('role')).toBe('status');
     expect(regions[0]).not.toBe(error);
     expect(regions.some((region) => region.getAttribute('role') === 'alert')).toBe(false);
+  });
+
+  it('also for the multi-line field (Textarea, announce={false})', async () => {
+    // The tool makes its worker pool when it opens; jsdom has no Worker.
+    vi.stubGlobal(
+      'Worker',
+      class FakeWorker {
+        readonly terminate = vi.fn();
+      },
+    );
+    const user = userEvent.setup();
+    await openTool(macManifest);
+    const area = await screen.findByRole<HTMLTextAreaElement>('textbox', { name: 'MAC addresses' });
+    await user.clear(area);
+    await user.click(area);
+    await user.paste('00:1a:2b:3c:4d');
+
+    const error = fieldError();
+    const text = error.textContent.trim();
+    expect(text).toBe('A MAC address has 12 hexadecimal digits (EUI-48) or 16 (EUI-64).');
+    expect(error.getAttribute('role')).toBeNull();
+    expect(area.getAttribute('aria-invalid')).toBe('true');
+    expect(area.getAttribute('aria-describedby')?.split(' ')[0]).toBe(error.id);
+    expect(liveRegionsSaying(text)).toHaveLength(0);
+
+    await user.tab();
+    const regions = liveRegionsSaying(text);
+    expect(regions).toHaveLength(1);
+    expect(regions[0]?.getAttribute('role')).toBe('status');
+    expect(regions[0]).not.toBe(error);
   });
 
   it('by kern’s alert when the tool has no message of its own for it', async () => {

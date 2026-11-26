@@ -131,6 +131,18 @@ of the decision at the time; since 0.13.1 the app sets `data-theme="code"` on `<
 neither workaround. The unnamed `<section>` around the search `Modal` (kern#154, fixed in 0.13.1: the
 title row and footer are `role="none"`) went with them.
 
+## Addendum: Checkbox and Textarea, `src/ui` removed (2026-11-26, #121, PR #185)
+
+The last base components moved with kern 0.13.1: `Checkbox` (the box is its own hit target, kern#150, so
+Playwright's `check()` works) and `Textarea` (reads the Code field tokens, kern#149); `src/ui` no longer
+exists. One more difference is accepted under decision 5: a text area with `rows="1"` is 48.5 px high in
+kern against the 52 px of the old `.sc-field` (no tool uses one row; from two rows on the heights agree).
+Field errors are `role="alert"` in kern; a tool that already says the same message in its own status
+region passes `announce={false}` (kern#148), and `tests/field-announce.test.ts` proves a screen reader
+hears each error once. The app-local pieces that kern also has (SkipLink, LiveAnnouncer, OnlineStatus,
+CopyButton, StatusMessage, `download`, VisuallyHidden, SortableList/SelectGrid) are not `src/ui`
+components; they move in a later package and are tracked in #121.
+
 ## Links
 
 - Issue [#121](https://github.com/Mozra-the-great/stuffcloud/issues/121), kern

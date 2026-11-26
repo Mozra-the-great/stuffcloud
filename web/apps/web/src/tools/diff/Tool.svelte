@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { Select } from '@mozra-the-great/kern';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import TextArea from '../../app/TextArea.svelte';
+  import { Select, Checkbox, Textarea } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import ToolFrame from '../../app/ToolFrame.svelte';
@@ -154,14 +152,14 @@
     <section class="block">
       <h2 class="heading">{t('diff.texts')}</h2>
       <div class="pair">
-        <TextArea
+        <Textarea
           label={t('diff.before')}
           bind:value={before}
           error={beforeError}
           rows={10}
           spellcheck={false}
         />
-        <TextArea
+        <Textarea
           label={t('diff.after')}
           bind:value={after}
           error={afterError}

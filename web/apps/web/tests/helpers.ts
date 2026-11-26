@@ -71,8 +71,8 @@ export function dragEvent(type: string, properties: Readonly<Record<string, unkn
   return event;
 }
 
-/** Field errors: kern's `Field` (Input, Select) and the app's own `TextArea`. */
-export const FIELD_ERROR = '.k-field .error, .sc-fld__error';
+/** Field errors: kern's `Field` (Input, Select, Textarea). */
+export const FIELD_ERROR = '.k-field .error';
 
 /** Text of the first field error on the page, trimmed, or `null` when no field shows one. */
 export function fieldErrorText(): string | null {

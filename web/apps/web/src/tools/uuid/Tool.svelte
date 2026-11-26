@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { Input, Select, Button } from '@mozra-the-great/kern';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import TextArea from '../../app/TextArea.svelte';
+  import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import { saveText } from '../../app/download.ts';
@@ -104,7 +102,7 @@
 
     <section class="block">
       <h2 class="heading">{t('uuid.result')}</h2>
-      <TextArea
+      <Textarea
         label={t('uuid.list')}
         value={text}
         readonly

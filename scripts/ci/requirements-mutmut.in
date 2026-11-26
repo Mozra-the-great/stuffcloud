@@ -1,0 +1,6 @@
+# Source of scripts/ci/requirements-mutmut.txt (hash-locked with pip-compile). The only tool
+# here is mutmut, which mutation-tests the Python CI helpers in this directory (#161, ADR 0007).
+# It is CI tooling only: nothing of it is shipped and the helpers stay standard-library only.
+# Dependabot (pip, /scripts/ci) updates this pair. CONTRIBUTING.md, "Mutation testing of the
+# Python CI helpers", has the license check and the update steps.
+mutmut==3.8.1

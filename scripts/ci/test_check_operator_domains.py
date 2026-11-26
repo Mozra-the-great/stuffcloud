@@ -490,6 +490,234 @@ class AddressTreeTest(unittest.TestCase):
         self.assertEqual(gate.check(self.root, entries("someone@mail.example")), [])
 
 
+class NameRulesTest(unittest.TestCase):
+    """Boundaries of the name rules; every fixture is a reserved or stand-in name."""
+
+    def test_the_tld_decides_at_any_depth(self) -> None:
+        self.assertTrue(gate.is_reserved("a.b.c.test"))
+        self.assertTrue(gate.is_reserved("x.corp.example"))
+        self.assertFalse(gate.is_reserved("example.corp.de"))
+
+    def test_the_reserved_check_sees_the_ascii_form_of_a_unicode_name(self) -> None:
+        seen: list[str] = []
+
+        def record(name: str) -> bool:
+            seen.append(name)
+            return False
+
+        gate.parse_entries("bücher.corp", record)
+        gate.parse_entries("someone@bücher.corp", record)
+        self.assertEqual(seen, ["xn--bcher-kva.corp", "xn--bcher-kva.corp"])
+
+    def test_edge_dots_and_wildcards_are_stripped(self) -> None:
+        self.assertEqual(gate._normalise(".corp.example."), ("corp.example", "corp.example"))
+        self.assertEqual(gate._normalise("*.corp.example"), ("corp.example", "corp.example"))
+        self.assertEqual(gate._normalise("..corp.example.."), ("corp.example", "corp.example"))
+        self.assertIsNone(gate._normalise("..."))
+        self.assertIsNone(gate._normalise("corp"))
+
+    def test_a_name_may_be_253_characters_long_and_not_254(self) -> None:
+        def name(last: int) -> str:
+            return ".".join(["a" * 63, "b" * 63, "c" * 63, "d" * last])
+
+        self.assertEqual(len(name(61)), 253)
+        self.assertIsNotNone(gate._normalise(name(61)))
+        self.assertEqual(len(name(62)), 254)
+        self.assertIsNone(gate._normalise(name(62)))
+
+    def test_an_address_needs_exactly_one_at_sign(self) -> None:
+        self.assertIsNone(gate._normalise_address("a@b@corp.example"))
+        self.assertIsNone(gate._normalise_address("a@corp@example.test"))
+        self.assertIsNone(gate._normalise_address("üser@corp.example"))
+        self.assertEqual(gate._normalise_address("User@Corp.Example"), ("user@corp.example", "user@corp.example"))
+
+    def test_the_entry_of_a_list_item_with_a_second_at_sign_is_malformed(self) -> None:
+        self.assertEqual(gate.parse_entries("a@b@corp.example", **NOTHING_RESERVED).malformed, (1,))
+
+
+class TrackedFilesTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self._dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self._dir.cleanup)
+        self.root = Path(self._dir.name)
+
+    def test_the_listing_of_git_is_used_with_the_exact_command(self) -> None:
+        (self.root / ".git").mkdir()
+        done = subprocess.CompletedProcess([], 0, stdout=b"b/c.txt\0a.txt\0caf\xe9.txt\0\0")
+        with mock.patch.object(gate.subprocess, "run", return_value=done) as run:
+            found = gate.tracked_files(self.root)
+        run.assert_called_once_with(
+            ["git", "-C", str(self.root), "ls-files", "-z"], check=True, capture_output=True
+        )
+        # A name that is not UTF-8 survives as surrogate escapes instead of failing the run.
+        self.assertEqual(found, ["a.txt", "b/c.txt", "caf\udce9.txt"])
+
+    def test_without_a_checkout_files_below_a_git_directory_are_left_out(self) -> None:
+        for relative in ("a.txt", "sub/.git/config", "sub/b.txt", ".gitignore"):
+            path = self.root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("x\n", encoding="utf-8")
+        self.assertEqual(gate.tracked_files(self.root), [".gitignore", "a.txt", "sub/b.txt"])
+
+
+class CheckDetailsTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self._dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self._dir.cleanup)
+        self.root = Path(self._dir.name)
+
+    def write(self, relative: str, content: bytes | str) -> None:
+        path = self.root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content if isinstance(content, bytes) else content.encode("utf-8"))
+
+    def test_hidden_file_names_are_numbered_from_one(self) -> None:
+        self.write("a/corp.example", "x\n")
+        self.write("b/corp.example", "x\n")
+        self.write("c/corp.example", "x\n")
+        self.assertEqual(
+            gate.check(self.root, entries("corp.example")),
+            [
+                "<file name hidden #1>: the file name contains a forbidden domain (entry 1)",
+                "<file name hidden #2>: the file name contains a forbidden domain (entry 1)",
+                "<file name hidden #3>: the file name contains a forbidden domain (entry 1)",
+            ],
+        )
+
+    def test_a_hidden_name_with_a_hit_inside_reports_both_under_the_same_number(self) -> None:
+        self.write("a/corp.example", "see corp.example\n")
+        self.assertEqual(
+            gate.check(self.root, entries("corp.example")),
+            [
+                "<file name hidden #1>: the file name contains a forbidden domain (entry 1)",
+                "<file name hidden #1>:1: forbidden domain (entry 1)",
+            ],
+        )
+
+    def test_an_unreadable_file_does_not_stop_the_scan(self) -> None:
+        self.write("a.txt", "see corp.example\n")
+        self.write("b.txt", "see corp.example\n")
+        real = Path.read_bytes
+
+        def read_bytes(path: Path) -> bytes:
+            if path.name == "a.txt":
+                raise OSError("dangling")
+            return real(path)
+
+        with mock.patch.object(Path, "read_bytes", read_bytes):
+            found = gate.check(self.root, entries("corp.example"))
+        self.assertEqual(found, ["b.txt:1: forbidden domain (entry 1)"])
+
+    def test_a_binary_file_does_not_stop_the_scan(self) -> None:
+        self.write("a.bin", b"\0corp.example\n")
+        self.write("b.txt", "see corp.example\n")
+        self.assertEqual(gate.check(self.root, entries("corp.example")), ["b.txt:1: forbidden domain (entry 1)"])
+
+    def test_a_clean_file_does_not_stop_the_scan(self) -> None:
+        self.write("a.txt", "nothing\n")
+        self.write("b.txt", "see corp.example\n")
+        self.assertEqual(gate.check(self.root, entries("corp.example")), ["b.txt:1: forbidden domain (entry 1)"])
+
+
+class NoticeAndMainTest(unittest.TestCase):
+    def run_main(
+        self, argv: list[str], value: str | None, actions: str | None = None, reserved: bool = False
+    ) -> tuple[int, str, list[Path]]:
+        env = {k: v for k, v in os.environ.items() if k not in (gate.ENV_VAR, "GITHUB_ACTIONS")}
+        if value is not None:
+            env[gate.ENV_VAR] = value
+        if actions is not None:
+            env["GITHUB_ACTIONS"] = actions
+        roots: list[Path] = []
+
+        def fake_check(root: Path, found: tuple[gate.Entry, ...]) -> list[str]:
+            roots.append(root)
+            return []
+
+        out = io.StringIO()
+        with (
+            mock.patch.dict(os.environ, env, clear=True),
+            mock.patch.object(gate, "check", fake_check),
+            mock.patch.object(gate, "is_reserved", gate.is_reserved if reserved else (lambda _name: False)),
+            redirect_stdout(out),
+        ):
+            code = gate.main(argv)
+        return code, out.getvalue(), roots
+
+    def test_the_notice_format_depends_on_actions_being_exactly_true(self) -> None:
+        for actions, expected in (
+            ("true", "::notice title=Operator-domain check::hello\n"),
+            ("false", "notice: hello\n"),
+            ("TRUE", "notice: hello\n"),
+            (None, "notice: hello\n"),
+        ):
+            with self.subTest(actions=actions), mock.patch.dict(os.environ, {"GITHUB_ACTIONS": actions or ""}):
+                if actions is None:
+                    os.environ.pop("GITHUB_ACTIONS")
+                out = io.StringIO()
+                with redirect_stdout(out):
+                    gate.notice("hello")
+                self.assertEqual(out.getvalue(), expected)
+
+    def test_the_repository_is_the_default_root_and_an_argument_replaces_it(self) -> None:
+        code, _, roots = self.run_main(["check_operator_domains.py"], "corp.example")
+        self.assertEqual((code, roots), (0, [Path(gate.__file__).resolve().parents[2]]))
+        code, _, roots = self.run_main(["check_operator_domains.py", "elsewhere"], "corp.example")
+        self.assertEqual((code, roots), (0, [Path("elsewhere")]))
+
+    def test_the_malformed_entry_message_is_exact(self) -> None:
+        code, out, roots = self.run_main(["x", "r"], "fine.example\nnot a domain!")
+        self.assertEqual((code, roots), (2, []))
+        self.assertEqual(
+            out,
+            f"{gate.ENV_VAR}: entry 2, 3, 4 is neither a domain name (two or more labels of "
+            "letters, digits and hyphens) nor an e-mail address (local@domain with a dot in the "
+            "domain); fix the list in the repository's Actions settings\n",
+        )
+
+    def test_the_reduced_check_message_is_exact(self) -> None:
+        code, out, _ = self.run_main(["x", "r"], "", actions="true")
+        self.assertEqual(code, 0)
+        self.assertEqual(
+            out,
+            f"::notice title=Operator-domain check::{gate.ENV_VAR} has no usable entry (empty or not "
+            "available: pull requests from forks and Dependabot get no Actions secrets): reduced check, "
+            "no operator domain was searched for\n",
+        )
+
+    def test_the_reserved_notice_is_exact(self) -> None:
+        code, out, _ = self.run_main(["x", "r"], "example.com\ncorp.example", reserved=True)
+        self.assertEqual(code, 0)
+        self.assertTrue(
+            out.startswith("notice: entry 1, 2 is a name reserved for documentation (RFC 2606) and is ignored\n"), out
+        )
+
+    def test_the_findings_message_is_exact(self) -> None:
+        def fake_check(root: Path, found: tuple[gate.Entry, ...]) -> list[str]:
+            return ["a.md:1: forbidden domain (entry 1)", "b.md:2: forbidden domain (entry 1)"]
+
+        out = io.StringIO()
+        with (
+            mock.patch.dict(os.environ, {gate.ENV_VAR: "corp.example"}),
+            mock.patch.object(gate, "check", fake_check),
+            mock.patch.object(gate, "is_reserved", lambda _name: False),
+            redirect_stdout(out),
+        ):
+            code = gate.main(["x", "r"])
+        self.assertEqual(code, 1)
+        self.assertEqual(
+            out.getvalue(),
+            "a.md:1: forbidden domain (entry 1)\n"
+            "b.md:2: forbidden domain (entry 1)\n"
+            "2 finding(s): an operator-specific domain or e-mail address must not be in the repository; "
+            "use example.com, example.org, example.net or *.example / *.test (CLAUDE.md, Instance-neutral)\n",
+        )
+
+    def test_a_clean_run_reports_the_number_of_entries(self) -> None:
+        code, out, _ = self.run_main(["x", "r"], "corp.example other.example")
+        self.assertEqual((code, out), (0, "operator-domain check: 2 entries, no findings\n"))
+
+
 class AddressMainTest(unittest.TestCase):
     def setUp(self) -> None:
         self._dir = tempfile.TemporaryDirectory()

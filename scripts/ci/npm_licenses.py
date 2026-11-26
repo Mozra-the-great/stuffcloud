@@ -89,7 +89,7 @@ def _main_lockfile_document(text: str) -> str:
 def lockfile_packages(text: str) -> set[tuple[str, str]]:
     """(name, version) of every entry in the `packages:` section."""
     found: set[tuple[str, str]] = set()
-    section = ""
+    section = ""  # pragma: no mutate -- only compared with "packages", so any other start value acts the same
     for line in _main_lockfile_document(text).splitlines():
         top = re.match(r"^([A-Za-z]\w*):", line)
         if top:
@@ -168,7 +168,8 @@ def _copy_manifests(web: pathlib.Path, target: pathlib.Path) -> None:
     for root, dirs, files in os.walk(web):
         dirs[:] = [d for d in dirs if d not in _SKIPPED_DIRS]
         relative = pathlib.Path(root).relative_to(web)
-        if relative != pathlib.Path(".") and "package.json" in files:
+        # Equivalent mutant: the root manifest was copied above, copying it once more changes nothing.
+        if relative != pathlib.Path(".") and "package.json" in files:  # pragma: no mutate
             (target / relative).mkdir(parents=True, exist_ok=True)
             shutil.copy2(pathlib.Path(root) / "package.json", target / relative / "package.json")
 

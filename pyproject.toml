@@ -1,0 +1,36 @@
+# Configuration of mutmut (mutation testing of the Python CI helpers in scripts/ci/, #161).
+# This file configures only that tool; the helpers themselves are plain scripts and stay
+# standard-library only. Run from the repository root (CLAUDE.md, "Commands").
+[tool.mutmut]
+source_paths = ["scripts/ci"]
+do_not_mutate = ["scripts/ci/test_*.py", "scripts/ci/dev_stack_smoke.py"]
+pytest_add_cli_args_test_selection = ["scripts/ci"]
+# The helpers find the repository from their own location (`parents[2]`), which inside the
+# `mutants/` copy is `mutants/`. Their tests also read the real repository, so what they read
+# is copied along.
+also_copy = [
+    "scripts/ci/license-policy.toml",
+    ".github",
+    "crates",
+    "docker",
+    "fuzz",
+    "web",
+    "Cargo.toml",
+    "compose.dev.yml",
+    "deny.toml",
+    ".env.example",
+    ".gitignore",
+]
+
+# Line and branch coverage of the helpers, measured in the CI job `mutation-python` before the
+# mutation run (`python -m coverage run -m unittest discover -s scripts/ci -p "test_*.py"`, then
+# `python -m coverage report`). The floor is what the tests reach today; never lower it.
+[tool.coverage.run]
+branch = true
+source = ["scripts/ci"]
+omit = ["scripts/ci/test_*.py", "scripts/ci/dev_stack_smoke.py"]
+
+[tool.coverage.report]
+exclude_also = ['if __name__ == "__main__":']
+fail_under = 99
+show_missing = true

@@ -15,6 +15,7 @@ const ERROR_KEYS: Readonly<Record<DecodeErrorCode, MessageKey>> = {
 /** What is wrong with a Base64 text and where, as a visitor reads it. */
 export function decodeErrorText(error: DecodeError): string {
   const message = t(ERROR_KEYS[error.code], {
+    // Stryker disable next-line StringLiteral: only the messages of a character at fault have a {found}, and they come with one
     found: shown(describeChar(error.found ?? '')),
   });
   return error.code === 'empty'
@@ -31,6 +32,8 @@ export function formatSize(bytes: number): string {
     value /= 1000;
     unit += 1;
   }
-  const format = new Intl.NumberFormat(i18n.locale, { maximumFractionDigits: unit === 0 ? 0 : 1 });
+  // A count of bytes is a whole number, which has no fraction to show.
+  const format = new Intl.NumberFormat(i18n.locale, { maximumFractionDigits: 1 });
+  // Stryker disable next-line StringLiteral: `unit` stays below the length of `units`, so the fallback is never used
   return `${format.format(value)} ${units[unit] ?? 'B'}`;
 }

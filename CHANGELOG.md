@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - No surviving mutant in the URL and lorem ipsum tools (#162): the start of every malformed percent escape, checked against a plain
   character-by-character reader on 4000 random texts in all three modes, the whole lorem vocabulary, the dedupe of repeated words and the
   position of the comma. (#186)
+- No surviving mutant in the Base64 tool (#162): the encoder against Node's `Buffer` for every length and option, the line and column
+  of every decoding error for all three kinds of line break, the data URI, the media type pattern, the file types a browser would run, the
+  size limits at exactly the limit, and `worker.ts` run as a worker including the buffer that moves; padding and the alphabet in use no
+  longer depend on a buffer size or a string label. (#188)
 - Mutation testing of the Python CI helpers (#161, ADR 0007 addendum): job `mutation-python` in `ci.yml` (part of
   `build`; it never skips itself) and the nightly `deep-tests.yml` run [mutmut](https://github.com/boxed/mutmut) 3
   over every `scripts/ci/*.py`, and `scripts/ci/mutation_gate.py` fails on any mutant no test noticed (`mutmut run`

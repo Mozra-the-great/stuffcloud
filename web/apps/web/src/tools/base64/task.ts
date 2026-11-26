@@ -71,8 +71,15 @@ export function transfer(output: Output): object[] {
   return output.ok && output.kind === 'decoded' ? [output.bytes.buffer] : [];
 }
 
-/** The work of the tool. It runs in the worker, so it must not touch the DOM. */
-export async function runTask(input: Input, { progress }: TaskContext): Promise<Output> {
+/**
+ * The work of the tool. It runs in the worker, so it must not touch the DOM. `chunkBytes` (a multiple of
+ * three) is a parameter only so that a test can read a file in several pieces without megabytes of data.
+ */
+export async function runTask(
+  input: Input,
+  { progress }: TaskContext,
+  chunkBytes: number = CHUNK_BYTES,
+): Promise<Output> {
   const { file } = input;
   if (input.op === 'decode') {
     if (file.size > MAX_DECODE_FILE_BYTES) {
@@ -99,16 +106,12 @@ export async function runTask(input: Input, { progress }: TaskContext): Promise<
     : input.options;
   const total = Math.max(file.size, 1);
   const parts: string[] = [];
-  for (let offset = 0; offset < file.size; offset += CHUNK_BYTES) {
-    const bytes = new Uint8Array(await file.slice(offset, offset + CHUNK_BYTES).arrayBuffer());
-    const last = offset + CHUNK_BYTES >= file.size;
-    // Only the last piece can end in a partial group, so only it carries the padding.
+  for (let offset = 0; offset < file.size; offset += chunkBytes) {
+    const bytes = new Uint8Array(await file.slice(offset, offset + chunkBytes).arrayBuffer());
+    // Only the last piece can end in a partial group (the others are a multiple of three bytes), so
+    // only it has padding to write.
     parts.push(
-      encodeBytes(bytes, {
-        urlSafe: options.urlSafe,
-        padding: options.padding && last,
-        lineLength: 0,
-      }),
+      encodeBytes(bytes, { urlSafe: options.urlSafe, padding: options.padding, lineLength: 0 }),
     );
     progress(Math.min(offset + bytes.length, total), total);
   }

@@ -4,6 +4,13 @@ import { join, relative, resolve } from 'node:path';
 import { STICKER_NAMES } from '@stuffcloud/tools';
 import { build } from 'vite';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import {
+  check,
+  formatFailures,
+  readBudgets,
+  readBuild,
+  readToolLimits,
+} from '../scripts/perf-budget.ts';
 import { appRoot } from './helpers.ts';
 
 let outDir = '';
@@ -22,7 +29,8 @@ beforeAll(async () => {
     root: appRoot,
     configFile: resolve(appRoot, 'vite.config.ts'),
     logLevel: 'silent',
-    build: { outDir, emptyOutDir: true },
+    // The manifest maps the chunks to the tools for the performance budgets (below).
+    build: { outDir, emptyOutDir: true, manifest: true },
   });
   for (const path of walk(outDir)) {
     files.set(relative(outDir, path).replaceAll('\\', '/'), path);
@@ -150,6 +158,23 @@ describe('production build output', () => {
       'reduced motion shows the still pose',
     ).toBe(true);
     expect(has(/image-rendering:pixelated/), 'pixelated scaling').toBe(true);
+  });
+
+  // The same check as `pnpm check-budgets` in CI (job `perf`), so a local `pnpm test` shows an
+  // exceeded budget too. docs/PERFORMANCE.md has the numbers and the rules.
+  it('stays within every performance budget: the shell and each tool, as gzip', async () => {
+    const findings = check(readBuild(outDir), readBudgets(), await readToolLimits());
+    expect(formatFailures(findings), 'a budget is exceeded').toContain(
+      '0 performance budgets exceeded',
+    );
+    expect(findings.length).toBeGreaterThan(50);
+    // Nothing is vacuous: the shell's script is real code, and the PDF tools reach the pdf.js engine.
+    const size = (scope: string, metric: string): number =>
+      findings.find((finding) => finding.scope === scope && finding.metric === metric)?.gzipBytes ??
+      0;
+    expect(size('shell', 'script')).toBeGreaterThan(20_000);
+    expect(size('tool pdf-split', 'assets')).toBeGreaterThan(200_000);
+    expect(size('tool uuid', 'assets')).toBe(0);
   });
 
   it('keeps the benchmark out of the build', () => {

@@ -12,6 +12,8 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/dist/**',
       '**/dist-e2e/**',
+      '**/dist-perf/**',
+      '**/.lighthouse/**',
       '**/test-results/**',
       '**/playwright-report/**',
       '**/coverage/**',

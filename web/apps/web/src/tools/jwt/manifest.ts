@@ -10,6 +10,6 @@ export default defineTool({
   runsIn: 'client',
   fileContent: 'stays-in-browser',
   requires: ['webcrypto'],
-  budget: { scriptKb: 50, assetsKb: 0 },
+  budget: { scriptKb: 16, assetsKb: 0 },
   load: () => import('./Tool.svelte'),
 });

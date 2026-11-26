@@ -1,0 +1,7 @@
+{
+  "shell": { "scriptKb": 107, "styleKb": 10, "fontsKb": 231 },
+  "lighthouse": {
+    "runs": 5,
+    "minScores": { "performance": 0.95, "accessibility": 0.95, "best-practices": 0.95 }
+  }
+}

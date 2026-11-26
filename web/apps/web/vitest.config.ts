@@ -22,6 +22,9 @@ export default defineConfig({
         'scripts/tokens.ts',
         'scripts/tool-check.ts',
         'scripts/scaffold.ts',
+        'scripts/perf-budget.ts',
+        'scripts/lighthouse-scores.ts',
+        'scripts/static-server.ts',
         'bench/**/*.ts',
       ],
       // Process wiring that only runs against a real Chrome (the page adapters and the driver);

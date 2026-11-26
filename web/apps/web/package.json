@@ -16,6 +16,9 @@
     "tokens": "node scripts/gen-tokens.ts --write",
     "tokens:check": "node scripts/gen-tokens.ts --check",
     "check-tools": "node scripts/check-tools.ts",
+    "perf:build": "vite build --manifest --outDir dist-perf",
+    "check-budgets": "node scripts/check-budgets.ts",
+    "lighthouse": "node scripts/lighthouse.ts",
     "new-tool": "node scripts/new-tool.ts",
     "e2e:build": "vite build --config e2e/vite.config.ts",
     "e2e": "playwright test --config e2e/playwright.config.ts"
@@ -44,7 +47,9 @@
     "@testing-library/user-event": "^14.6.10",
     "@vitest/coverage-v8": "^5.1.0",
     "axe-core": "4.14.0",
+    "chrome-launcher": "1.2.3",
     "jsdom": "^31.0.1",
+    "lighthouse": "13.6.0",
     "svelte-check": "^4.7.8",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"

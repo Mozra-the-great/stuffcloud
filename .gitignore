@@ -26,6 +26,9 @@ npm-debug.log*
 dist/
 # End-to-end build and Playwright output (web/apps/web)
 dist-e2e/
+# Production build with the Vite manifest (performance gate) and its Lighthouse reports (web/apps/web)
+dist-perf/
+.lighthouse/
 # StrykerJS (web/): working copy and mutation reports
 .stryker-tmp/
 **/reports/mutation/

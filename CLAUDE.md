@@ -48,7 +48,7 @@ web/            pnpm workspace (Node 24, own lockfile; the backend never depends
                 tool registry + `ToolFrame`), src/tools/<id>/ (one directory per tool: manifest.ts + Tool.svelte),
                 src/pdf (what the PDF tools share: engine on pdf-lib, workers + pools, pictures on pdf.js,
                 page grid, ZIP writer; ADR 0013; the network scan covers it like src/tools),
-                tools.config.json (disabled tools), scripts/ (tokens, check-tools, new-tool),
+                tools.config.json (disabled tools), perf-budgets.json (shell budgets + Lighthouse minimums), scripts/ (tokens, check-tools, new-tool, perf-budget + check-budgets, lighthouse),
                 stryker.config.mjs + vitest.stryker.config.ts (mutation testing; shared options and the scope helper in web/stryker.shared.mjs),
                 src/i18n (catalogues de/en, typed keys, CI check), src/gallery (component gallery),
                 src/assets/fonts (self-hosted), bench/ (animation benchmark: `node bench/run.ts bench|verify|size`),
@@ -117,6 +117,8 @@ pnpm test:mutation                                       # StrykerJS: every muta
 pnpm tokens                                              # regenerate src/styles/tokens.css from docs/design (test fails when stale)
 pnpm new-tool <id> [--category c] [--sticker s] [--name "N"] [--worker]   # scaffold a tool (ADR 0012)
 pnpm check-tools                                         # validate all tool manifests (`vite build` runs the same check)
+pnpm perf:build && pnpm check-budgets                    # production build with the Vite manifest, then the gzip budgets of the shell and every tool (docs/PERFORMANCE.md)
+CHROME_PATH=... pnpm lighthouse                          # Lighthouse median of 5 runs on that build (needs Chrome or Chromium)
 pnpm e2e                                                 # Playwright (Chromium + Firefox) against the built app; once: `pnpm --filter @stuffcloud/web exec playwright install chromium firefox`
 CHROME_PATH=... node apps/web/bench/run.ts bench         # animation runtime benchmark (needs Chrome; ADR 0008)
 ```
@@ -144,7 +146,7 @@ Tests are part of the security design; err on the side of too many (SPEC section
 
 `ci.yml` job `build` is the required check: an aggregate over fmt, clippy, test,
 docs, coverage, mutants (6 shards), mutation-python (mutmut over `scripts/ci/*.py`, gate in `mutation_gate.py`), web-mutants (StrykerJS over the scoped `.ts` files the PR changes, 2 legs: `apps/web`, `packages/tools`), fuzz, web (lint, typecheck, test, build of `web/`), e2e (Playwright +
-axe a11y gate, no retries), openapi (committed OpenAPI document and generated TS client match the
+axe a11y gate, no retries), perf-budgets (gzip size of the shell and every tool against `perf-budgets.json` and the manifests' `budget`, `docs/PERFORMANCE.md`), lighthouse (median of 5 runs on the shell: performance, accessibility, best practices >= 95), openapi (committed OpenAPI document and generated TS client match the
 handlers), licenses (npm
 license gate + THIRD-PARTY.md freshness), dev-stack (container hardening gate on every compose file
 and Dockerfile, Caddyfile check, smoke test of the dev stack), supply-chain, codeql and repo-checks (add new jobs to its `needs`; no job skips itself on changed

@@ -5,7 +5,7 @@ import { i18n } from '../../src/i18n/index.ts';
 import manifest from '../../src/tools/textops/manifest.ts';
 import type * as TextopsTask from '../../src/tools/textops/task.ts';
 import { runTask, type Input } from '../../src/tools/textops/task.ts';
-import { toaster } from '../../src/ui/toast.svelte.ts';
+import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
 
 const pool = vi.hoisted(() => ({
@@ -85,7 +85,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  toaster.clear();
+  toast.clear();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   i18n.setLocale('en');

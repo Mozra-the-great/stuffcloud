@@ -1,10 +1,10 @@
 <script lang="ts">
+  import { FileDrop } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import Button from '../../ui/Button.svelte';
-  import FileDropzone from '../../ui/FileDropzone.svelte';
   import Input from '../../ui/Input.svelte';
   import { ColorEntry } from './color-entry.svelte.ts';
   import ColorField from './ColorField.svelte';
@@ -267,8 +267,11 @@
 
     <section class="block">
       <h2 class="heading">{t('color.palette.title')}</h2>
-      <FileDropzone
-        hint={t('color.palette.hint')}
+      <FileDrop
+        mode="dispatch"
+        rejectMessages={false}
+        statusLabel=""
+        dropLabel={t('color.palette.hint')}
         buttonLabel={t('color.palette.choose')}
         accept="image/*"
         multiple={false}

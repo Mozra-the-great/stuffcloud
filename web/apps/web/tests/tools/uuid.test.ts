@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { i18n } from '../../src/i18n/index.ts';
 import manifest from '../../src/tools/uuid/manifest.ts';
 import { v7Milliseconds } from '../../src/tools/uuid/uuid.ts';
-import { toaster } from '../../src/ui/toast.svelte.ts';
+import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
 
 const downloads = vi.hoisted(() => ({
@@ -28,7 +28,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  toaster.clear();
+  toast.clear();
   vi.restoreAllMocks();
   i18n.setLocale('en');
 });

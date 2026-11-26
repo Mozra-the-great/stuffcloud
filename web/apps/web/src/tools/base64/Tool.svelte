@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Progress } from '@mozra-the-great/kern';
+  import { FileDrop, Progress } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import { saveBlob, saveText } from '../../app/download.ts';
@@ -9,7 +9,6 @@
   import ToolStatus from '../../app/ToolStatus.svelte';
   import Button from '../../ui/Button.svelte';
   import Checkbox from '../../ui/Checkbox.svelte';
-  import FileDropzone from '../../ui/FileDropzone.svelte';
   import Input from '../../ui/Input.svelte';
   import Select from '../../ui/Select.svelte';
   import {
@@ -323,8 +322,11 @@
           spellcheck={false}
         />
       {:else}
-        <FileDropzone
-          hint={direction === 'encode' ? t('base64.dropEncode') : t('base64.dropDecode')}
+        <FileDrop
+          mode="dispatch"
+          rejectMessages={false}
+          statusLabel=""
+          dropLabel={direction === 'encode' ? t('base64.dropEncode') : t('base64.dropDecode')}
           buttonLabel={t('base64.choose')}
           multiple={false}
           disabled={working}

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import axe, { type AxeResults, type Result } from 'axe-core';
 import { afterEach, describe, expect, it } from 'vitest';
 import Gallery from '../src/gallery/Gallery.svelte';
-import { toaster } from '../src/ui/toast.svelte.ts';
+import { toast } from '@mozra-the-great/kern';
 import { formatViolations, GATE_TAGS } from '../e2e/support/axe-report.ts';
 import sampleTool from './fixtures/sample-tool/manifest.ts';
 import { SAMPLE_CATALOGS } from './fixtures/sample-tool/messages.ts';
@@ -16,7 +16,7 @@ import { openTool } from './tool-helpers.ts';
 // landmarks is checked here, on every component and on every state a unit test can reach.
 
 afterEach(() => {
-  toaster.clear();
+  toast.clear();
 });
 
 /** Rules that cannot give a result without a rendering engine. */

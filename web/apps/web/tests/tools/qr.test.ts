@@ -7,7 +7,7 @@ import { buildQr, decodeScene, scanTest, type ScanTest } from '../../src/tools/q
 import type * as QrCheck from '../../src/tools/qr/check.ts';
 import manifest from '../../src/tools/qr/manifest.ts';
 import { toRgba } from '../../src/tools/qr/render.ts';
-import { toaster } from '../../src/ui/toast.svelte.ts';
+import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
 import { defined } from './defined.ts';
 import { readPng } from './qr-helpers.ts';
@@ -74,7 +74,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  toaster.clear();
+  toast.clear();
   vi.restoreAllMocks();
   i18n.setLocale('en');
 });

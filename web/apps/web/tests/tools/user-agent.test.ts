@@ -5,7 +5,7 @@ import { i18n } from '../../src/i18n/index.ts';
 import { CATALOGS } from '../../src/i18n/i18n.svelte.ts';
 import manifest from '../../src/tools/user-agent/manifest.ts';
 import { MAX_USER_AGENT_LENGTH } from '../../src/tools/user-agent/user-agent.ts';
-import { toaster } from '../../src/ui/toast.svelte.ts';
+import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
 
 type User = ReturnType<typeof userEvent.setup>;
@@ -16,7 +16,7 @@ const IPHONE =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Mobile/15E148 Safari/604.1';
 
 afterEach(() => {
-  toaster.clear();
+  toast.clear();
   vi.restoreAllMocks();
   i18n.setLocale('en');
 });

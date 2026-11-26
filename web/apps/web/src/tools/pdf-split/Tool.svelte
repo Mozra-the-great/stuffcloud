@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Progress } from '@mozra-the-great/kern';
+  import { FileDrop, Progress } from '@mozra-the-great/kern';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import { i18n, t } from '../../i18n/index.ts';
   import { buildFiles } from '../../pdf/client.ts';
@@ -14,7 +14,6 @@
   import { planSplit, type SplitMode } from '../../pdf/split-plan.ts';
   import { buildZip, ZipLimitError } from '../../pdf/zip.ts';
   import Button from '../../ui/Button.svelte';
-  import FileDropzone from '../../ui/FileDropzone.svelte';
   import Input from '../../ui/Input.svelte';
   import LinkButton from '../../ui/LinkButton.svelte';
   import Select from '../../ui/Select.svelte';
@@ -165,8 +164,11 @@
 </script>
 
 <ToolFrame id="pdf-split">
-  <FileDropzone
-    hint={t('pdf.drop.one')}
+  <FileDrop
+    mode="dispatch"
+    rejectMessages={false}
+    statusLabel=""
+    dropLabel={t('pdf.drop.one')}
     buttonLabel={t('pdf.drop.oneButton')}
     accept=".pdf,application/pdf"
     multiple={false}

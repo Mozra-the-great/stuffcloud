@@ -110,7 +110,7 @@ reruns the Vitest tests that cover that line; a mutant that no test notices fail
   mutated, and `pnpm check-tools` check) and `.d.ts` files. The scope and its exclusions, each with its reason,
   are in `web/apps/web/stryker.config.mjs`, `web/packages/tools/stryker.config.mjs` and
   `web/stryker.shared.mjs`. Not in scope for now: `packages/api-client` (generated), `src/i18n/messages`
-  (catalogues, string literals only), `src/styles` (generated tokens) and the `.svelte` components (they
+  (catalogues, string literals only), `src/styles` (base CSS and the app-local `--sc-*` tokens; the tokens are kern's) and the `.svelte` components (they
   mostly render, and the e2e specs with axe cover them); the components are worth another look once the
   logic is clean.
 - **Locally**, from `web/`: `pnpm test:mutation` runs both packages, `pnpm --filter @stuffcloud/tools test:mutation`

@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { toast } from '@mozra-the-great/kern';
+  import { Button, toast } from '@mozra-the-great/kern';
   import { t } from '../i18n/index.ts';
-  import Button from '../ui/Button.svelte';
   import { copyText } from './clipboard.ts';
 
   interface Props {
@@ -29,4 +28,4 @@
   one inside a code block). Here it reports through the app's toast region (kern's Toaster) (role="status"), once
   per click, for a failure as well as a success.
 -->
-<Button variant="ghost" size="compact" aria-label={label} onclick={copy}>{t('tool.copy')}</Button>
+<Button variant="secondary" size="sm" aria-label={label} onclick={copy}>{t('tool.copy')}</Button>

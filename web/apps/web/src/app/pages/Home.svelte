@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { Mascot } from '@mozra-the-great/kern';
+  import { Button, Mascot } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
-  import LinkButton from '../../ui/LinkButton.svelte';
   import { TOOLS_PATH } from '../routes.ts';
   import { MASCOT_URLS } from '../mascots.ts';
 </script>
@@ -10,7 +9,7 @@
   <div class="copy">
     <h1 class="title">{t('home.title')}</h1>
     <div>
-      <LinkButton href={TOOLS_PATH}>{t('home.openTools')}</LinkButton>
+      <Button href={TOOLS_PATH}>{t('home.openTools')}</Button>
     </div>
   </div>
   <div class="panel">

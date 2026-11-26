@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button } from '@mozra-the-great/kern';
   import { tick } from 'svelte';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
@@ -6,7 +7,6 @@
   import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import Input from '../../ui/Input.svelte';
   import Select from '../../ui/Select.svelte';
   import { BITS, expandV6, formatAddress, type AddressErrorCode } from './ip.ts';
@@ -488,8 +488,8 @@
             value={t('subnet.split.copiedValue')}
           />
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             onclick={() => {
               download('subnets.txt', splitList);
             }}>{t('subnet.split.download')}</Button
@@ -556,8 +556,8 @@
               value={t('subnet.sum.copiedValue', { version: summary.name })}
             />
             <Button
-              variant="ghost"
-              size="compact"
+              variant="secondary"
+              size="sm"
               onclick={() => {
                 download(`networks-ipv${String(summary.version)}.txt`, summary.networks.join('\n'));
               }}>{t('subnet.sum.download', { version: summary.name })}</Button

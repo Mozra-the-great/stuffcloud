@@ -13,15 +13,16 @@ from another directory), everything: the tests then import the helpers by plain 
 """
 from __future__ import annotations
 
-import ast
 import importlib
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
 PACKAGE = "scripts.ci"
 HERE = Path(__file__).resolve().parent
 SKIPPED = {"conftest", "dev_stack_smoke"}
+IMPORT_LINE = re.compile(r"^(?:from|import)[ \t]+([A-Za-z_][A-Za-z0-9_]*)", re.MULTILINE)
 
 
 def helper_names() -> list[str]:
@@ -32,15 +33,10 @@ def helper_names() -> list[str]:
 
 
 def imports_of(name: str, known: set[str]) -> set[str]:
-    """The helpers that helper `name` imports."""
-    tree = ast.parse((HERE / f"{name}.py").read_text(encoding="utf-8"))
-    found: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            found |= {alias.name.split(".")[0] for alias in node.names}
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            found.add(node.module.split(".")[0])
-    return (found & known) - {name}
+    """The helpers that helper `name` imports (a line-start scan: the mutated copies are megabytes
+    and every pytest start runs this, so they are not parsed)."""
+    text = (HERE / f"{name}.py").read_text(encoding="utf-8")
+    return (set(IMPORT_LINE.findall(text)) & known) - {name}
 
 
 def in_import_order(names: list[str]) -> list[str]:

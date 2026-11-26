@@ -644,14 +644,8 @@ jobs:
       - name: Mutation run
         if: ${{ steps.scope.outputs.run == 'true' }}
         run: |
-          mutmut run "scripts.ci.spdx.x_terms__mutmut_1" > /dev/null || true
-          cd mutants
-          time python -c "import scripts.ci.check_cookies, scripts.ci.check_container_hardening, scripts.ci.labels"
-          time python -m pytest scripts/ci/test_license_spdx.py -q -p no:cacheprovider --noconftest || true
-          time python -m pytest scripts/ci/test_license_spdx.py -q -p no:cacheprovider || true
-          python -X importtime -m pytest scripts/ci/test_license_spdx.py -q -p no:cacheprovider 2> imptime.txt || true
-          sort -t'|' -k2 -n imptime.txt | tail -25
-          time python -m pytest scripts/ci -q -p no:cacheprovider --durations=8 || true
+          time mutmut run "scripts.ci.spdx.*"
+          time mutmut run "scripts.ci.license_gate.*" "scripts.ci.mutation_gate.*"
       - name: Survivors
         if: ${{ steps.scope.outputs.run == 'true' }}
         run: |

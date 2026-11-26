@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   limits and character sets of the generator, and for JWT every way a key, a PEM block and the time claims can be wrong, keys that are
   imported as not extractable, and a signature check that fails inside WebCrypto; a key import now answers `{ key }` or `{ error }`
   instead of a boolean a later `catch` could mask. (#191)
+- Measured cost of the full StrykerJS run in ADR 0007 (#162): the tools in four local shards took 2.3 to over 3.5 hours each, the
+  end of a run is slow where the tests use large inputs, so the shards of `web-mutants-full` get 330 minutes instead of 120. (#192)
 - Mutation testing of the Python CI helpers (#161, ADR 0007 addendum): job `mutation-python` in `ci.yml` (part of
   `build`; it never skips itself) and the nightly `deep-tests.yml` run [mutmut](https://github.com/boxed/mutmut) 3
   over every `scripts/ci/*.py`, and `scripts/ci/mutation_gate.py` fails on any mutant no test noticed (`mutmut run`

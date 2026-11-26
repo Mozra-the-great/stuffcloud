@@ -169,11 +169,17 @@ rule of decisions 2 and 5 holds for it: a surviving mutant is a missing test.
   killed (never in CI).
 - **Cost:** measured first, as the issue asked (figures per run in #162). The scope is 16 768 mutants in
   `apps/web` and 939 in `packages/tools`. The initial run (every test once, instrumented, with the coverage of
-  every mutant) takes 11 minutes for `apps/web`, against two minutes for the plain Vitest run; the mutants then
-  run at about 1.5 per second on six local workers, an endless-loop mutant costing its time limit. One run of
-  the whole scope is therefore hours, which is why the PR job takes the changed files and the full run is
-  sharded. The tests that hash megabytes in pure JavaScript had to learn to work in small pieces (the
-  instrumented loops are far slower), see `hash-task.test.ts`.
+  every mutant) takes 11 minutes for `apps/web`, against two minutes for the plain Vitest run. The mutants then
+  run at about 1.3 per second on six local workers, an endless-loop mutant costing its time limit. The tools
+  (not `src/pdf`) in four shards on sixteen local workers took 2.3 to more than 3.5 hours each, and the end of a
+  run is slow: the mutants of files whose tests use large inputs (QR codes scanned back, a regex that runs
+  away, large documents) cost minutes each, because the tests that cover them run instrumented. One run of the
+  whole scope is therefore hours, which is why the PR job takes the changed files (2 to 10 minutes on a
+  hosted runner for a module of 500 to 1 000 mutants) and the full run is sharded and starts on demand. The
+  tests that hash megabytes in pure JavaScript had to learn to work in small pieces (the instrumented loops are
+  far slower), see `hash-task.test.ts`. A mutant that is killed or a timeout in one environment can survive
+  in another (the timeout counts as caught, but the test that kills it may not finish in time on a slower
+  machine), so a module is only done when the PR job passes.
 - **Alternatives considered:** the whole scope on every PR (not chosen: hours); `ignoreStatic` and
   disabling string-literal mutants (rejected by the issue and by decision 5: they hide exactly the missing
   assertions); a sandbox copy instead of in-place instrumentation (does not work: the tests read files

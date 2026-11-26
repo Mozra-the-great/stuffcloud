@@ -76,14 +76,9 @@ impl Token {
             return Err(TokenError::WrongLength(text.len()));
         }
         let mut bytes = [0_u8; TOKEN_BYTES];
-        for ((index, pair), slot) in (0_usize..)
-            .step_by(2)
-            .zip(text.chunks_exact(2))
-            .zip(bytes.iter_mut())
+        let (pairs, _) = text.as_chunks::<2>();
+        for ((index, [high, low]), slot) in (0_usize..).step_by(2).zip(pairs).zip(bytes.iter_mut())
         {
-            let [high, low] = pair else {
-                return Err(TokenError::WrongLength(text.len()));
-            };
             let high = nibble(*high).ok_or(TokenError::InvalidCharacter(index))?;
             let low = nibble(*low).ok_or(TokenError::InvalidCharacter(index.wrapping_add(1)))?;
             *slot = high.wrapping_mul(16).wrapping_add(low);

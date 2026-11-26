@@ -195,7 +195,7 @@ replaces the "still local" sentence about `Sticker` in the app-local addendum. T
 Accepted difference: `Mascot` draws at a whole-number scale, so a sticker is 44 to 50 px high (the scale
 nearest to the old 48 px) with crisp pixels instead of a stretched 48 px image.
 
-## Addendum: kern 0.14.0 (2026-11-26, #121, PR #PR)
+## Addendum: kern 0.14.0 (2026-11-26, #121, PR #198)
 
 kern 0.14.0 closes the three gaps this package filed or met: `StatusMessage tone="ok"` (kern#173),
 `SelectGrid` with an emptied list (kern#175) and a closed left edge of `TileGrid` (kern#172, the one

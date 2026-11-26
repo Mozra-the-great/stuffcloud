@@ -63,6 +63,31 @@ describe('parseInstant: an ISO text without an offset', () => {
     });
   });
 
+  it('reads the clock in UTC as it is, also in the first years of the calendar', () => {
+    const at = (year: number, month: number, day: number): number => {
+      const date = new Date(0);
+      date.setUTCFullYear(year, month, day);
+      date.setUTCHours(0, 0, 0, 0);
+      return date.getTime();
+    };
+    expect(parseInstant('0001-01-01', 'auto', 'UTC')).toEqual({
+      ok: true,
+      ms: at(1, 0, 1),
+      kind: 'iso',
+      ambiguous: false,
+    });
+    expect(parseInstant('0000-06-01', 'auto', 'UTC')).toEqual({
+      ok: true,
+      ms: at(0, 5, 1),
+      kind: 'iso',
+      ambiguous: false,
+    });
+    expect(parseInstant('9999-12-31T23:59:59', 'auto', 'UTC')).toMatchObject({
+      ok: true,
+      ambiguous: false,
+    });
+  });
+
   it('reads the clock in the chosen zone', () => {
     expect(parseInstant('2026-06-01T12:00:00', 'auto', 'Europe/Berlin')).toEqual({
       ok: true,

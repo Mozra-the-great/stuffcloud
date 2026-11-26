@@ -118,6 +118,10 @@ function parseIso(text: string, timeZone: string): ParseResult {
     const offset = sign * (offsetHours * 60 + offsetMinutes) * 60_000;
     return { ok: true, ms: wall - offset, kind: 'iso', ambiguous: false };
   }
+  // UTC needs no table of offsets, and the table counts the years before year 1 by era (0001-01-01 would read as ambiguous).
+  if (timeZone === 'UTC') {
+    return { ok: true, ms: wall, kind: 'iso', ambiguous: false };
+  }
   // No offset in the text: the clock time is read in the chosen zone.
   const [first, later] = instantsOf(wall, offsetsAround(utc(year, month, day), timeZone));
   if (first === undefined) {

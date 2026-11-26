@@ -387,6 +387,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `docs/TEMPLATE-SETUP.md`: secrets, runner choice, rulesets and costs of a new repo.
 
 ### Changed
+- Tabs from kern (#121, ADR 0014): the tools page's category links and the gallery use kern's `TabLinks` and `Tabs`; the app's own tabs, their stylesheet, keyboard helper and tests go. (#173)
 - Base components from kern (#121, ADR 0014), first batch: `Card`, `Tile`, `TileGrid`, `CodeBlock` and `Progress` (bare bar with `hideLabel`, the label stays its accessible name) replace the app's own copies, which go together with their tests. (#172)
 - CI: `claude-review` is now a tiered Claude review. Agents with pinned models in
   `.claude/agents/review-*.md`: haiku triage, sonnet CLAUDE.md and documentation

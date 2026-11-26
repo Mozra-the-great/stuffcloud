@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Input, Progress, Select, Button, FileDrop } from '@mozra-the-great/kern';
-  import TextArea from '../../app/TextArea.svelte';
+  import { Input, Progress, Select, Button, FileDrop, Textarea } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { i18n, t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
@@ -180,7 +179,8 @@
     <section class="block">
       <Select label={t('hash.mode')} options={modeOptions} bind:value={mode} onchange={onmode} />
       {#if mode === 'text'}
-        <TextArea
+        <Textarea
+          rows={5}
           label={t('hash.text')}
           hint={t('hash.textHint')}
           bind:value={text}

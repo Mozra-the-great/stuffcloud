@@ -23,7 +23,7 @@ is the production app with one difference: `e2e/vite.config.ts` swaps `src/app/t
 - `leaky-tool`: sends file content away four ways (POST, URL, beacon, worker) on purpose.
 
 The test-only tools live in `e2e/app/tools/`, outside `src/tools`, so they are never part of the shipped
-app (the source scan of `tests/tool-rules.test.ts` and the design-kit freeze, #121, do not apply to them).
+app (the source scan of `tests/tool-rules.test.ts` and the rule that generic components go to kern, #121, do not apply to them).
 Their texts are in `e2e/app/messages.ts`.
 
 ## Rules for every spec

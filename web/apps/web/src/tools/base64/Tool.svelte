@@ -1,7 +1,13 @@
 <script lang="ts">
-  import { Input, Progress, Select, Button, FileDrop } from '@mozra-the-great/kern';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import TextArea from '../../app/TextArea.svelte';
+  import {
+    Input,
+    Progress,
+    Select,
+    Button,
+    FileDrop,
+    Checkbox,
+    Textarea,
+  } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import { saveBlob, saveText } from '../../app/download.ts';
@@ -309,7 +315,7 @@
       </div>
 
       {#if source === 'text'}
-        <TextArea
+        <Textarea
           label={direction === 'encode' ? t('base64.textEncode') : t('base64.textDecode')}
           hint={direction === 'encode' ? t('base64.textEncodeHint') : t('base64.textDecodeHint')}
           bind:value={text}
@@ -382,7 +388,7 @@
     {#if shownEncoded !== undefined}
       <section class="block">
         <h2 class="heading">{t('base64.result')}</h2>
-        <TextArea
+        <Textarea
           label={t('base64.result')}
           value={shownEncoded}
           readonly
@@ -409,7 +415,7 @@
       <section class="block">
         <h2 class="heading">{t('base64.result')}</h2>
         {#if shownDecoded !== undefined}
-          <TextArea
+          <Textarea
             label={t('base64.resultText')}
             value={shownDecoded}
             readonly

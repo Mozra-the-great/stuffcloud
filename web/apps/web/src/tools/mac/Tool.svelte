@@ -1,6 +1,5 @@
 <script lang="ts">
-  import TextArea from '../../app/TextArea.svelte';
-  import { Button, FileDrop } from '@mozra-the-great/kern';
+  import { Button, FileDrop, Textarea } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { tick } from 'svelte';
   import { t, type MessageKey } from '../../i18n/index.ts';
@@ -287,11 +286,13 @@
 <ToolFrame id="mac">
   <div class="tool">
     <section class="block">
-      <TextArea
+      <Textarea
+        keepHint
         label={t('mac.input')}
         hint={t('mac.inputHint')}
         bind:value={text}
         error={fieldError}
+        announce={false}
         rows={4}
         autocomplete="off"
         autocapitalize="off"

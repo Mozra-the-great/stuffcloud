@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { Input, Select, Button } from '@mozra-the-great/kern';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import TextArea from '../../app/TextArea.svelte';
+  import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
@@ -271,7 +269,7 @@
   <div class="tool">
     <section class="block">
       <h2 class="heading">{t('textops.text')}</h2>
-      <TextArea
+      <Textarea
         label={t('textops.input')}
         bind:value={text}
         error={textError}
@@ -360,7 +358,7 @@
 
     <section class="block" aria-busy={working}>
       <h2 class="heading">{t('textops.result')}</h2>
-      <TextArea
+      <Textarea
         label={t('textops.output')}
         value={resultText}
         readonly

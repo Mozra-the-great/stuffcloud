@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Input, Select, Button } from '@mozra-the-great/kern';
-  import TextArea from '../../app/TextArea.svelte';
+  import { Input, Select, Button, Textarea } from '@mozra-the-great/kern';
   import { t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
@@ -115,7 +114,8 @@
   <div class="tool">
     <section class="block">
       <h2 class="heading">{t('url.convert')}</h2>
-      <TextArea
+      <Textarea
+        rows={5}
         label={t('url.text')}
         bind:value={text}
         error={textProblem}
@@ -145,7 +145,7 @@
       <ToolStatus message={status} />
       <ToolStatus kind="alert" message={failure} />
       {#if converted !== undefined}
-        <TextArea label={t('url.result')} value={converted} readonly rows={4} />
+        <Textarea label={t('url.result')} value={converted} readonly rows={4} />
         <div>
           <CopyButton text={converted} label={t('url.copy')} value={t('url.copiedValue')} />
         </div>

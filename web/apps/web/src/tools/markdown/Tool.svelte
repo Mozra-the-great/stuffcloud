@@ -1,5 +1,5 @@
 <script lang="ts">
-  import TextArea from '../../app/TextArea.svelte';
+  import { Textarea } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
@@ -102,7 +102,7 @@
   <div class="tool">
     <div class="columns">
       <section class="block">
-        <TextArea
+        <Textarea
           label={t('markdown.input')}
           bind:value={text}
           rows={18}

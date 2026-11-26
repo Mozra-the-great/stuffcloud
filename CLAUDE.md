@@ -44,7 +44,7 @@ crates/app/     LAN API (axum): config (env + _FILE), resource conventions (reso
 docker/app/     Dockerfile (distroless, non-root) + bootstrap.dev.json for the dev stack
 web/            pnpm workspace (Node 24, own lockfile; the backend never depends on it)
   apps/web/     Svelte + Vite SPA (static build): src/styles (generated tokens.css, fonts.css, theme.css),
-                src/ui (base components not yet from kern), src/app (app shell, router, pages, mascot art URLs,
+                src/app (app shell, router, pages, mascot art URLs,
                 tool registry + `ToolFrame`), src/tools/<id>/ (one directory per tool: manifest.ts + Tool.svelte),
                 src/pdf (what the PDF tools share: engine on pdf-lib, workers + pools, pictures on pdf.js,
                 page grid, ZIP writer; ADR 0013; the network scan covers it like src/tools),
@@ -187,7 +187,7 @@ which owns the one `<h1>`) and its test. Name, description and keywords are cata
 (`tool.<id>.name|description|keywords`, German and English), never literals. A tool never sends file
 content anywhere: `fileContent: 'stays-in-browser'`, no network API in tool sources (a test scans
 them). Heavy work runs in a worker through `createWorkerPool`/`serveWorker`. New generic pieces
-go to kern (#121), not into `src/ui`. A tool gets an e2e spec in `web/apps/web/e2e/specs/` (import `test`
+go to kern (#121); the base components come from `@mozra-the-great/kern` (ADR 0014) and `src/ui` is gone. A tool gets an e2e spec in `web/apps/web/e2e/specs/` (import `test`
 from `../support/fixtures.ts`: it fails the test when the page sends anything but `GET`s of its own
 assets; call `net.watch(file)` so a piece of an uploaded file in any request fails it too, and
 `a11y.check(page, '<state>')` after each state: that runs axe).

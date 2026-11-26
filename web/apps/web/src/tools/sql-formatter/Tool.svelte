@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Select, Button } from '@mozra-the-great/kern';
-  import TextArea from '../../app/TextArea.svelte';
+  import { Select, Button, Textarea } from '@mozra-the-great/kern';
   import { t, type MessageKey } from '../../i18n/index.ts';
   import { saveText } from '../../app/download.ts';
   import CopyButton from '../../app/CopyButton.svelte';
@@ -82,7 +81,7 @@
 <ToolFrame id="sql-formatter">
   <div class="tool">
     <section class="block">
-      <TextArea
+      <Textarea
         label={t('sql.input')}
         bind:value={text}
         rows={12}
@@ -122,7 +121,7 @@
     {#if output !== undefined}
       <section class="block">
         <h2 class="heading">{t('sql.result')}</h2>
-        <TextArea label={t('sql.result')} value={output} readonly rows={14} spellcheck={false} />
+        <Textarea label={t('sql.result')} value={output} readonly rows={14} spellcheck={false} />
         <div class="row">
           <CopyButton text={output} label={t('sql.copy')} value={t('sql.copied')} />
           <Button

@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { Input, Select, Button } from '@mozra-the-great/kern';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import TextArea from '../../app/TextArea.svelte';
+  import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
   import { t, type MessageKey } from '../../i18n/index.ts';
   import { saveBlob, saveText } from '../../app/download.ts';
   import ToolFrame from '../../app/ToolFrame.svelte';
@@ -177,7 +175,7 @@
       <h2 class="heading">{t('qr.content')}</h2>
       <Select label={t('qr.kind')} options={kindOptions} bind:value={kind} />
       {#if kind === 'text'}
-        <TextArea
+        <Textarea
           label={t('qr.text')}
           hint={t('qr.textHint')}
           bind:value={text}

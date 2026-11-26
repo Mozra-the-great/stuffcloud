@@ -20,9 +20,9 @@
     type TabItem,
     type TabLinkItem,
     type ToastTone,
+    Checkbox,
   } from '@mozra-the-great/kern';
   import '../styles/index.css';
-  import Checkbox from '../ui/Checkbox.svelte';
   import { GALLERY_COLOURS, GALLERY_FONTS } from './swatches.ts';
   import { MASCOT_URLS } from '../app/mascots.ts';
 

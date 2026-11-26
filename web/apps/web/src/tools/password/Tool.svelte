@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { Input, Button } from '@mozra-the-great/kern';
-  import Checkbox from '../../ui/Checkbox.svelte';
+  import { Input, Button, Checkbox } from '@mozra-the-great/kern';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';

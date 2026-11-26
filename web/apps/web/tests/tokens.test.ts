@@ -242,12 +242,7 @@ describe('theme.css', () => {
 });
 
 describe('no magic values in components', () => {
-  const files = [
-    'src/ui/field.css',
-    'src/ui/Checkbox.svelte',
-    'src/gallery/Gallery.svelte',
-    'src/App.svelte',
-  ];
+  const files = ['src/gallery/Gallery.svelte', 'src/App.svelte'];
 
   it.each(files)('%s has no hex or rgb colour literal', (file) => {
     const source = readAppFile(file).replace(/\/\*[\s\S]*?\*\//g, '');

@@ -9,8 +9,9 @@
 //! - The login is sent only after the connection is secured, because the settings refuse a login
 //!   with `security: none`, and `lettre` itself never sends it before a required upgrade.
 //! - `EHLO` announces the domain of the sender address, not the name of the host the app runs on.
-//! - Every connection is a new one with a time limit for each command; there is no pool, because
-//!   an instance sends a handful of mails a day.
+//! - Every delivery is a new connection with one time limit for the whole of it (`lettre` has
+//!   a limit for connecting only, so a server that accepts and then says nothing would hold a
+//!   worker for good); there is no pool, because an instance sends a handful of mails a day.
 //! - Errors are mapped to [`SendError`]: the kind and the status code, never the text of the
 //!   server, which may repeat the recipient's address.
 
@@ -25,8 +26,8 @@ use stuffcloud_core::smtp::SmtpSecurity;
 use crate::message::{Outgoing, build};
 use crate::transport::{FailureKind, SendError, SendFuture, Server, Transport};
 
-/// How long one SMTP command may take (connecting, each answer).
-pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
+/// How long a delivery may take in all (connecting, TLS, every command, the message): 2 minutes.
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_mins(2);
 
 /// Delivers mail over SMTP.
 #[derive(Debug, Clone)]
@@ -42,7 +43,7 @@ impl Default for SmtpTransport {
 }
 
 impl SmtpTransport {
-    /// A transport whose commands may take `timeout` each.
+    /// A transport whose deliveries may take `timeout` each.
     #[must_use]
     pub const fn new(timeout: Duration) -> Self {
         Self {
@@ -124,11 +125,10 @@ impl SmtpTransport {
         let message = build(mail).map_err(|_refused| SendError::new(FailureKind::Message))?;
         let domain = mail.from.as_str().rsplit('@').next().unwrap_or_default();
         let client = self.client(server, domain)?;
-        client
-            .send(message)
-            .await
-            .map(|_response| ())
-            .map_err(|error| classify(&error))
+        match tokio::time::timeout(self.timeout, client.send(message)).await {
+            Ok(result) => result.map(|_response| ()).map_err(|error| classify(&error)),
+            Err(_elapsed) => Err(SendError::new(FailureKind::Timeout)),
+        }
     }
 }
 
@@ -138,16 +138,36 @@ impl Transport for SmtpTransport {
     }
 }
 
+/// What the error and its causes say, in lower case, for the few cases `lettre` does not tell by
+/// its kind (a failed TLS handshake is reported as a connection error, a read timeout as an
+/// i/o error). Only used to choose a [`FailureKind`]; the text itself is never kept or logged,
+/// because it may repeat what the server said.
+fn describe(error: &Error) -> String {
+    let mut text = error.to_string();
+    let mut source = std::error::Error::source(error);
+    while let Some(cause) = source {
+        text.push(' ');
+        text.push_str(&cause.to_string());
+        source = cause.source();
+    }
+    text.to_ascii_lowercase()
+}
+
 /// The kind and the status code of a `lettre` error.
 fn classify(error: &Error) -> SendError {
     let code = error.status().map(u16::from);
+    let text = describe(error);
     let kind = if error.is_permanent() {
         FailureKind::Rejected
     } else if error.is_transient() {
         FailureKind::Deferred
-    } else if error.is_timeout() {
+    } else if error.is_timeout() || text.contains("timed out") {
         FailureKind::Timeout
-    } else if tls_error(error) {
+    } else if tls_error(error)
+        || ["certificate", "tls", "handshake", "starttls"]
+            .iter()
+            .any(|word| text.contains(word))
+    {
         FailureKind::Tls
     } else if error.is_response() || error.is_client() {
         FailureKind::Protocol

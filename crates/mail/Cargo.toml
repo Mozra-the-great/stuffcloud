@@ -17,6 +17,7 @@ tls = ["lettre/tokio1-rustls", "lettre/rustls-native-certs", "lettre/ring"]
 [dependencies]
 lettre.workspace = true
 stuffcloud-core.workspace = true
+tokio.workspace = true
 
 [dev-dependencies]
 rcgen.workspace = true

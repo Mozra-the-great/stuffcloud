@@ -10,9 +10,10 @@
 
 /*
  * The result line of a tool is green in the design; kern's StatusMessage (kind="status") is neutral.
- * Waiting for kern#173 (`tone="ok"`): then the class `tool-ok` goes from the tools and this rule
- * with it. `p` and the attribute keep it above kern's own two-class selector without `!important`.
+ * Waiting for kern#173 (`tone="ok"`): then this rule goes. The tools' `data-tool-status` attribute (also
+ * the hook of their tests) selects the line; `p` and the two attributes keep it above kern's own
+ * two-class selector without `!important`.
  */
-p.tool-ok[role='status'] {
+p[data-tool-status][role='status'] {
   color: var(--green);
 }

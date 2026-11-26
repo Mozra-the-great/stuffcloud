@@ -121,7 +121,7 @@
         <Button variant="secondary" size="sm" onclick={clear}>{t('ua.clear')}</Button>
       </div>
       <p class="note">{t('ua.useHint')}</p>
-      <StatusMessage data-tool-status class="tool-ok" message={status} />
+      <StatusMessage data-tool-status message={status} />
     </section>
 
     <section class="block">

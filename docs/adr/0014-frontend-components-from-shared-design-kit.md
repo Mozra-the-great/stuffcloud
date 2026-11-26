@@ -193,8 +193,8 @@ alert; rendered from the first paint, empty, so a screen reader has the region b
 and so are the two regions of `src/pdf/LiveStatus.svelte`, which keeps its job (both regions always
 present, the error in a box). This replaces the "still local" sentence about `ToolStatus` and `LiveStatus` in
 the previous addendum. Two things differ from the old line. kern's status text is neutral, the design's is
-green: one rule in `styles/index.css` (class `tool-ok`) keeps the colour until kern#173 (`tone="ok"`)
-ships, then the class and the rule go. And the tests and e2e specs no longer select `.tool-status`: they
+green: one rule in `styles/index.css` (selecting the tools' `data-tool-status` lines) keeps the colour until kern#173 (`tone="ok"`)
+ships, then the rule goes. And the tests and e2e specs no longer select `.tool-status`: they
 use role plus the attribute `data-tool-status`, because kern's field errors are `role="alert"` too and a
 role alone would also find them. kern's alert colour (`--k-danger`, `#ff4f8b`) is the old `--pink2`.
 

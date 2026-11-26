@@ -140,7 +140,7 @@
       <div>
         <Button variant="secondary" onclick={useNow}>{t('timestamp.now')}</Button>
       </div>
-      <StatusMessage data-tool-status class="tool-ok" message={status} />
+      <StatusMessage data-tool-status message={status} />
     </section>
 
     {#if formats !== undefined}

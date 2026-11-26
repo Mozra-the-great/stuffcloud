@@ -158,7 +158,7 @@
         spellcheck={false}
         autocomplete="off"
       />
-      <StatusMessage data-tool-status class="tool-ok" message={searchStatus} />
+      <StatusMessage data-tool-status message={searchStatus} />
       {#if hits.length > 0}
         <ul class="hits" aria-label={t('units.search.results')}>
           {#each hits as hit (`${hit.category.id}/${hit.unit.id}`)}
@@ -226,7 +226,7 @@
           />
         </div>
       </div>
-      <StatusMessage data-tool-status class="tool-ok" message={status} />
+      <StatusMessage data-tool-status message={status} />
     </section>
 
     <section class="block">

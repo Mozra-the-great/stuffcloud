@@ -225,7 +225,7 @@
           spellcheck={false}
         />
       {/if}
-      <StatusMessage data-tool-status class="tool-ok" message={status} />
+      <StatusMessage data-tool-status message={status} />
       <StatusMessage data-tool-status kind="alert" message={failure} />
       {#if notes.length > 0}
         <ul class="notes">

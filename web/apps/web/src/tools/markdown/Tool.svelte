@@ -109,7 +109,7 @@
           autocapitalize="off"
           spellcheck={false}
         />
-        <StatusMessage data-tool-status class="tool-ok" message={status} />
+        <StatusMessage data-tool-status message={status} />
         <StatusMessage data-tool-status kind="alert" message={failure} />
       </section>
 

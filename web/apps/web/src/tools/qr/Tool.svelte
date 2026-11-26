@@ -260,7 +260,7 @@
       {:else if problem !== ''}
         <p class="note">{problem}</p>
       {/if}
-      <StatusMessage data-tool-status class="tool-ok" message={status} />
+      <StatusMessage data-tool-status message={status} />
       <StatusMessage data-tool-status kind="alert" message={failure} />
     </section>
   </div>

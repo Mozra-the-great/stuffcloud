@@ -421,7 +421,7 @@
           onchange={changed}
         />
       {/if}
-      <StatusMessage data-tool-status class="tool-ok" message={status} />
+      <StatusMessage data-tool-status message={status} />
     </section>
 
     {#if details !== undefined}

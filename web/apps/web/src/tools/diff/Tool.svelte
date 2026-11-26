@@ -182,7 +182,7 @@
 
     <section class="block wide" aria-busy={working}>
       <h2 class="heading">{t('diff.result')}</h2>
-      <StatusMessage data-tool-status class="tool-ok" message={status} />
+      <StatusMessage data-tool-status message={status} />
       <StatusMessage data-tool-status kind="alert" message={failure} />
       {#if working && output === undefined}
         <p class="note">{t('diff.working')}</p>

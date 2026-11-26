@@ -372,7 +372,7 @@
           {t('textops.use')}
         </Button>
       </div>
-      <StatusMessage data-tool-status class="tool-ok" message={status} />
+      <StatusMessage data-tool-status message={status} />
       <StatusMessage data-tool-status kind="alert" message={failure} />
     </section>
   </div>

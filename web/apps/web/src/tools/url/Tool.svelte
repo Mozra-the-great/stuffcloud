@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { Input, Select } from '@mozra-the-great/kern';
+  import { Input, Select, Button } from '@mozra-the-great/kern';
   import TextArea from '../../app/TextArea.svelte';
   import { t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import {
     MAX_LENGTH,
     decodeText,
@@ -137,7 +136,7 @@
           }}>{t('url.encode')}</Button
         >
         <Button
-          variant="ghost"
+          variant="secondary"
           onclick={() => {
             convert('decode');
           }}>{t('url.decode')}</Button

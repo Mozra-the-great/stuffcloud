@@ -1,12 +1,11 @@
 <script lang="ts">
-  import { Input, Select } from '@mozra-the-great/kern';
+  import { Input, Select, Button } from '@mozra-the-great/kern';
   import Checkbox from '../../ui/Checkbox.svelte';
   import TextArea from '../../app/TextArea.svelte';
   import { t, type MessageKey } from '../../i18n/index.ts';
   import { saveBlob, saveText } from '../../app/download.ts';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import { ECC_LEVELS, buildQr, type QrResult } from './check.ts';
   import type { Ecc } from './matrix.ts';
   import {
@@ -247,7 +246,7 @@
               void downloadPng();
             }}>{t('qr.downloadPng')}</Button
           >
-          <Button variant="ghost" onclick={downloadSvg}>{t('qr.downloadSvg')}</Button>
+          <Button variant="secondary" onclick={downloadSvg}>{t('qr.downloadSvg')}</Button>
         </div>
         <div class="encoded" role="group" aria-labelledby="qr-content-label">
           <p class="label" id="qr-content-label">{t('qr.encoded')}</p>

@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { Progress } from '@mozra-the-great/kern';
+  import { Button, FileDrop, Progress } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import ToolFrame from '../../../../src/app/ToolFrame.svelte';
-  import Button from '../../../../src/ui/Button.svelte';
-  import FileDropzone from '../../../../src/ui/FileDropzone.svelte';
   import { createPool } from './pool.ts';
   import type { Digest, Input } from './task.ts';
 
@@ -111,15 +109,23 @@
 </script>
 
 <ToolFrame id="worker-lab">
-  <FileDropzone hint="Drop files here" buttonLabel="Choose files" {onfiles} />
+  <FileDrop
+    mode="dispatch"
+    multiple
+    rejectMessages={false}
+    statusLabel=""
+    dropLabel="Drop files here"
+    buttonLabel="Choose files"
+    {onfiles}
+  />
   <div class="row">
-    <Button variant="ghost" size="compact" onclick={() => void hold()}
+    <Button variant="secondary" size="sm" onclick={() => void hold()}
       >Start a job that never ends</Button
     >
-    <Button variant="ghost" size="compact" disabled={status !== 'working'} onclick={cancel}
+    <Button variant="secondary" size="sm" disabled={status !== 'working'} onclick={cancel}
       >Cancel</Button
     >
-    <Button variant="ghost" size="compact" disabled={report === undefined} onclick={download}
+    <Button variant="secondary" size="sm" disabled={report === undefined} onclick={download}
       >Download report</Button
     >
   </div>

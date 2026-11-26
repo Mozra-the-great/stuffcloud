@@ -1,45 +1,53 @@
 <script lang="ts">
   import {
+    Button,
     Card,
     CodeBlock,
+    FileDrop,
     Input,
+    Mascot,
+    MASCOT_NAMES,
+    Modal,
     Progress,
     Select,
     TabLinks,
     Tabs,
     Tile,
     TileGrid,
+    toast,
+    Toaster,
+    type SelectOption,
+    type TabItem,
+    type TabLinkItem,
+    type ToastTone,
   } from '@mozra-the-great/kern';
-  import Checkbox from '../ui/Checkbox.svelte';
   import '../styles/index.css';
-  import Button from '../ui/Button.svelte';
-  import Dialog from '../ui/Dialog.svelte';
-  import FileDropzone from '../ui/FileDropzone.svelte';
-  import LinkButton from '../ui/LinkButton.svelte';
-  import Mascot from '../ui/Mascot.svelte';
-  import { MASCOT_NAMES } from '../ui/mascots.ts';
-  import ToastRegion from '../ui/ToastRegion.svelte';
-  import { toaster, type ToastKind } from '../ui/toast.svelte.ts';
-  import type { SelectOption, TabItem, TabLinkItem } from '@mozra-the-great/kern';
+  import Checkbox from '../ui/Checkbox.svelte';
   import { GALLERY_COLOURS, GALLERY_FONTS } from './swatches.ts';
+  import { MASCOT_URLS } from '../app/mascots.ts';
 
-  // The lists are mutable until kern takes readonly ones (kern issue 142).
-  const selectOptions: SelectOption[] = [
+  const selectOptions: readonly SelectOption[] = [
     { value: 'one', label: 'One day' },
     { value: 'seven', label: 'Seven days' },
     { value: 'never', label: 'Never', disabled: true },
   ];
-  const tabs: TabItem[] = [
+  const tabs: readonly TabItem[] = [
     { id: 'json', label: 'JSON' },
     { id: 'yaml', label: 'YAML' },
     { id: 'xml', label: 'XML' },
   ];
-  const tabLinks: TabLinkItem[] = [
+  const tabLinks: readonly TabLinkItem[] = [
     { href: '#convert', label: 'Convert', current: true },
     { href: '#base64', label: 'Base64' },
     { href: '#colours', label: 'Colours' },
   ];
-  const toastKinds: readonly ToastKind[] = ['info', 'success', 'warn', 'error'];
+  // Named by what the app calls them; kern's tones behind them.
+  const toastKinds: readonly { readonly name: string; readonly tone: ToastTone }[] = [
+    { name: 'info', tone: 'info' },
+    { name: 'success', tone: 'ok' },
+    { name: 'warn', tone: 'warn' },
+    { name: 'error', tone: 'danger' },
+  ];
 
   let text = $state('stuffcloud');
   let duration = $state('seven');
@@ -72,17 +80,17 @@
   <section aria-labelledby="g-mascot">
     <h2 class="label" id="g-mascot">Mascot</h2>
     <div class="stage">
-      <Mascot name="stuffy" scale={16} compactScale={9} />
+      <Mascot name="stuffy" src={MASCOT_URLS.stuffy} scale={16} compactScale={9} />
     </div>
     <ul class="cast">
       {#each MASCOT_NAMES as name (name)}
         <li>
-          <Mascot {name} scale={6} />
+          <Mascot {name} src={MASCOT_URLS[name]} scale={6} />
           <code>{name}</code>
         </li>
       {/each}
       <li>
-        <Mascot name="stuffy" scale={6} animated={false} />
+        <Mascot name="stuffy" src={MASCOT_URLS.stuffy} scale={6} animated={false} />
         <code>still</code>
       </li>
     </ul>
@@ -92,11 +100,11 @@
     <h2 class="label" id="g-buttons">Button, link button</h2>
     <div class="row">
       <Button>Primary</Button>
-      <Button variant="ghost">Ghost</Button>
+      <Button variant="secondary">Ghost</Button>
       <Button variant="danger">Danger</Button>
       <Button disabled>Disabled</Button>
-      <Button size="compact">Compact</Button>
-      <Button size="icon" variant="ghost" aria-label="Menu">
+      <Button size="sm">Compact</Button>
+      <Button size="icon" variant="secondary" aria-label="Menu">
         <svg
           width="20"
           height="14"
@@ -111,8 +119,8 @@
       </Button>
     </div>
     <div class="row">
-      <LinkButton href="#buttons">Link button</LinkButton>
-      <LinkButton href="#buttons" variant="ghost">Ghost link</LinkButton>
+      <Button href="#buttons">Link button</Button>
+      <Button href="#buttons" variant="secondary">Ghost link</Button>
     </div>
     <div class="wide">
       <Button wide>
@@ -164,7 +172,7 @@
     <h2 class="label" id="g-dialog">Dialog</h2>
     <div class="row">
       <Button
-        variant="ghost"
+        variant="secondary"
         onclick={() => {
           dialogOpen = true;
         }}
@@ -172,11 +180,11 @@
         Open dialog
       </Button>
     </div>
-    <Dialog bind:open={dialogOpen} title="Delete site" closeLabel="Close">
+    <Modal bind:open={dialogOpen} title="Delete site" closeLabel="Close">
       <p class="panel">my-site.example</p>
-      {#snippet actions()}
+      {#snippet footer()}
         <Button
-          variant="ghost"
+          variant="secondary"
           onclick={() => {
             dialogOpen = false;
           }}
@@ -185,21 +193,21 @@
         </Button>
         <Button variant="danger">Delete</Button>
       {/snippet}
-    </Dialog>
+    </Modal>
   </section>
 
   <section aria-labelledby="g-toast">
     <h2 class="label" id="g-toast">Toast</h2>
     <div class="row">
-      {#each toastKinds as kind (kind)}
+      {#each toastKinds as kind (kind.name)}
         <Button
-          variant="ghost"
-          size="compact"
+          variant="secondary"
+          size="sm"
           onclick={() => {
-            toaster.push(`A ${kind} message`, { kind });
+            toast({ message: `A ${kind.name} message`, tone: kind.tone });
           }}
         >
-          {kind}
+          {kind.name}
         </Button>
       {/each}
     </div>
@@ -226,8 +234,12 @@
 
   <section aria-labelledby="g-drop">
     <h2 class="label" id="g-drop">File dropzone</h2>
-    <FileDropzone
-      hint="drop PDFs here"
+    <FileDrop
+      mode="dispatch"
+      multiple
+      rejectMessages={false}
+      statusLabel=""
+      dropLabel="drop PDFs here"
       buttonLabel="Choose files"
       accept=".pdf,application/pdf"
       onfiles={(files: File[]) => {
@@ -238,7 +250,7 @@
   </section>
 </main>
 
-<ToastRegion label="Notifications" dismissLabel="Dismiss" />
+<Toaster position="bottom-left" label="Notifications" dismissLabel="Dismiss" />
 
 <style>
   .gallery {

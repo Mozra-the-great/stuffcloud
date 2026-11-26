@@ -1,5 +1,6 @@
 <script lang="ts">
   import TextArea from '../../app/TextArea.svelte';
+  import { Button, FileDrop } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { tick } from 'svelte';
   import { t, type MessageKey } from '../../i18n/index.ts';
@@ -10,8 +11,6 @@
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
-  import FileDropzone from '../../ui/FileDropzone.svelte';
   import {
     MAX_ADDRESSES,
     MAX_INPUT_LENGTH,
@@ -384,8 +383,11 @@
         >
       </p>
       <p class="note">{t('mac.vendor.privacy')}</p>
-      <FileDropzone
-        hint={t('mac.vendor.drop')}
+      <FileDrop
+        mode="dispatch"
+        rejectMessages={false}
+        statusLabel=""
+        dropLabel={t('mac.vendor.drop')}
         buttonLabel={t('mac.vendor.choose')}
         accept=".csv,text/csv"
         multiple={true}
@@ -408,7 +410,7 @@
           {/each}
         </ul>
         <div>
-          <Button variant="ghost" size="compact" onclick={remove}>{t('mac.vendor.remove')}</Button>
+          <Button variant="secondary" size="sm" onclick={remove}>{t('mac.vendor.remove')}</Button>
         </div>
       {/if}
     </section>

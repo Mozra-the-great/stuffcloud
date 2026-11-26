@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { Input } from '@mozra-the-great/kern';
+  import { Input, Button } from '@mozra-the-great/kern';
   import { t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import {
     MAX_USER_AGENT_LENGTH,
     parseUserAgent,
@@ -118,8 +117,8 @@
         onchange={announce}
       />
       <div class="actions">
-        <Button variant="ghost" size="compact" onclick={useMine}>{t('ua.use')}</Button>
-        <Button variant="ghost" size="compact" onclick={clear}>{t('ua.clear')}</Button>
+        <Button variant="secondary" size="sm" onclick={useMine}>{t('ua.use')}</Button>
+        <Button variant="secondary" size="sm" onclick={clear}>{t('ua.clear')}</Button>
       </div>
       <p class="note">{t('ua.useHint')}</p>
       <ToolStatus message={status} />

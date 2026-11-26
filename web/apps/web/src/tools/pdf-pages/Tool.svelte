@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Input, Progress } from '@mozra-the-great/kern';
+  import { Input, Progress, Button, FileDrop } from '@mozra-the-great/kern';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import { i18n, t } from '../../i18n/index.ts';
   import { buildFiles } from '../../pdf/client.ts';
@@ -36,7 +36,6 @@
   } from '../../pdf/page-edit.ts';
   import PageGrid from '../../pdf/PageGrid.svelte';
   import { SingleDocument } from '../../pdf/session.svelte.ts';
-  import Button from '../../ui/Button.svelte';
   import FileDropzone from '../../ui/FileDropzone.svelte';
   import LinkButton from '../../ui/LinkButton.svelte';
 
@@ -269,8 +268,11 @@
 </script>
 
 <ToolFrame id="pdf-pages">
-  <FileDropzone
-    hint={t('pdf.drop.one')}
+  <FileDrop
+    mode="dispatch"
+    rejectMessages={false}
+    statusLabel=""
+    dropLabel={t('pdf.drop.one')}
     buttonLabel={t('pdf.drop.oneButton')}
     accept=".pdf,application/pdf"
     multiple={false}
@@ -294,16 +296,16 @@
       <div class="toolbar" role="group" aria-label={t('pdf.pages.actions')}>
         <div class="cluster" role="group" aria-label={t('pdf.pages.group.select')}>
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             onclick={() => {
               selected = new Set(pages.map((page) => page.id));
               status = t('pdf.split.selected', { count: selected.size });
             }}>{t('pdf.pages.selectAll')}</Button
           >
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             onclick={() => {
               selected = new Set();
               status = t('pdf.split.selected', { count: 0 });
@@ -312,56 +314,56 @@
         </div>
         <div class="cluster" role="group" aria-label={t('pdf.pages.group.turn')}>
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             aria-disabled={!hasSelection}
             onclick={() => {
               turn(-90);
             }}>{t('pdf.pages.turnLeft')}</Button
           >
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             aria-disabled={!hasSelection}
             onclick={() => {
               turn(90);
             }}>{t('pdf.pages.turnRight')}</Button
           >
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             aria-disabled={!hasSelection}
             onclick={removeSelected}>{t('pdf.pages.delete')}</Button
           >
         </div>
         <div class="cluster" role="group" aria-label={t('pdf.pages.group.move')}>
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             aria-disabled={!hasSelection}
             onclick={() => {
               shiftSelected(-1);
             }}>{t('pdf.pages.earlier')}</Button
           >
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             aria-disabled={!hasSelection}
             onclick={() => {
               shiftSelected(1);
             }}>{t('pdf.pages.later')}</Button
           >
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             aria-disabled={!hasSelection}
             onclick={() => {
               moveSelectedTo(1, 'pdf.pages.did.toStart');
             }}>{t('pdf.pages.toStart')}</Button
           >
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             aria-disabled={!hasSelection}
             onclick={() => {
               moveSelectedTo(pages.length, 'pdf.pages.did.toEnd');
@@ -376,22 +378,16 @@
             inputmode="numeric"
             autocomplete="off"
           />
-          <Button variant="ghost" size="compact" type="submit" aria-disabled={!hasSelection}
+          <Button variant="secondary" size="sm" type="submit" aria-disabled={!hasSelection}
             >{t('pdf.pages.moveHere')}</Button
           >
         </form>
         <div class="cluster" role="group" aria-label={t('pdf.pages.group.history')}>
-          <Button
-            variant="ghost"
-            size="compact"
-            aria-disabled={!canUndo(history)}
-            onclick={undoStep}>{t('pdf.pages.undo')}</Button
+          <Button variant="secondary" size="sm" aria-disabled={!canUndo(history)} onclick={undoStep}
+            >{t('pdf.pages.undo')}</Button
           >
-          <Button
-            variant="ghost"
-            size="compact"
-            aria-disabled={!canRedo(history)}
-            onclick={redoStep}>{t('pdf.pages.redo')}</Button
+          <Button variant="secondary" size="sm" aria-disabled={!canRedo(history)} onclick={redoStep}
+            >{t('pdf.pages.redo')}</Button
           >
         </div>
       </div>
@@ -420,7 +416,7 @@
         <Button disabled={working || pages.length === 0} onclick={() => void save()}
           >{t('pdf.pages.save')}</Button
         >
-        <Button variant="ghost" disabled={!working} onclick={cancel}
+        <Button variant="secondary" disabled={!working} onclick={cancel}
           >{t('pdf.action.cancel')}</Button
         >
       </div>
@@ -444,8 +440,8 @@
 
   {#if result !== undefined}
     <div class="actions">
-      <LinkButton href={result.url} download={result.name}
-        >{t('pdf.action.download')} {result.name}</LinkButton
+      <Button href={result.url} download={result.name}
+        >{t('pdf.action.download')} {result.name}</Button
       >
     </div>
   {/if}
@@ -499,19 +495,5 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-12);
-  }
-
-  /* A button that does nothing yet stays focusable (the focus is not lost when it just ran), so it is dimmed, not disabled. */
-  .toolbar :global(.sc-btn[aria-disabled='true']) {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  @media (forced-colors: active) {
-    .toolbar :global(.sc-btn[aria-disabled='true']) {
-      opacity: 1;
-      border-color: GrayText;
-      color: GrayText;
-    }
   }
 </style>

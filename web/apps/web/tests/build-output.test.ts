@@ -125,13 +125,18 @@ describe('production build output', () => {
   it('ships the mascot motion as a transform-only, reduced-motion-aware stylesheet', () => {
     const css = text(/\.css$/).join('\n');
     const has = (pattern: RegExp): boolean => pattern.test(css);
-    // The minifier writes `steps(1)` as `step-end` and `100%` as `to`; same meaning.
-    expect(has(/animation:1\.2s step-end infinite [\w-]*bob\}/), 'two-step idle animation').toBe(
-      true,
-    );
+    // kern's Mascot reads the period and the offset from theme tokens with the design's values as
+    // fallbacks; no theme sets them, so 1.2 s and 4 px are what ships. The minifier writes `100%` as `to`.
+    expect(has(/--k-mascot-bob-(?:period|offset)\s*:/), 'no theme overrides the bob').toBe(false);
     expect(
       has(
-        /@keyframes [\w-]*bob\{0%,49%\{transform:translateY\(0\)\}50%,to\{transform:translateY\(-4px\)\}\}/,
+        /animation:[\w-]*bob var\(--k-mascot-bob-period,1\.2s\) (?:steps\(1\)|step-end) infinite\}/,
+      ),
+      'two-step idle animation',
+    ).toBe(true);
+    expect(
+      has(
+        /@keyframes [\w-]*bob\{0%,49%\{transform:translateY\(0\)\}50%,to\{transform:translateY\(calc\(var\(--k-mascot-bob-offset,4px\) \* -1\)\)\}\}/,
       ),
       'transform-only keyframes',
     ).toBe(true);

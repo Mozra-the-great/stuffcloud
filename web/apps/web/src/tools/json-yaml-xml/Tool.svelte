@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Input, Select } from '@mozra-the-great/kern';
+  import { Input, Select, Button } from '@mozra-the-great/kern';
   import Checkbox from '../../ui/Checkbox.svelte';
   import TextArea from '../../app/TextArea.svelte';
   import type { WorkerPool } from '@stuffcloud/tools';
@@ -8,7 +8,6 @@
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import {
     FORMATS,
     MAX_INPUT_CHARS,
@@ -202,7 +201,7 @@
         />
       </div>
       <div>
-        <Button variant="ghost" size="compact" onclick={swap}>{t('convert.swap')}</Button>
+        <Button variant="secondary" size="sm" onclick={swap}>{t('convert.swap')}</Button>
       </div>
       <TextArea
         label={t('convert.input')}
@@ -259,7 +258,7 @@
         />
         <div class="row">
           <CopyButton text={result} label={t('convert.copy')} value={t('convert.copied')} />
-          <Button variant="ghost" size="compact" onclick={download}>{t('convert.download')}</Button>
+          <Button variant="secondary" size="sm" onclick={download}>{t('convert.download')}</Button>
         </div>
       </section>
     {/if}

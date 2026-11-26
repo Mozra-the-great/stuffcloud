@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { Input, Select } from '@mozra-the-great/kern';
+  import { Input, Select, Button } from '@mozra-the-great/kern';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import {
     categoryName,
     categoryOrFirst,
@@ -169,16 +168,16 @@
               <span class="hit-name">{name} ({hit.unit.symbol})</span>
               <span class="hit-category">{categoryName(hit.category, i18n.locale)}</span>
               <Button
-                variant="ghost"
-                size="compact"
+                variant="secondary"
+                size="sm"
                 aria-label={t('units.search.asFrom', { unit: name })}
                 onclick={() => {
                   useHit(hit, 'from');
                 }}>{t('units.search.from')}</Button
               >
               <Button
-                variant="ghost"
-                size="compact"
+                variant="secondary"
+                size="sm"
                 aria-label={t('units.search.asTo', { unit: name })}
                 onclick={() => {
                   useHit(hit, 'to');
@@ -211,7 +210,7 @@
         <Select label={t('units.to')} options={unitOptions} value={to.id} onchange={onTo} />
       </div>
       <div class="actions">
-        <Button variant="ghost" size="compact" onclick={swap}>{t('units.swap')}</Button>
+        <Button variant="secondary" size="sm" onclick={swap}>{t('units.swap')}</Button>
         <div class="precision">
           <Input
             type="number"

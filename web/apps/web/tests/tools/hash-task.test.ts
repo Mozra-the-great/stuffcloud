@@ -30,6 +30,11 @@ describe('isInput', () => {
     expect(isInput({})).toBe(false);
     expect(isInput({ file: 'text' })).toBe(false);
     expect(isInput({ text: 'x' })).toBe(false);
+    // Not even an object: reading `.file` of these would throw or give nothing.
+    expect(isInput(undefined)).toBe(false);
+    expect(isInput(42)).toBe(false);
+    expect(isInput(true)).toBe(false);
+    expect(isInput([new Blob(['x'])])).toBe(false);
   });
 });
 
@@ -57,18 +62,52 @@ describe('runTask', () => {
   });
 
   it('reads a big file piece by piece and reports progress after each piece', async () => {
-    const data = noise(CHUNK_SIZE * 2 + 123);
+    // Pieces of 1000 bytes instead of megabytes: the work is the same, the hashing is not the test.
+    const piece = 1000;
+    const data = noise(piece * 2 + 123);
     const progress = vi.fn<(completed: number, total: number) => void>();
-    const output = await runTask({ file: new Blob([data]) }, { progress });
+    const output = await runTask({ file: new Blob([data]) }, { progress }, piece);
     expect(output.digests['SHA-256']).toBe(createHash('sha256').update(data).digest('hex'));
+    expect(output.digests['SHA-512']).toBe(createHash('sha512').update(data).digest('hex'));
     expect(progress.mock.calls.map(([done]) => done)).toEqual([
-      CHUNK_SIZE,
-      CHUNK_SIZE * 2,
+      piece,
+      piece * 2,
       data.length,
       data.length,
     ]);
     expect(progress.mock.calls.every(([, total]) => total === data.length)).toBe(true);
-  }, 60_000);
+  });
+
+  it('reads a file that is exactly one piece in one piece', async () => {
+    const piece = 1000;
+    const data = noise(piece);
+    const progress = vi.fn<(completed: number, total: number) => void>();
+    const output = await runTask({ file: new Blob([data]) }, { progress }, piece);
+    expect(output.digests['SHA-1']).toBe(createHash('sha1').update(data).digest('hex'));
+    expect(progress.mock.calls).toEqual([
+      [piece, piece],
+      [piece, piece],
+    ]);
+  });
+
+  it('is 4 MiB per piece, and a file is cut at that size', async () => {
+    expect(CHUNK_SIZE).toBe(4_194_304);
+    const cuts: [number, number][] = [];
+    // Reading the cuts is the test; hashing the pieces is not, so the pieces are empty.
+    const file = {
+      size: CHUNK_SIZE * 2 + 5,
+      slice: (from: number, to: number): Blob => {
+        cuts.push([from, to]);
+        return new Blob([]);
+      },
+    } as unknown as Blob;
+    await runTask({ file }, { progress: vi.fn() });
+    expect(cuts).toEqual([
+      [0, CHUNK_SIZE],
+      [CHUNK_SIZE, CHUNK_SIZE * 2],
+      [CHUNK_SIZE * 2, CHUNK_SIZE * 3],
+    ]);
+  });
 });
 
 describe('the worker', () => {

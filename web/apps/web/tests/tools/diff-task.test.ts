@@ -1,3 +1,4 @@
+import { timeBudget } from '../time-budget.ts';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_CONTEXT,
@@ -371,7 +372,7 @@ describe('large and very different texts', () => {
     const took = performance.now() - started;
     expect(output.stats).toEqual({ added: 100, removed: 100, unchanged: 19_900 });
     expect(output.degraded).toBe(false);
-    expect(took).toBeLessThan(3000);
+    expect(took).toBeLessThan(timeBudget(3000));
     const inWords = words(before, after);
     expect(inWords.stats.added).toBe(100);
     expect(inWords.degraded).toBe(false);
@@ -382,7 +383,7 @@ describe('large and very different texts', () => {
     const after = make(4000, 2);
     const started = performance.now();
     const output = lines(before, after, { budgetMs: 30, context: 3 });
-    expect(performance.now() - started).toBeLessThan(2000);
+    expect(performance.now() - started).toBeLessThan(timeBudget(2000));
     expect(output.degraded).toBe(true);
     expect(output.stats).toEqual({ added: 4000, removed: 4000, unchanged: 0 });
     expect(output.rows.every((row) => row.kind === 'changed')).toBe(true);

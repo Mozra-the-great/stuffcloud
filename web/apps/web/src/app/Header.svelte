@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { Button } from '@mozra-the-great/kern';
   import { t } from '../i18n/index.ts';
-  import Button from '../ui/Button.svelte';
   import logoUrl from '../../../../../docs/design/prototypes/logo.svg?url';
   import { APP_NAME } from './brand.ts';
   import LanguageSwitch from './LanguageSwitch.svelte';
@@ -38,8 +38,8 @@
 
 {#snippet actions()}
   <Button
-    variant="ghost"
-    size="compact"
+    variant="secondary"
+    size="sm"
     aria-keyshortcuts="Control+K Meta+K"
     onclick={() => {
       openFor = undefined;

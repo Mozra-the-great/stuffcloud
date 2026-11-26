@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { Input } from '@mozra-the-great/kern';
+  import { Input, Button } from '@mozra-the-great/kern';
   import Checkbox from '../../ui/Checkbox.svelte';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import {
     DEFAULT_LENGTH,
     MAX_LENGTH,

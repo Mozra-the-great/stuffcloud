@@ -1,7 +1,6 @@
 <script lang="ts">
+  import { Button, FileDrop } from '@mozra-the-great/kern';
   import ToolFrame from '../../../../src/app/ToolFrame.svelte';
-  import Button from '../../../../src/ui/Button.svelte';
-  import FileDropzone from '../../../../src/ui/FileDropzone.svelte';
 
   /** Where the same-origin leaks go; the privacy test aborts these requests. */
   const POST_PATH = '/__leak';
@@ -65,18 +64,26 @@
 </script>
 
 <ToolFrame id="leaky-tool">
-  <FileDropzone hint="Drop a file here" buttonLabel="Choose a file" multiple={false} {onfiles} />
+  <FileDrop
+    mode="dispatch"
+    rejectMessages={false}
+    statusLabel=""
+    dropLabel="Drop a file here"
+    buttonLabel="Choose a file"
+    multiple={false}
+    {onfiles}
+  />
   <div class="row">
-    <Button variant="ghost" size="compact" onclick={() => void leak(viaPost, 'post')}
+    <Button variant="secondary" size="sm" onclick={() => void leak(viaPost, 'post')}
       >Leak by POST</Button
     >
-    <Button variant="ghost" size="compact" onclick={() => void leak(viaQuery, 'query')}
+    <Button variant="secondary" size="sm" onclick={() => void leak(viaQuery, 'query')}
       >Leak in a URL</Button
     >
-    <Button variant="ghost" size="compact" onclick={() => void leak(viaBeacon, 'beacon')}
+    <Button variant="secondary" size="sm" onclick={() => void leak(viaBeacon, 'beacon')}
       >Leak by beacon</Button
     >
-    <Button variant="ghost" size="compact" onclick={() => void leak(viaWorker, 'worker')}
+    <Button variant="secondary" size="sm" onclick={() => void leak(viaWorker, 'worker')}
       >Leak from a worker</Button
     >
   </div>

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { i18n } from '../../src/i18n/index.ts';
 import manifest from '../../src/tools/subnet/manifest.ts';
-import { toaster } from '../../src/ui/toast.svelte.ts';
+import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
 import { defined } from './defined.ts';
 
@@ -18,7 +18,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  toaster.clear();
+  toast.clear();
   i18n.setLocale('en');
   vi.restoreAllMocks();
 });

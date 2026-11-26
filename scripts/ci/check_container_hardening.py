@@ -41,7 +41,7 @@ REPO = pathlib.Path(__file__).resolve().parents[2]
 
 LOOPBACK = {"127.0.0.1", "::1", "localhost"}
 PINNED = re.compile(r"^(?P<name>[^@\s]+)@sha256:[0-9a-f]{64}$")
-SKIP_DIRS = {".git", "node_modules", "target", "dist", "coverage", "__pycache__", ".venv"}
+SKIP_DIRS = {".git", "node_modules", "target", "dist", "coverage", "__pycache__", ".venv", "mutants"}
 COMPOSE_NAME = re.compile(r"^(docker-)?compose([.-].+)?\.ya?ml$")
 DOCKERFILE_NAME = re.compile(r"^(Dockerfile(\..+)?|.+\.Dockerfile|Containerfile)$")
 # Reserved names (RFC 2606, RFC 6761): the only host names the repository may contain.
@@ -59,7 +59,8 @@ class SetupError(Exception):
 
 def is_reserved_host(host: str) -> bool:
     """True for names RFC 2606 / RFC 6761 reserve (whole labels, so `notexample.com` is not)."""
-    labels = host.lower().rstrip(".").split(".")
+    # Equivalent mutant: the name is lowercase, so a stripped "X" cannot occur.
+    labels = host.lower().rstrip(".").split(".")  # pragma: no mutate
     if labels[-1] in RESERVED_TLDS and len(labels) > 1:
         return True
     return ".".join(labels[-2:]) in RESERVED_DOMAINS
@@ -74,7 +75,7 @@ def image_problem(ref: str) -> str | None:
     if match is None:
         return f"{ref!r} is not pinned by digest (name:tag@sha256:<64 hex digits>)"
     name = match.group("name")
-    last_part = name.rsplit("/", 1)[-1]
+    last_part = name.rpartition("/")[2]
     if ":" not in last_part:
         return f"{ref!r} has a digest but no tag (Dependabot and readers need the tag)"
     tag = last_part.split(":", 1)[1]
@@ -87,7 +88,7 @@ def uid_problem(user: object) -> str | None:
     """Static rule: the user must be set and a numeric, non-zero uid."""
     if user is None or str(user).strip() == "":
         return "no `user` set (the container would run as the image default, often root)"
-    uid = str(user).split(":", 1)[0].strip()
+    uid = str(user).partition(":")[0].strip()
     if not uid.isdigit():
         return f"user {user!r} is not a numeric uid (a name cannot be checked without the image)"
     if int(uid) == 0:
@@ -112,7 +113,7 @@ def _port_host_ip(port: object) -> tuple[bool, str]:
         published = port.get("published") not in (None, "")
         return published, str(port.get("host_ip") or "")
     text = str(port)
-    parts = text.split("/", 1)[0].split(":")
+    parts = text.split(":")  # a "/tcp" suffix ends up in the last part, which is only counted
     if len(parts) == 1:  # "8080": container port only, not published
         return False, ""
     if len(parts) == 2:  # "8080:80": published on all interfaces
@@ -154,7 +155,7 @@ def check_service(name: str, service: Mapping[str, Any]) -> list[str]:
     if service.get("privileged") is True:
         bad("`privileged: true`")
     for key in ("network_mode", "pid", "ipc", "userns_mode", "uts", "cgroup"):
-        if str(service.get(key) or "").lower() == "host":
+        if str(service.get(key)).lower() == "host":
             bad(f"`{key}: host` shares the host namespace")
     if _as_list(service.get("devices")):
         bad("`devices` hands host devices to the container")
@@ -167,16 +168,16 @@ def check_service(name: str, service: Mapping[str, Any]) -> list[str]:
 
     for volume in _as_list(service.get("volumes")):
         if isinstance(volume, Mapping):
-            kind, source = str(volume.get("type")), str(volume.get("source") or "")
+            is_bind, source = volume.get("type") == "bind", str(volume.get("source") or "")
             read_only = volume.get("read_only") is True
         else:  # short form "source:target[:ro]"
             parts = str(volume).split(":")
             source = parts[0]
-            kind = "bind" if source.startswith(("/", ".", "~")) else "volume"
+            is_bind = source.startswith(("/", ".", "~"))
             read_only = parts[-1] == "ro"
         if "docker.sock" in source:
             bad("the Docker socket is mounted (full control of the host)")
-        if kind == "bind" and not read_only:
+        if is_bind and not read_only:
             bad(f"bind mount {source!r} is writable; mount it read-only")
 
     if "build" not in service:
@@ -225,8 +226,10 @@ def check_dockerfile(text: str, name: str = "Dockerfile") -> list[str]:
     """Every FROM is pinned (or a previous stage or `scratch`); the final stage is not root."""
     out: list[str] = []
     stages: set[str] = set()
-    stage_count = 0
-    final_user: str | None = None
+    # Equivalent mutants: `None` is as false as `False`, and `final_user` is reset by every FROM and
+    # never read without one.
+    has_from = False  # pragma: no mutate
+    final_user: str | None = None  # pragma: no mutate
     for line in logical_lines(text):
         keyword, _, rest = line.partition(" ")
         keyword = keyword.upper()
@@ -234,7 +237,7 @@ def check_dockerfile(text: str, name: str = "Dockerfile") -> list[str]:
             tokens = [t for t in rest.split() if not t.startswith("--")]
             image = tokens[0] if tokens else ""
             alias = tokens[2].lower() if len(tokens) >= 3 and tokens[1].upper() == "AS" else None
-            stage_count += 1
+            has_from = True
             final_user = None
             if image.lower() == "scratch" or image.lower() in stages:
                 pass
@@ -248,12 +251,12 @@ def check_dockerfile(text: str, name: str = "Dockerfile") -> list[str]:
                 stages.add(alias)
         elif keyword == "USER":
             final_user = rest.strip()
-    if stage_count == 0:
+    if not has_from:
         return [f"{name}: no FROM instruction"]
     if final_user is None:
         out.append(f"{name}: the final stage has no USER instruction (it would run as root)")
     else:
-        uid = final_user.split(":", 1)[0].strip().lower()
+        uid = final_user.partition(":")[0].strip().lower()
         if uid in ("root", "0", ""):
             out.append(f"{name}: the final stage runs as {final_user!r}")
         elif "$" in uid:
@@ -268,7 +271,8 @@ def parse_env_example(text: str) -> tuple[dict[str, str], list[str]]:
     """Return ({name: value}, findings). Every variable needs a comment line right above it."""
     values: dict[str, str] = {}
     findings: list[str] = []
-    previous_is_comment = False
+    # Equivalent mutant: `None` (like `False`) is "no comment above" for the first line.
+    previous_is_comment = False  # pragma: no mutate
     for number, raw in enumerate(text.splitlines(), start=1):
         line = raw.strip()
         match = ENV_LINE.match(line)
@@ -354,8 +358,9 @@ def check_container(info: Mapping[str, Any], process_uids: Sequence[str]) -> lis
         bad(f"health status is {health!r}, expected 'healthy'")
     for bindings in (host.get("PortBindings") or {}).values():
         for binding in bindings or []:
-            if (binding.get("HostIp") or "") not in LOOPBACK:
-                bad(f"a port is published on {binding.get('HostIp') or 'all interfaces'!r}")
+            host_ip = binding.get("HostIp") or ""
+            if host_ip not in LOOPBACK:
+                bad(f"a port is published on {host_ip or 'all interfaces'!r}")
     if not process_uids:
         bad("no process found")
     for uid in sorted(set(process_uids)):

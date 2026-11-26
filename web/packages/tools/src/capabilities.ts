@@ -6,8 +6,8 @@ export const CAPABILITIES = ['wasm', 'webcrypto', 'worker'] as const;
 
 export type Capability = (typeof CAPABILITIES)[number];
 
-export function isCapability(value: string): value is Capability {
-  return (CAPABILITIES as readonly string[]).includes(value);
+export function isCapability(value: unknown): value is Capability {
+  return (CAPABILITIES as readonly unknown[]).includes(value);
 }
 
 /** The parts of the global scope that {@link detectCapabilities} looks at (`globalThis` fits). */

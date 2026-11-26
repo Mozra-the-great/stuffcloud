@@ -97,7 +97,8 @@ def lockfile_entries(text: str) -> dict[tuple[str, str], str | None]:
     reports. An entry key of any other form fails: it would otherwise go unchecked.
     """
     found: dict[tuple[str, str], str | None] = {}
-    section = ""
+    # Equivalent mutants: only compared with "packages", so any other start value acts the same.
+    section = ""  # pragma: no mutate
     tarball: tuple[str, str] | None = None  # (name, url) of a tarball entry awaiting its version
     for line in _main_lockfile_document(text).splitlines():
         top = re.match(r"^([A-Za-z]\w*):", line)
@@ -208,7 +209,8 @@ def _copy_manifests(web: pathlib.Path, target: pathlib.Path) -> None:
     for root, dirs, files in os.walk(web):
         dirs[:] = [d for d in dirs if d not in _SKIPPED_DIRS]
         relative = pathlib.Path(root).relative_to(web)
-        if relative != pathlib.Path(".") and "package.json" in files:
+        # Equivalent mutant: the root manifest was copied above, copying it once more changes nothing.
+        if relative != pathlib.Path(".") and "package.json" in files:  # pragma: no mutate
             (target / relative).mkdir(parents=True, exist_ok=True)
             shutil.copy2(pathlib.Path(root) / "package.json", target / relative / "package.json")
 

@@ -1,3 +1,4 @@
+import { timeBudget } from '../time-budget.ts';
 import { describe, expect, it } from 'vitest';
 import { matchingDays, parseCron, type CronSchedule } from '../../src/tools/cron/cron.ts';
 import { MAX_RUNS, nextRuns } from '../../src/tools/cron/next-runs.ts';
@@ -190,7 +191,7 @@ describe('nextRuns in UTC', () => {
       '2026-06-02T00:00:01Z',
       '2026-06-02T00:00:02Z',
     ]);
-    expect(performance.now() - started).toBeLessThan(2000);
+    expect(performance.now() - started).toBeLessThan(timeBudget(2000));
   });
 });
 

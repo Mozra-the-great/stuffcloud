@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
     "test": "vitest run --coverage",
+    "test:mutation": "stryker run",
     "build": "vite build",
     "tokens": "node scripts/gen-tokens.ts --write",
     "tokens:check": "node scripts/gen-tokens.ts --check",
@@ -35,6 +36,8 @@
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
     "@playwright/test": "^1.65.0",
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/vitest-runner": "^10.1.1",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/svelte": "^5.4.2",

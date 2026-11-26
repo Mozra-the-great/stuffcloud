@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Input, Select } from '@mozra-the-great/kern';
+  import { Input, Select, Button } from '@mozra-the-great/kern';
   import TextArea from '../../app/TextArea.svelte';
   import { tick } from 'svelte';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
@@ -7,7 +7,6 @@
   import { saveText } from '../../app/download.ts';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import { BITS, expandV6, formatAddress, type AddressErrorCode } from './ip.ts';
   import {
     MAX_ENTRIES,
@@ -490,8 +489,8 @@
             value={t('subnet.split.copiedValue')}
           />
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             onclick={() => {
               download('subnets.txt', splitList);
             }}>{t('subnet.split.download')}</Button
@@ -558,8 +557,8 @@
               value={t('subnet.sum.copiedValue', { version: summary.name })}
             />
             <Button
-              variant="ghost"
-              size="compact"
+              variant="secondary"
+              size="sm"
               onclick={() => {
                 download(`networks-ipv${String(summary.version)}.txt`, summary.networks.join('\n'));
               }}>{t('subnet.sum.download', { version: summary.name })}</Button

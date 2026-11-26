@@ -102,16 +102,27 @@ class TestMalformed(unittest.TestCase):
                 spdx.parse(text)
 
     def test_messages_name_the_problem(self):
-        with self.assertRaisesRegex(spdx.LicenseExpressionError, "empty license expression"):
-            spdx.parse("")
-        with self.assertRaisesRegex(spdx.LicenseExpressionError, "unexpected end"):
-            spdx.parse("MIT OR")
-        with self.assertRaisesRegex(spdx.LicenseExpressionError, r"expected '\)'"):
-            spdx.parse("(MIT ISC)")
-        with self.assertRaisesRegex(spdx.LicenseExpressionError, "invalid license identifier"):
-            spdx.parse("MIT/ISC")
-        with self.assertRaisesRegex(spdx.LicenseExpressionError, "unexpected 'ISC'"):
-            spdx.parse("MIT ISC")
+        # The exact text: the gate prints it, so a reworded or damaged message is a bug.
+        messages = {
+            "": "empty license expression",
+            "   ": "empty license expression",
+            "MIT OR": "unexpected end of expression",
+            "(MIT OR ISC": "unexpected end of expression",
+            "(MIT ISC)": "expected ')'",
+            "MIT/ISC": "invalid license identifier 'MIT/ISC'",
+            "MIT ISC": "unexpected 'ISC'",
+            "MIT)": "unexpected ')'",
+            "()": "unexpected ')'",
+            "MIT AND OR": "unexpected 'OR'",
+            "Apache-2.0 WITH OR": "unexpected 'OR'",
+            "Apache-2.0 WITH (": "unexpected '('",
+            "Apache-2.0 WITH )": "unexpected ')'",
+            "Apache-2.0 WITH": "unexpected end of expression",
+        }
+        for text, message in messages.items():
+            with self.subTest(text), self.assertRaises(spdx.LicenseExpressionError) as caught:
+                spdx.parse(text)
+            self.assertEqual(str(caught.exception), message)
 
 
 class TestEvaluate(unittest.TestCase):

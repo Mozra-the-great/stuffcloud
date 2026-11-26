@@ -6,7 +6,7 @@ import { CATALOGS } from '../../src/i18n/i18n.svelte.ts';
 import type { CronErrorCode } from '../../src/tools/cron/cron.ts';
 import manifest from '../../src/tools/cron/manifest.ts';
 import { ERROR_KEYS, FIELD_KEYS } from '../../src/tools/cron/messages.ts';
-import { toaster } from '../../src/ui/toast.svelte.ts';
+import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
 import { fieldErrorText } from '../helpers.ts';
 
@@ -20,7 +20,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  toaster.clear();
+  toast.clear();
   vi.restoreAllMocks();
   i18n.setLocale('en');
 });

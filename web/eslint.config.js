@@ -15,6 +15,9 @@ export default tseslint.config(
       '**/test-results/**',
       '**/playwright-report/**',
       '**/coverage/**',
+      '**/.stryker-tmp/**',
+      '**/stryker-setup-*.js',
+      '**/reports/**',
       'packages/api-client/src/generated/**',
       // Deliberately bad code; only the lint-config test lints it (with `ignore: false`).
       'tests/fixtures/**',

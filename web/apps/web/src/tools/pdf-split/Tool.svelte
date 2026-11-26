@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Input, Progress, Select } from '@mozra-the-great/kern';
+  import { Input, Progress, Select, Button, FileDrop } from '@mozra-the-great/kern';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import { i18n, t } from '../../i18n/index.ts';
   import { buildFiles } from '../../pdf/client.ts';
@@ -13,7 +13,6 @@
   import { SingleDocument } from '../../pdf/session.svelte.ts';
   import { planSplit, type SplitMode } from '../../pdf/split-plan.ts';
   import { buildZip, ZipLimitError } from '../../pdf/zip.ts';
-  import Button from '../../ui/Button.svelte';
   import FileDropzone from '../../ui/FileDropzone.svelte';
   import LinkButton from '../../ui/LinkButton.svelte';
 
@@ -163,8 +162,11 @@
 </script>
 
 <ToolFrame id="pdf-split">
-  <FileDropzone
-    hint={t('pdf.drop.one')}
+  <FileDrop
+    mode="dispatch"
+    rejectMessages={false}
+    statusLabel=""
+    dropLabel={t('pdf.drop.one')}
     buttonLabel={t('pdf.drop.oneButton')}
     accept=".pdf,application/pdf"
     multiple={false}
@@ -232,7 +234,9 @@
       <Button disabled={!plan.ok || working} onclick={() => void split()}
         >{t('pdf.split.start')}</Button
       >
-      <Button variant="ghost" disabled={!working} onclick={cancel}>{t('pdf.action.cancel')}</Button>
+      <Button variant="secondary" disabled={!working} onclick={cancel}
+        >{t('pdf.action.cancel')}</Button
+      >
     </div>
   {/if}
 
@@ -253,8 +257,8 @@
       <h2 id="split-results" class="sub">{t('pdf.split.results')}</h2>
       {#if zip !== undefined}
         <div>
-          <LinkButton href={zip.url} download={zip.name}
-            >{t('pdf.split.zip', { size: formatBytes(zip.size, i18n.locale) })}</LinkButton
+          <Button href={zip.url} download={zip.name}
+            >{t('pdf.split.zip', { size: formatBytes(zip.size, i18n.locale) })}</Button
           >
         </div>
       {/if}
@@ -268,13 +272,13 @@
                 size: formatBytes(file.size, i18n.locale),
               })}</span
             >
-            <LinkButton
-              variant="ghost"
-              size="compact"
+            <Button
+              variant="secondary"
+              size="sm"
               href={file.url}
               download={file.name}
               aria-label={t('pdf.split.downloadFile', { name: file.name })}
-              >{t('pdf.action.download')}</LinkButton
+              >{t('pdf.action.download')}</Button
             >
           </li>
         {/each}

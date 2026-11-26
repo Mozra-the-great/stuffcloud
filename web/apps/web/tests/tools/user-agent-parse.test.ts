@@ -1,3 +1,4 @@
+import { timeBudget } from '../time-budget.ts';
 import { describe, expect, it } from 'vitest';
 import {
   MAX_USER_AGENT_LENGTH,
@@ -517,7 +518,7 @@ describe('limits and hostile input', () => {
     ]) {
       parseUserAgent(ua);
     }
-    expect(performance.now() - started).toBeLessThan(1000);
+    expect(performance.now() - started).toBeLessThan(timeBudget(1000));
   });
 
   it('never throws, and always answers with a complete result (seeded random text)', () => {

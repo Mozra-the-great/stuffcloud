@@ -11,6 +11,6 @@ export const TOOL_CATEGORIES = [
 
 export type ToolCategory = (typeof TOOL_CATEGORIES)[number];
 
-export function isToolCategory(value: string): value is ToolCategory {
-  return (TOOL_CATEGORIES as readonly string[]).includes(value);
+export function isToolCategory(value: unknown): value is ToolCategory {
+  return (TOOL_CATEGORIES as readonly unknown[]).includes(value);
 }

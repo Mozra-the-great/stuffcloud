@@ -44,11 +44,12 @@ crates/app/     LAN API (axum): config (env + _FILE), resource conventions (reso
 docker/app/     Dockerfile (distroless, non-root) + bootstrap.dev.json for the dev stack
 web/            pnpm workspace (Node 24, own lockfile; the backend never depends on it)
   apps/web/     Svelte + Vite SPA (static build): src/styles (generated tokens.css, fonts.css, theme.css),
-                src/ui (base components, `Mascot` + mascot catalogue), src/app (app shell, router, pages,
+                src/ui (base components not yet from kern), src/app (app shell, router, pages, mascot art URLs,
                 tool registry + `ToolFrame`), src/tools/<id>/ (one directory per tool: manifest.ts + Tool.svelte),
                 src/pdf (what the PDF tools share: engine on pdf-lib, workers + pools, pictures on pdf.js,
                 page grid, ZIP writer; ADR 0013; the network scan covers it like src/tools),
                 tools.config.json (disabled tools), scripts/ (tokens, check-tools, new-tool),
+                stryker.config.mjs + vitest.stryker.config.ts (mutation testing; shared options and the scope helper in web/stryker.shared.mjs),
                 src/i18n (catalogues de/en, typed keys, CI check), src/gallery (component gallery),
                 src/assets/fonts (self-hosted), bench/ (animation benchmark: `node bench/run.ts bench|verify|size`),
                 perf/ (large-PDF measurement: `pnpm e2e:build && node perf/pdf-large.ts`),
@@ -67,7 +68,9 @@ scripts/ci/     label script (opt-in via LABELS_ENABLED), npm license gate (lice
                 (dev_stack_smoke.py), cookie scope gate (check_cookies.py: Rust, Cargo.toml, Caddyfiles, web/),
                 crypto misuse gate (check_crypto.py: reviewed call sites of salts, literal keys, SHA-2;
                 no MD5/SHA-1), operator-domain gate (check_operator_domains.py: domains and e-mail addresses
-                from the Actions secret/variable STUFFCLOUD_FORBIDDEN_DOMAINS, reduced check without it), tests
+                from the Actions secret/variable STUFFCLOUD_FORBIDDEN_DOMAINS, reduced check without it), mutation
+                gate (mutation_gate.py + requirements-mutmut.txt/.in: mutmut over these scripts, config in
+                the root pyproject.toml), tests
 compose.dev.yml local dev stack (Caddy, app, Mailpit; `edge` joins with H-19); docker/caddy/
                 Caddyfile.dev, placeholder site, Dockerfile (web build baked in); .env.example
 docs/           SPEC.md, ACCESSIBILITY.md (a11y gate, keyboard map), adr/ (architecture decision
@@ -87,6 +90,9 @@ cargo deny check && cargo deny --manifest-path fuzz/Cargo.toml check
 cargo +nightly-2026-11-01 fuzz run safe_rel_path fuzz/corpus/safe_rel_path \
     fuzz/seeds/safe_rel_path -- -dict=fuzz/dicts/stuffcloud.dict -max_total_time=60
 python -m unittest discover -s scripts/ci -p "test_*.py"   # CI helper tests (Python 3.11+)
+python -m pip install --require-hashes --no-deps -r scripts/ci/requirements-mutmut.txt   # once (Linux/macOS/WSL; mutmut needs fork)
+python -m coverage run -m unittest discover -s scripts/ci -p "test_*.py" && python -m coverage report   # line + branch coverage of the helpers (pyproject.toml, floor 99 %)
+mutmut run && mutmut export-cicd-stats && python scripts/ci/mutation_gate.py   # every mutant of scripts/ci/*.py must be caught (mutmut: pyproject.toml); `mutmut results`, `mutmut show <name>`
 python scripts/ci/check_cookies.py            # no cookie with a Domain attribute, Set-Cookie only in app/src/auth.rs, no document.cookie
 python scripts/ci/check_crypto.py             # crypto in product code only at the reviewed call sites (ALLOWLIST with reasons)
 STUFFCLOUD_FORBIDDEN_DOMAINS=... python scripts/ci/check_operator_domains.py   # no operator domain or e-mail address in tracked files (list never in the repo; CONTRIBUTING.md)
@@ -107,6 +113,7 @@ Frontend, from `web/` (`corepack enable` once; Node per `.nvmrc`):
 ```sh
 pnpm install --frozen-lockfile
 pnpm lint && pnpm typecheck && pnpm test && pnpm build   # coverage floor 95 % per package
+pnpm test:mutation                                       # StrykerJS: every mutant of the TypeScript logic must be caught (apps/web: tools + pdf, packages/tools); `pnpm --filter @stuffcloud/tools test:mutation` for one package
 pnpm tokens                                              # regenerate src/styles/tokens.css from docs/design (test fails when stale)
 pnpm new-tool <id> [--category c] [--sticker s] [--name "N"] [--worker]   # scaffold a tool (ADR 0012)
 pnpm check-tools                                         # validate all tool manifests (`vite build` runs the same check)
@@ -125,26 +132,31 @@ Tests are part of the security design; err on the side of too many (SPEC section
   target that asserts invariants, not just "no panic".
 - Every bug and fuzz finding becomes an entry in `tests/regression.rs` and a seed in
   `fuzz/seeds/<target>/`.
-- A surviving mutant is a missing test: add the test, do not skip the mutant.
+- A surviving mutant is a missing test: add the test, do not skip the mutant. This holds for the
+  Python CI helpers in `scripts/ci/` too (mutmut, ADR 0007 addendum): an equivalent mutant gets
+  `# pragma: no mutate` with the proof next to it, nothing else. And for the TypeScript logic of `web/`
+  (StrykerJS, ADR 0007 addendum): an equivalent mutant gets `// Stryker disable next-line <mutator>: <reason>`
+  with the proof as the reason; never exclude a file from the scope to get green.
 - Never weaken a check (`#[allow]`, `ignore`, lower thresholds, `continue-on-error`)
   to make CI pass; `#[expect(..., reason = "...")]` only where the reason is a proof.
 
 ## CI
 
 `ci.yml` job `build` is the required check: an aggregate over fmt, clippy, test,
-docs, coverage, mutants (6 shards), fuzz, web (lint, typecheck, test, build of `web/`), e2e (Playwright +
+docs, coverage, mutants (6 shards), mutation-python (mutmut over `scripts/ci/*.py`, gate in `mutation_gate.py`), web-mutants (StrykerJS over the scoped `.ts` files the PR changes, 2 legs: `apps/web`, `packages/tools`), fuzz, web (lint, typecheck, test, build of `web/`), e2e (Playwright +
 axe a11y gate, no retries), openapi (committed OpenAPI document and generated TS client match the
 handlers), licenses (npm
 license gate + THIRD-PARTY.md freshness), dev-stack (container hardening gate on every compose file
 and Dockerfile, Caddyfile check, smoke test of the dev stack), supply-chain, codeql and repo-checks (add new jobs to its `needs`; no job skips itself on changed
 paths, because the aggregate counts a skipped job as a failure). `deep-tests.yml` runs nightly: long fuzzing (grows the cached corpus),
-full mutants, Miri, 500k proptest cases, fresh advisories, beta toolchain.
+full mutants, full mutmut run (with report artifact), the full StrykerJS run (`web-mutants-full`, report artifacts; on demand until the survivors listed in #162 are closed), Miri, 500k proptest cases, fresh advisories, beta toolchain.
 Toolchain bump: `rust-toolchain.toml` + `rust-version` in `Cargo.toml` + the `rust:` image in
 `docker/app/Dockerfile` (a test enforces it); nightly
 bump: `NIGHTLY` in both workflows. Dependabot handles actions, cargo, npm (`/web`,
 minor/patch grouped; semver-major `@types/node` is ignored, it follows the Node major in
 `web/.nvmrc` and is bumped by hand together with it) and the Docker images (`docker`, `docker-compose`;
-every image reference is `name:tag@sha256:digest`). A new service in a compose file copies the `x-hardened`
+every image reference is `name:tag@sha256:digest`) and pip (`/scripts/ci`: mutmut, hash-locked in `requirements-mutmut.txt`
+from `requirements-mutmut.in` with `pip-compile --generate-hashes`). A new service in a compose file copies the `x-hardened`
 block, a new Dockerfile directory gets a Dependabot entry; the hardening gate fails otherwise.
 
 ## Dependencies and licenses
@@ -156,7 +168,9 @@ all platform variants; unknown or missing license fails). The allow list there e
 Dev-tooling-only licenses go into `[dev_only]`, odd license fields into `[[exception]]`,
 each with a reason. After a lockfile change regenerate `docs/THIRD-PARTY.md` with
 `python scripts/ci/third_party.py --write` (CI fails on a stale file). WASM, models, fonts
-and data files go into `docs/THIRD-PARTY-ASSETS.md`. Details: CONTRIBUTING.md.
+and data files go into `docs/THIRD-PARTY-ASSETS.md`. CI-only Python tooling (mutmut and what it pulls in,
+`scripts/ci/requirements-mutmut.txt`) is in no shipped tree and in neither gate: its licenses are checked by
+hand when a pin changes (CONTRIBUTING.md). Details: CONTRIBUTING.md.
 
 ## Architecture decisions
 

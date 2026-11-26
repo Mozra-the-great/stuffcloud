@@ -45,6 +45,7 @@ export function parseToolSet<K extends string = string, M = unknown>(
     return { ok: false, issues };
   }
   const rank = (manifest: ToolManifest<K, M>): number => categoryOrder.indexOf(manifest.category);
+  // Stryker disable next-line EqualityOperator: two manifests never share an id (duplicates are an issue above), so `<` and `<=` order every pair the same way
   manifests.sort((a, b) => rank(a) - rank(b) || (a.id < b.id ? -1 : 1));
   return { ok: true, manifests };
 }

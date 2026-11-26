@@ -38,7 +38,7 @@ describe('component gallery', () => {
     render(Gallery);
     // button, link button
     expect(screen.getByRole('button', { name: 'Primary' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Link button' }).className).toContain('sc-btn');
+    expect(screen.getByRole('link', { name: 'Link button' }).className).toContain('k-button');
     // input, select, checkbox
     expect(screen.getByLabelText('Name')).toBeTruthy();
     expect(screen.getByLabelText('Expires').tagName).toBe('SELECT');

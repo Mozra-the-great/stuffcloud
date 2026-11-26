@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
@@ -6,7 +7,6 @@
   import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import Checkbox from '../../ui/Checkbox.svelte';
   import Input from '../../ui/Input.svelte';
   import Select from '../../ui/Select.svelte';
@@ -370,10 +370,10 @@
       />
       <div class="actions">
         <CopyButton text={resultText} label={t('textops.copy')} value={t('textops.copiedValue')} />
-        <Button variant="ghost" size="compact" disabled={resultText === ''} onclick={download}>
+        <Button variant="secondary" size="sm" disabled={resultText === ''} onclick={download}>
           {t('textops.download')}
         </Button>
-        <Button variant="ghost" size="compact" disabled={resultText === ''} onclick={useResult}>
+        <Button variant="secondary" size="sm" disabled={resultText === ''} onclick={useResult}>
           {t('textops.use')}
         </Button>
       </div>

@@ -1,13 +1,13 @@
 <script lang="ts">
+  import { Button } from '@mozra-the-great/kern';
   import { i18n, LOCALES, LOCALE_NAMES, t } from '../i18n/index.ts';
-  import Button from '../ui/Button.svelte';
 </script>
 
 <div class="lang" role="group" aria-label={t('language.label')}>
   {#each LOCALES as locale (locale)}
     <Button
-      variant="ghost"
-      size="compact"
+      variant="secondary"
+      size="sm"
       lang={locale}
       aria-pressed={i18n.locale === locale}
       onclick={() => {
@@ -25,7 +25,8 @@
     gap: var(--space-8);
   }
 
-  .lang :global(.sc-btn[aria-pressed='true']) {
+  /* `[data-variant]` (kern's variant attribute) keeps the current language pink on hover too. */
+  .lang :global(.k-button[data-variant][aria-pressed='true']) {
     border-color: var(--pink);
     color: var(--pink);
   }

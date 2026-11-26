@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileDrop } from '@mozra-the-great/kern';
+  import { Button, FileDrop } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { tick } from 'svelte';
   import { t, type MessageKey } from '../../i18n/index.ts';
@@ -11,7 +11,6 @@
   import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import {
     MAX_ADDRESSES,
     MAX_INPUT_LENGTH,
@@ -411,7 +410,7 @@
           {/each}
         </ul>
         <div>
-          <Button variant="ghost" size="compact" onclick={remove}>{t('mac.vendor.remove')}</Button>
+          <Button variant="secondary" size="sm" onclick={remove}>{t('mac.vendor.remove')}</Button>
         </div>
       {/if}
     </section>

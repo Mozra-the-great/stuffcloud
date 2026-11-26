@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -185,12 +185,15 @@ function walk(dir: string): string[] {
 /** Reads the build in `dist`; it must have been made with `vite build --manifest`. */
 export function readBuild(dist: string): BuildOutput {
   const manifestPath = join(dist, '.vite', 'manifest.json');
-  if (!existsSync(manifestPath)) {
+  let text: string;
+  try {
+    text = readFileSync(manifestPath, 'utf8');
+  } catch {
     return failure(
       `${manifestPath} is missing: build with \`vite build --manifest\` (pnpm perf:build) so the chunks can be matched to the tools`,
     );
   }
-  const parsed = JSON.parse(readFileSync(manifestPath, 'utf8')) as unknown;
+  const parsed = JSON.parse(text) as unknown;
   if (!isRecord(parsed)) {
     return failure(`${manifestPath} is not a Vite manifest`);
   }
@@ -202,11 +205,12 @@ export function readBuild(dist: string): BuildOutput {
 }
 
 function sized(build: BuildOutput, file: string): Sized {
-  const path = join(build.dist, file);
-  if (!existsSync(path) || !statSync(path).isFile()) {
+  let content: Buffer;
+  try {
+    content = readFileSync(join(build.dist, file));
+  } catch {
     return failure(`${file} is named by the build but does not exist in ${build.dist}`);
   }
-  const content = readFileSync(path);
   return { file, bytes: content.length, gzipBytes: gzipBytes(content) };
 }
 
@@ -218,17 +222,18 @@ function total(files: readonly Sized[]): number {
 export function shellLinks(html: string): { readonly script: string[]; readonly style: string[] } {
   const script: string[] = [];
   const style: string[] = [];
-  for (const tag of html.matchAll(/<(script|link)\b([^>]*)>/g)) {
+  for (const tag of html.matchAll(/<(script|link)\b([^>]*)>/gi)) {
     const attributes = tag[2] ?? '';
-    const target = /\b(?:src|href)="([^"]+)"/.exec(attributes)?.[1];
+    const target = /\b(?:src|href)="([^"]+)"/i.exec(attributes)?.[1];
     if (target === undefined) {
       continue;
     }
-    const rel = /\brel="([^"]+)"/.exec(attributes)?.[1];
-    const isScript = tag[1] === 'script' && /\btype="module"/.test(attributes);
-    if (isScript || (tag[1] === 'link' && rel === 'modulepreload')) {
+    const name = (tag[1] ?? '').toLowerCase();
+    const rel = /\brel="([^"]+)"/i.exec(attributes)?.[1]?.toLowerCase();
+    const isScript = name === 'script' && /\btype="module"/i.test(attributes);
+    if (isScript || (name === 'link' && rel === 'modulepreload')) {
       script.push(target);
-    } else if (tag[1] === 'link' && rel === 'stylesheet') {
+    } else if (name === 'link' && rel === 'stylesheet') {
       style.push(target);
     }
   }

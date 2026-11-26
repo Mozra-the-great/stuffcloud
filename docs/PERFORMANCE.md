@@ -111,7 +111,14 @@ Deterministic by construction:
 The performance score is mostly the first load of the shell (FCP, LCP, total blocking time, layout shift), so
 it is what the shell budgets above protect: more JavaScript in the first load costs score directly.
 
-Measured at the time of T-25 on a development machine (Chrome 158, five runs, scores identical from run to run):
-performance 96, accessibility 100. Best practices was 77 there only because security software on that machine
-injected a script over plain HTTP (Lighthouse's `is-on-https` and `errors-in-console`); every other
-best-practices audit passed, and the CI runner is the reference for the number.
+Measured at the time of T-25 (job `lighthouse` of #189, five runs, identical from run to run): performance 99,
+accessibility 100, best practices 100. The same build on a development machine scored performance 96; there the
+best-practices number was lower only because security software injected a script over plain HTTP, so the CI
+runner is the reference.
+
+## Offline use
+
+A service worker for the shell and the tools a visitor has used (SPEC 7, optional) is not part of T-25: it needs a
+decision about the script location and about how the privacy test sees the worker's requests first. It is tracked in
+[#190](https://github.com/Mozra-the-great/stuffcloud/issues/190). Until then the app works offline only as far as
+the browser's HTTP cache keeps the hashed files (they are served `immutable`).

@@ -261,6 +261,11 @@ describe('sizes', () => {
     expect(shellLinks(ignored)).toEqual({ script: [], style: [] });
   });
 
+  it('reads tags and attributes in any letter case', () => {
+    const shouting = `<SCRIPT TYPE="module" SRC="/a.js"></SCRIPT><LINK REL="ModulePreload" HREF="/b.js"><Link Rel="Stylesheet" Href="/c.css">`;
+    expect(shellLinks(shouting)).toEqual({ script: ['/a.js', '/b.js'], style: ['/c.css'] });
+  });
+
   it('finds the files a stylesheet names, same-origin only', () => {
     const css =
       'a{background:url(/assets/a.svg)}b{src:url( "/assets/b.woff2" )}c{x:url(\'/assets/c.woff\')}d{x:url(//cdn.example/e.woff2)}e{x:url(data:image/png;base64,AAAA)}f{x:url(relative.png)}';

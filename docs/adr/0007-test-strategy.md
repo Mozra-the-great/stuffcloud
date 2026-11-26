@@ -1,6 +1,6 @@
 # ADR 0007: Test strategy: err on the side of too many tests
 
-- Status: Accepted
+- Status: Accepted (Python CI helpers under the mutation rule: see "Addendum: Python CI helpers")
 - Date: 2026-11-14 (SPEC draft 0.3, section 14 rewritten)
 - Decided in: [SPEC 14](../SPEC.md#14-quality-ci-and-testing), [PR #101](https://github.com/Mozra-the-great/stuffcloud/pull/101), `CLAUDE.md` ("Tests (non-negotiable)")
 
@@ -74,8 +74,59 @@ most (SPEC 15, phase 1) and is run more than seems necessary.
 - **Path-filtered CI jobs:** not used; the `build` aggregate counts a skipped job as a
   failure and a filter could give a false green (CLAUDE.md, "CI").
 
+## Addendum: Python CI helpers (2026-11-26, #161)
+
+Decision 2 and 5 name mutation testing and "a surviving mutant is a missing test" for the Rust code.
+The Python helpers in `scripts/ci/` fall under the same rule: several of them are security gates
+whose only visible output is "pass" (the cookie, crypto and operator-domain gates, the npm license
+gate, the container hardening gate), and a regression that makes one of them pass everything (an
+inverted comparison, a `return True` on an error path, a regex that matches nothing) stays invisible,
+because the tests execute the line and coverage does not check what it does.
+
+- **Tool:** [mutmut](https://github.com/boxed/mutmut) 3 (BSD-3-Clause), pinned with hashes in
+  `scripts/ci/requirements-mutmut.txt` (generated from `requirements-mutmut.in` with
+  `pip-compile --generate-hashes`, installed with `--require-hashes`) and updated by Dependabot
+  (`pip`, `/scripts/ci`). It is CI tooling only: nothing of it ships and the helpers stay
+  standard-library only. Configuration is in the repository's `pyproject.toml` (`[tool.mutmut]`).
+- **What is mutated:** every function of `scripts/ci/*.py` except the tests and
+  `dev_stack_smoke.py`. That script drives a running Docker stack, has no pure function worth
+  testing and patches `socket.getaddrinfo` when imported; the CI job `dev-stack` runs it for real.
+  The Docker calls of `check_container_hardening.py` go through one function (`run`), which the tests
+  replace, so that file is mutated completely.
+- **Gate:** `mutmut run` always exits 0, so `scripts/ci/mutation_gate.py` reads
+  `mutmut export-cicd-stats` and fails on a surviving mutant, a mutant without a test, a suspicious,
+  skipped or interrupted one, a crash, a mutant that was never checked, and an empty run. A mutant
+  that makes the tests hang (an endless loop) is a timeout and counts as caught, as with the time
+  limit of `cargo mutants`.
+- **CI:** job `mutation-python` in `ci.yml`, part of `build`. It never skips itself (decision 1):
+  on a PR that touches neither `scripts/ci/` nor `pyproject.toml` its steps pass with nothing to do;
+  every push to `main` and the nightly run (`deep-tests.yml`, with the report as an artifact) run the
+  whole directory. The whole directory, not only the changed files, because a changed test or script
+  can let a mutant of another file live and the full run is affordable (see Cost). The
+  same job measures line and branch coverage of the helpers first (`coverage.py`, floor in
+  `pyproject.toml`).
+- **Equivalent mutants:** a mutant that provably cannot change behaviour gets `# pragma: no mutate`
+  with the proof in a comment next to it, nothing else. Where a small change of the code removes the
+  equivalent mutant (`rpartition` instead of `rsplit(...)[-1]`, a comparison with `== -1` instead of
+  `< 0` for `str.find`), the code is changed instead of the mutant ignored.
+- **Layout:** mutmut runs the tests in a copy (`mutants/`); the helpers find the repository from their
+  own location, so `also_copy` in `pyproject.toml` copies the files their tests read. `mutants/` is
+  ignored by git and by the helpers' own file walks. The helpers and their tests import each other
+  by plain file name while mutmut names mutants after the file path (`scripts.ci.check_cookies`), so
+  a pytest-only `scripts/ci/conftest.py` registers every helper under both names; the `unittest`
+  run does not use it.
+- **Cost:** 4 188 mutants, 16 minutes on a hosted runner with four cores (the job `e2e` runs 12 minutes
+  in parallel). Measured first, as the issue asked: too long to run on every PR, short enough to run in
+  full whenever the helpers change.
+- **Alternatives considered:** mutating only the changed files on a PR (not chosen: a changed test or
+  helper can let a mutant of another file live, and the helpers change rarely; mutmut accepts
+  `mutmut run "scripts.ci.<module>.*"`, so it remains an optimisation if the run ever hurts);
+  skipping the job on PRs that do not touch the helpers (not allowed, decision 1: the aggregate counts
+  a skipped job as a failure, so the steps no-op instead); leaving the helpers to coverage alone
+  (rejected: the first mutation run found 1 259 surviving mutants against 341 passing tests).
+
 ## Links
 
 - [SPEC 4](../SPEC.md#4-architecture-overview), [14](../SPEC.md#14-quality-ci-and-testing), [15](../SPEC.md#15-phases)
-- PR [#101](https://github.com/Mozra-the-great/stuffcloud/pull/101) (pipeline), [#107](https://github.com/Mozra-the-great/stuffcloud/pull/107) (frontend jobs in `build`), [#109](https://github.com/Mozra-the-great/stuffcloud/pull/109) (npm license gate)
+- PR [#101](https://github.com/Mozra-the-great/stuffcloud/pull/101) (pipeline), [#107](https://github.com/Mozra-the-great/stuffcloud/pull/107) (frontend jobs in `build`), [#109](https://github.com/Mozra-the-great/stuffcloud/pull/109) (npm license gate), PR [#171](https://github.com/Mozra-the-great/stuffcloud/pull/171) (Python CI helpers, addendum)
 - [ADR 0001](0001-stack.md), [ADR 0006](0006-edge-and-core.md)

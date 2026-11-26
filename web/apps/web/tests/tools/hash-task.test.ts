@@ -30,6 +30,11 @@ describe('isInput', () => {
     expect(isInput({})).toBe(false);
     expect(isInput({ file: 'text' })).toBe(false);
     expect(isInput({ text: 'x' })).toBe(false);
+    // Not even an object: reading `.file` of these would throw or give nothing.
+    expect(isInput(undefined)).toBe(false);
+    expect(isInput(42)).toBe(false);
+    expect(isInput(true)).toBe(false);
+    expect(isInput([new Blob(['x'])])).toBe(false);
   });
 });
 

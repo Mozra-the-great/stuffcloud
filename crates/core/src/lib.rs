@@ -25,6 +25,9 @@
 //! Local accounts (A-03) add login names, e-mail addresses, the password policy and the
 //! account request documents ([`account`]), the login throttle ([`throttle`]) and the client
 //! address behind trusted proxies ([`client_ip`]).
+//!
+//! The optional mailer (A-10) adds the `smtp` settings group with its secret reference
+//! ([`smtp`]) and the texts and the retry schedule of the mails ([`mail`]).
 
 pub mod account;
 pub mod authorization;
@@ -35,12 +38,14 @@ pub mod csrf;
 pub mod etag;
 pub mod field;
 pub mod hosting;
+pub mod mail;
 pub mod path;
 pub mod policy;
 pub mod query;
 pub mod scope;
 pub mod session;
 pub mod settings;
+pub mod smtp;
 pub mod subdomain;
 pub mod throttle;
 pub mod token;

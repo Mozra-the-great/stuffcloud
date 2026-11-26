@@ -22,6 +22,7 @@ serde_json.workspace = true
 sha2.workspace = true
 stuffcloud-core = { workspace = true, features = ["openapi"] }
 stuffcloud-db.workspace = true
+stuffcloud-mail.workspace = true
 time.workspace = true
 tokio.workspace = true
 tower.workspace = true

@@ -271,7 +271,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [safe_rel_path, subdomain, entity_tags, write_query, writable_body, cookie_header, origin, csrf_check, authorization, scope, account, forwarded_for]
+        target: [safe_rel_path, subdomain, entity_tags, write_query, writable_body, cookie_header, origin, csrf_check, authorization, scope, account, forwarded_for, smtp_settings]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

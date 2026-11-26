@@ -101,6 +101,15 @@ apply. `DELETE` of a missing resource is a 404 too (`apply` counts it as unchang
 A limit of the instance is reached, for example 1000 pending invitations. Revoke or wait for
 some to expire, then retry.
 
+<a id="mail-not-configured"></a>
+## mail-not-configured (409)
+
+The operation sends mail (`POST /api/v1/auth/password-reset/request`), but the instance has no
+`smtp` settings group, so it has no mail. `GET /api/v1/features` tells beforehand (`mail`). Ask
+an admin for a reset link instead (`POST /api/v1/admin/users/{login}/password-reset`, or on the
+host `stuffcloud-app reset-link <login>`), or have an admin set up mail
+(`PUT /api/v1/settings/smtp`). The answer does not depend on the account that was asked about.
+
 <a id="method-not-allowed"></a>
 ## method-not-allowed (405)
 

@@ -244,7 +244,6 @@ describe('theme.css', () => {
 describe('no magic values in components', () => {
   const files = [
     'src/ui/field.css',
-    'src/ui/tabs.css',
     'src/ui/Checkbox.svelte',
     'src/gallery/Gallery.svelte',
     'src/App.svelte',

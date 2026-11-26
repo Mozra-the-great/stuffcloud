@@ -8,19 +8,21 @@
     MASCOT_NAMES,
     Modal,
     Progress,
+    TabLinks,
+    Tabs,
     Tile,
     TileGrid,
     toast,
     Toaster,
+    type TabItem,
+    type TabLinkItem,
     type ToastTone,
   } from '@mozra-the-great/kern';
   import '../styles/index.css';
   import Checkbox from '../ui/Checkbox.svelte';
   import Input from '../ui/Input.svelte';
   import Select from '../ui/Select.svelte';
-  import TabLinks from '../ui/TabLinks.svelte';
-  import Tabs from '../ui/Tabs.svelte';
-  import type { SelectOption, TabItem, TabLink } from '../ui/types.ts';
+  import type { SelectOption } from '../ui/types.ts';
   import { GALLERY_COLOURS, GALLERY_FONTS } from './swatches.ts';
   import { MASCOT_URLS } from '../app/mascots.ts';
 
@@ -34,7 +36,7 @@
     { id: 'yaml', label: 'YAML' },
     { id: 'xml', label: 'XML' },
   ];
-  const tabLinks: readonly TabLink[] = [
+  const tabLinks: readonly TabLinkItem[] = [
     { href: '#convert', label: 'Convert', current: true },
     { href: '#base64', label: 'Base64' },
     { href: '#colours', label: 'Colours' },
@@ -146,9 +148,9 @@
 
   <section aria-labelledby="g-tabs">
     <h2 class="label" id="g-tabs">Tabs</h2>
-    <Tabs {tabs} label="Formats" bind:selected={tab}>
-      {#snippet panel(item: TabItem)}
-        <p class="panel">{item.label}</p>
+    <Tabs {tabs} label="Formats" bind:value={tab}>
+      {#snippet panel(id: string)}
+        <p class="panel">{tabs.find((item) => item.id === id)?.label}</p>
       {/snippet}
     </Tabs>
     <TabLinks links={tabLinks} label="Convert tools" />

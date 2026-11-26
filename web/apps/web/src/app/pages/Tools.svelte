@@ -1,8 +1,6 @@
 <script lang="ts">
-  import { Mascot, Tile, TileGrid } from '@mozra-the-great/kern';
+  import { Mascot, TabLinks, Tile, TileGrid, type TabLinkItem } from '@mozra-the-great/kern';
   import { i18n, t } from '../../i18n/index.ts';
-  import TabLinks from '../../ui/TabLinks.svelte';
-  import type { TabLink } from '../../ui/types.ts';
   import { getTools } from '../context.ts';
   import type { RouteProps } from '../router/router.svelte.ts';
   import Sticker from '../Sticker.svelte';
@@ -24,7 +22,7 @@
   const requested = $derived(query.get('category') ?? '');
   const category = $derived(isToolCategory(requested) ? requested : undefined);
   const visible = $derived(toolsInCategory(tools, category));
-  const links = $derived<readonly TabLink[]>([
+  const links = $derived<readonly TabLinkItem[]>([
     { href: TOOLS_PATH, label: t('tools.all'), current: category === undefined },
     ...usedCategories(tools).map((name) => ({
       href: `${TOOLS_PATH}?category=${name}`,

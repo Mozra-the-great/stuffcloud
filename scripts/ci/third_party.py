@@ -121,7 +121,11 @@ def crate_source(crate: CratePackage) -> str:
     return _cell(crate.source or "unknown")
 
 
-def npm_source(package: Package) -> str:
+def npm_source(package: Package, tarballs: dict[tuple[str, str], str] | None = None) -> str:
+    """The registry page, or the release tarball a package is pinned to (ADR 0014)."""
+    tarball = (tarballs or {}).get((package.name, package.version))
+    if tarball is not None:
+        return f"[release]({tarball})"
     url = f"https://www.npmjs.com/package/{package.name}/v/{package.version}"
     return f"[npm]({url})"
 
@@ -132,7 +136,11 @@ def _table(rows: list[tuple[str, str, str, str]]) -> list[str]:
     return lines
 
 
-def render(crates: list[CratePackage], npm_runtime: list[Package]) -> str:
+def render(
+    crates: list[CratePackage],
+    npm_runtime: list[Package],
+    tarballs: dict[tuple[str, str], str] | None = None,
+) -> str:
     """The complete docs/THIRD-PARTY.md."""
     lines = [
         "# Third-party dependencies",
@@ -158,7 +166,7 @@ def render(crates: list[CratePackage], npm_runtime: list[Package]) -> str:
         lines.append("No runtime dependencies.")
     lines += ["", f"## npm ({len(npm_runtime)})", ""]
     if npm_runtime:
-        lines += _table([(p.name, p.version, p.license, npm_source(p)) for p in npm_runtime])
+        lines += _table([(p.name, p.version, p.license, npm_source(p, tarballs)) for p in npm_runtime])
     else:
         lines.append("No runtime dependencies.")
     return "\n".join(lines) + "\n"
@@ -173,7 +181,7 @@ def generate(
         (p for p in npm.packages if (p.name, p.version) in npm.runtime),
         key=lambda p: (p.name, p.version),
     )
-    return render(runtime_crates(metadata), npm_runtime)
+    return render(runtime_crates(metadata), npm_runtime, npm.tarballs)
 
 
 def check_text(expected: str, actual: str) -> list[str]:

@@ -211,6 +211,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@mozra-the-great/kern':
+        specifier: https://github.com/Mozra-the-great/kern/releases/download/v0.12.3/mozra-the-great-kern-0.12.3.tgz
+        version: https://github.com/Mozra-the-great/kern/releases/download/v0.12.3/mozra-the-great-kern-0.12.3.tgz(svelte@5.57.3(@typescript-eslint/types@8.72.2))
       '@stuffcloud/tools':
         specifier: workspace:*
         version: link:../../packages/tools
@@ -451,6 +454,13 @@ packages:
 
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
+
+  '@mozra-the-great/kern@https://github.com/Mozra-the-great/kern/releases/download/v0.12.3/mozra-the-great-kern-0.12.3.tgz':
+    resolution: {integrity: sha512-wvYTKrDJV7Sll8N88Mqj6rgM0yI6EHV3xTc3KPWTtxM6E9KajSSRvY1z2EHcHvMRjvzY3D+L1UgBIFCQrThfBw==, tarball: https://github.com/Mozra-the-great/kern/releases/download/v0.12.3/mozra-the-great-kern-0.12.3.tgz}
+    version: 0.12.3
+    engines: {node: '>=22'}
+    peerDependencies:
+      svelte: ^5.20.0
 
   '@napi-rs/wasm-runtime@1.2.6':
     resolution: {integrity: sha512-mRyDmEw9/fCDXCGfL1sbgIw/GUK0PVxRW4YwgPN61F3LQ+fSyoBFarJVzgGyhF6kRzEQZ0FejDqm4WLXSeqQmw==}
@@ -1849,6 +1859,10 @@ snapshots:
       keyv: 5.6.0
 
   '@keyv/serialize@1.1.1': {}
+
+  '@mozra-the-great/kern@https://github.com/Mozra-the-great/kern/releases/download/v0.12.3/mozra-the-great-kern-0.12.3.tgz(svelte@5.57.3(@typescript-eslint/types@8.72.2))':
+    dependencies:
+      svelte: 5.57.3(@typescript-eslint/types@8.72.2)
 
   '@napi-rs/wasm-runtime@1.2.6(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)':
     dependencies:

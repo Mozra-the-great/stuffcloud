@@ -172,6 +172,59 @@ class TestLockfile(unittest.TestCase):
         text = LOCKFILE.split("---\n")[-1]
         self.assertEqual(len(nl.lockfile_packages(text)), 5)
 
+    def test_tarball_entry_takes_the_version_of_its_version_line(self):
+        url = "https://example.com/releases/download/v0.12.3/kit-0.12.3.tgz"
+        text = (
+            "packages:\n\n"
+            f"  '@scope/kit@{url}':\n"
+            f"    resolution: {{integrity: sha512-hhh, tarball: {url}}}\n"
+            "    version: 0.12.3\n"
+            "    engines: {node: '>=22'}\n\n"
+            "  eslint@10.15.0:\n"
+            "    resolution: {integrity: sha512-ddd}\n"
+            "    version: 9.9.9\n"
+        )
+        self.assertEqual(
+            nl.lockfile_packages(text), {("@scope/kit", "0.12.3"), ("eslint", "10.15.0")}
+        )
+        self.assertEqual(nl.lockfile_tarballs(text), {("@scope/kit", "0.12.3"): url})
+
+    def test_registry_packages_have_no_tarball(self):
+        self.assertEqual(nl.lockfile_tarballs(LOCKFILE), {})
+
+    def test_quoted_tarball_version_is_unquoted(self):
+        text = "packages:\n  'kit@https://example.com/kit-1.0.0.tgz':\n    version: '1.0.0'\n"
+        self.assertEqual(nl.lockfile_packages(text), {("kit", "1.0.0")})
+
+    def test_tarball_entry_without_a_version_fails(self):
+        followed = (
+            "packages:\n"
+            "  'kit@https://example.com/kit-1.0.0.tgz':\n"
+            "    resolution: {integrity: sha512-hhh}\n"
+            "  eslint@10.15.0:\n"
+            "    resolution: {integrity: sha512-ddd}\n"
+        )
+        last = "packages:\n  'kit@https://example.com/kit-1.0.0.tgz':\n    resolution: {}\n"
+        for label, text in {"followed by an entry": followed, "last entry": last}.items():
+            with self.subTest(label), self.assertRaisesRegex(nl.InventoryError, "has no version"):
+                nl.lockfile_packages(text)
+
+    def test_an_entry_of_unknown_form_fails_instead_of_going_unchecked(self):
+        keys = {
+            "git": "  'kit@git+https://example.com/kit.git#abc':",
+            "plain http tarball": "  'kit@http://example.com/kit-1.0.0.tgz':",
+            "url without .tgz": "  'kit@https://example.com/kit':",
+            "no version": "  kit:",
+        }
+        for label, key in keys.items():
+            text = f"packages:\n{key}\n    resolution: {{}}\n    version: 1.0.0\n"
+            with self.subTest(label), self.assertRaisesRegex(nl.InventoryError, "unrecognised"):
+                nl.lockfile_packages(text)
+
+    def test_the_web_lockfile_parses_and_lists_the_design_kit(self):
+        text = (nl.WEB / "pnpm-lock.yaml").read_text(encoding="utf-8")
+        self.assertIn(("@mozra-the-great/kern", "0.12.3"), nl.lockfile_packages(text))
+
     def test_platforms_are_the_union_over_the_project_packages(self):
         self.assertEqual(
             nl.lockfile_platforms(LOCKFILE),
@@ -259,6 +312,7 @@ class TestCollect(unittest.TestCase):
         inventory = nl.collect(self.web, run=fake)
         self.assertEqual(len(inventory.packages), 5)
         self.assertEqual(inventory.runtime, frozenset({("eslint", "10.15.0")}))
+        self.assertEqual(inventory.tarballs, {})
         self.assertEqual(
             [args for args, _ in fake.calls],
             [

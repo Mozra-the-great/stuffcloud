@@ -292,7 +292,10 @@ async function runVerify(browser: Browser, base: string): Promise<void> {
 
 async function runSize(): Promise<void> {
   const entries: readonly (readonly [string, string])[] = [
-    ['Mascot.svelte (shipped: CSS keyframes, pause logic)', 'src/ui/Mascot.svelte'],
+    [
+      'kern Mascot.svelte (shipped: CSS keyframes, pause logic)',
+      'node_modules/@mozra-the-great/kern/dist/components/Mascot.svelte',
+    ],
     ['css-transform variant (bench)', 'bench/variants/css-transform.ts'],
     ['css-sprite and css-strip variants (bench)', 'bench/variants/css-sprite.ts'],
     ['canvas variants (bench)', 'bench/variants/canvas.ts'],

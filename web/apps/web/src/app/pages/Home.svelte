@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { Button } from '@mozra-the-great/kern';
+  import { Button, Mascot } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
-  import Mascot from '../../ui/Mascot.svelte';
   import { TOOLS_PATH } from '../routes.ts';
+  import { MASCOT_URLS } from '../mascots.ts';
 </script>
 
 <section class="home">
@@ -13,7 +13,7 @@
     </div>
   </div>
   <div class="panel">
-    <Mascot name="stuffy" scale={10} compactScale={7} />
+    <Mascot name="stuffy" src={MASCOT_URLS.stuffy} scale={10} compactScale={7} />
   </div>
 </section>
 

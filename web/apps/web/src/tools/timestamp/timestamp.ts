@@ -92,7 +92,7 @@ function parseIso(text: string, timeZone: string): ParseResult {
   if (found === null) {
     return { ok: false, error: 'format' };
   }
-  const [, y = '', mo = '', d = '', h, mi, s, fraction, zone] = found;
+  const [, y, mo, d, h, mi, s, fraction, zone] = found;
   const year = Number(y);
   const month = Number(mo);
   const day = Number(d);
@@ -107,17 +107,19 @@ function parseIso(text: string, timeZone: string): ParseResult {
   }
   const ms = fraction === undefined ? 0 : Number(fraction.padEnd(3, '0').slice(0, 3));
   const wall = utc(year, month, day, hour, minute, second, ms);
-  if (zone !== undefined && zone.toUpperCase() !== 'Z') {
+  if (zone !== undefined) {
+    // "Z" has no digits: it reads as +00:00 (`Number('')` is 0).
     const sign = zone.startsWith('-') ? -1 : 1;
     const offsetHours = Number(zone.slice(1, 3));
-    const offsetMinutes = Number(zone.slice(3).replace(':', '') || '0');
+    const offsetMinutes = Number(zone.slice(3).replace(':', ''));
     if (offsetHours > 23 || offsetMinutes > 59) {
       return { ok: false, error: 'offset' };
     }
     const offset = sign * (offsetHours * 60 + offsetMinutes) * 60_000;
     return { ok: true, ms: wall - offset, kind: 'iso', ambiguous: false };
   }
-  if (zone !== undefined || timeZone === 'UTC') {
+  // UTC needs no table of offsets, and the table counts the years before year 1 by era (0001-01-01 would read as ambiguous).
+  if (timeZone === 'UTC') {
     return { ok: true, ms: wall, kind: 'iso', ambiguous: false };
   }
   // No offset in the text: the clock time is read in the chosen zone.

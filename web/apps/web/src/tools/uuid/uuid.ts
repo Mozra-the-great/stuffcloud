@@ -19,14 +19,12 @@ export function fillSecure(bytes: Uint8Array<ArrayBuffer>): void {
   crypto.getRandomValues(bytes);
 }
 
-const HEX = Array.from({ length: 256 }, (_, value) => value.toString(16).padStart(2, '0'));
-
 /** The 16 bytes as `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` (lowercase). */
 export function formatUuid(bytes: Uint8Array): string {
   if (bytes.length !== 16) {
     throw new RangeError(`a UUID has 16 bytes, got ${String(bytes.length)}`);
   }
-  const hex = Array.from(bytes, (byte) => HEX[byte] ?? '00').join('');
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
@@ -78,9 +76,10 @@ export function formatV7(milliseconds: number, random: bigint): string {
   bytes[6] = 0x70 | (randA >> 8);
   bytes[7] = randA & 0xff;
   bytes[8] = 0x80 | Number(randB >> 56n);
-  for (let index = 9; index < 16; index += 1) {
-    bytes[index] = Number((randB >> BigInt((15 - index) * 8)) & 0xffn);
-  }
+  bytes.set(
+    Array.from({ length: 7 }, (_, offset) => Number((randB >> BigInt((6 - offset) * 8)) & 0xffn)),
+    9,
+  );
   return formatUuid(bytes);
 }
 
@@ -137,13 +136,12 @@ export class Uuid7Generator {
 
 /** Reads the Unix milliseconds out of a version 7 UUID; `undefined` when it is not one. */
 export function v7Milliseconds(uuid: string): number | undefined {
-  const match = /^([0-9a-f]{8})-([0-9a-f]{4})-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.exec(
-    uuid.toLowerCase(),
-  );
-  if (match === null) {
+  const text = uuid.toLowerCase();
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(text)) {
     return undefined;
   }
-  return Number.parseInt(`${match[1] ?? ''}${match[2] ?? ''}`, 16);
+  // The first 48 bits: the groups of 8 and 4 digits.
+  return Number.parseInt(`${text.slice(0, 8)}${text.slice(9, 13)}`, 16);
 }
 
 export interface FormatOptions {

@@ -183,6 +183,7 @@ number, texts from the catalogue). This replaces the "still local" sentence abou
 gone (kern's `tests/dom/sortablelist.test.ts`, `tests/dom/selectgrid.test.ts` and `tests/unit/reorder.test.ts`
 cover the same cases). Accepted difference: kern's list buttons are ghost buttons. Gap found on the way: kern#175 (the
 grid threw when its last item went away), fixed in kern 0.14.0.
+
 ## Addendum: kern 0.13.4, short visible labels (2026-11-26, #121, PR #193)
 
 kern 0.13.2 to 0.13.4 are additions and fixes only (pill-tab overflow kern#159; `accessibleLabel` on

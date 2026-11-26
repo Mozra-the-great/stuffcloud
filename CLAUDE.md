@@ -53,7 +53,7 @@ web/            pnpm workspace (Node 24, own lockfile; the backend never depends
                 src/app (app shell, router, pages, mascot art URLs,
                 tool registry + `ToolFrame`), src/tools/<id>/ (one directory per tool: manifest.ts + Tool.svelte),
                 src/pdf (what the PDF tools share: engine on pdf-lib, workers + pools, pictures on pdf.js,
-                page grid, ZIP writer; ADR 0013; the network scan covers it like src/tools),
+                page grid on kern's SelectGrid, ZIP writer; ADR 0013; the network scan covers it like src/tools),
                 tools.config.json (disabled tools), perf-budgets.json (shell budgets + Lighthouse minimums), scripts/ (tokens, check-tools, new-tool, perf-budget + check-budgets, lighthouse),
                 stryker.config.mjs + vitest.stryker.config.ts (mutation testing; shared options and the scope helper in web/stryker.shared.mjs),
                 src/i18n (catalogues de/en, typed keys, CI check), src/gallery (component gallery),
@@ -195,7 +195,7 @@ which owns the one `<h1>`) and its test. Name, description and keywords are cata
 (`tool.<id>.name|description|keywords`, German and English), never literals. A tool never sends file
 content anywhere: `fileContent: 'stays-in-browser'`, no network API in tool sources (a test scans
 them). Heavy work runs in a worker through `createWorkerPool`/`serveWorker`. New generic pieces
-go to kern (#121); the base components come from `@mozra-the-great/kern` (ADR 0014) and `src/ui` is gone. A tool gets an e2e spec in `web/apps/web/e2e/specs/` (import `test`
+go to kern; the base components come from `@mozra-the-great/kern` (ADR 0014; #121 is done, its final addendum lists what stays local and what is still plain markup, follow-up #202) and `src/ui` is gone. A tool gets an e2e spec in `web/apps/web/e2e/specs/` (import `test`
 from `../support/fixtures.ts`: it fails the test when the page sends anything but `GET`s of its own
 assets; call `net.watch(file)` so a piece of an uploaded file in any request fails it too, and
 `a11y.check(page, '<state>')` after each state: that runs axe).

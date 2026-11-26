@@ -21,8 +21,8 @@
 </script>
 
 <!--
-  The picture of one page. App-local: candidate for kern (#121) only together with PageGrid; it is
-  decorative (the page's name is on the option that holds it), so it is hidden from assistive tech.
+  The picture of one page: a pdf.js bitmap on a canvas, which kern's SelectGrid only shows (app-local, ADR 0014).
+  It is decorative (the page's name is on the option that holds it), so it is hidden from assistive tech.
 -->
 {#if bitmap === undefined}
   <span class="blank" aria-hidden="true"></span>

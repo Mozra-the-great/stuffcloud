@@ -248,7 +248,6 @@ describe('no magic values in components', () => {
     'src/ui/tabs.css',
     'src/ui/Button.svelte',
     'src/ui/Checkbox.svelte',
-    'src/ui/Dialog.svelte',
     'src/gallery/Gallery.svelte',
     'src/App.svelte',
   ];

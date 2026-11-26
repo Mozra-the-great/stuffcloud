@@ -63,6 +63,18 @@ updates:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
 
+  # CI tooling: mutmut, hash-locked in scripts/ci/requirements-mutmut.txt (pip-compile, source
+  # requirements-mutmut.in; mutation testing of the Python CI helpers, ADR 0007). Dependabot
+  # regenerates the hashes. Nothing of it is shipped; the helpers themselves stay standard-library only.
+  - package-ecosystem: "pip"
+    directory: "/scripts/ci"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(deps)"
+
   # Container images of the dev stack (compose.dev.yml, docker/caddy/Dockerfile). Every
   # reference is `name:tag@sha256:digest` (scripts/ci/check_container_hardening.py); Dependabot
   # updates tag and digest together. No automatic major bumps for container images (C9): a

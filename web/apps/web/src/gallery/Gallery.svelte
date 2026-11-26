@@ -3,6 +3,7 @@
     Card,
     CodeBlock,
     FileDrop,
+    Modal,
     Progress,
     Tile,
     TileGrid,
@@ -13,7 +14,6 @@
   import '../styles/index.css';
   import Button from '../ui/Button.svelte';
   import Checkbox from '../ui/Checkbox.svelte';
-  import Dialog from '../ui/Dialog.svelte';
   import Input from '../ui/Input.svelte';
   import LinkButton from '../ui/LinkButton.svelte';
   import Mascot from '../ui/Mascot.svelte';
@@ -178,9 +178,9 @@
         Open dialog
       </Button>
     </div>
-    <Dialog bind:open={dialogOpen} title="Delete site" closeLabel="Close">
+    <Modal bind:open={dialogOpen} title="Delete site" closeLabel="Close">
       <p class="panel">my-site.example</p>
-      {#snippet actions()}
+      {#snippet footer()}
         <Button
           variant="ghost"
           onclick={() => {
@@ -191,7 +191,7 @@
         </Button>
         <Button variant="danger">Delete</Button>
       {/snippet}
-    </Dialog>
+    </Modal>
   </section>
 
   <section aria-labelledby="g-toast">

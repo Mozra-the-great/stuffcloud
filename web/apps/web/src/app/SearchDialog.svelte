@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { Modal } from '@mozra-the-great/kern';
   import { i18n, t } from '../i18n/index.ts';
-  import Dialog from '../ui/Dialog.svelte';
   import Input from '../ui/Input.svelte';
   import { CATEGORY_LABELS, searchTools, toolPath, type ToolEntry } from './tools.ts';
 
@@ -25,54 +25,72 @@
         : t('search.count', { count: results.length }),
   );
 
+  // kern's Modal reports only the closes of the visitor (Escape, close button, backdrop); the
+  // closes of the app (a hit was opened) clear the query here, so the next search starts empty.
+  function close(): void {
+    open = false;
+    query = '';
+  }
+
   function submit(event: SubmitEvent): void {
     event.preventDefault();
     const first = results[0];
     if (first !== undefined) {
-      open = false;
+      close();
       onnavigate(toolPath(first.id));
     }
   }
 </script>
 
-<Dialog
-  bind:open
-  title={t('search.title')}
-  closeLabel={t('search.close')}
-  onclose={() => {
-    query = '';
-  }}
->
-  <form role="search" onsubmit={submit}>
-    <Input
-      label={t('search.label')}
-      type="search"
-      autocomplete="off"
-      autofocus
-      bind:value={query}
-    />
-  </form>
-  <p class="status" role="status">{status}</p>
-  {#if results.length > 0}
-    <ul class="results" aria-label={t('search.results')}>
-      {#each results as tool (tool.id)}
-        <li>
-          <a
-            href={toolPath(tool.id)}
-            onclick={() => {
-              open = false;
-            }}
-          >
-            <span>{tool.name[i18n.locale]}</span>
-            <span class="category">{t(CATEGORY_LABELS[tool.category])}</span>
-          </a>
-        </li>
-      {/each}
-    </ul>
-  {/if}
-</Dialog>
+<!--
+  kern's Modal renders its title row as <header> (and actions as <footer>); outside sectioning
+  content these become banner/contentinfo landmarks next to the shell's own (kern#154). An unnamed
+  <section> is role generic, adds no landmark and scopes them. Goes with the kern version that fixes it.
+-->
+<section>
+  <Modal
+    bind:open
+    title={t('search.title')}
+    closeLabel={t('search.close')}
+    onclose={() => {
+      query = '';
+    }}
+  >
+    <div class="search">
+      <form role="search" onsubmit={submit}>
+        <Input
+          label={t('search.label')}
+          type="search"
+          autocomplete="off"
+          autofocus
+          bind:value={query}
+        />
+      </form>
+      <p class="status" role="status">{status}</p>
+      {#if results.length > 0}
+        <ul class="results" aria-label={t('search.results')}>
+          {#each results as tool (tool.id)}
+            <li>
+              <a href={toolPath(tool.id)} onclick={close}>
+                <span>{tool.name[i18n.locale]}</span>
+                <span class="category">{t(CATEGORY_LABELS[tool.category])}</span>
+              </a>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+  </Modal>
+</section>
 
 <style>
+  /* kern's Modal puts the content in one block: the rows keep the old dialog's 20 px rhythm. */
+  .search {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-20);
+  }
+
   .status {
     margin: 0;
     font: 13px var(--mono);

@@ -65,3 +65,9 @@ __pycache__/
 
 # Local secret files the dev stack reads through `*_FILE` variables (never committed)
 /secrets/
+
+# mutmut working tree (mutation testing of scripts/ci, #161)
+/mutants/
+
+# coverage.py data file (mutation-python job, #161)
+/.coverage

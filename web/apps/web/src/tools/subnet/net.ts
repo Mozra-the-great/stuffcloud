@@ -61,7 +61,8 @@ function prefixFromMask(mask: bigint): number | undefined {
  * (a host: `/32` or `/128`).
  */
 export function parseNetwork(input: string): NetworkResult {
-  const text = input.trim();
+  // No `trim` here: `parseAddress` trims the address and the suffix is trimmed below.
+  const text = input;
   const slash = text.indexOf('/');
   if (slash !== text.lastIndexOf('/')) {
     return { ok: false, error: 'slash' };
@@ -164,7 +165,8 @@ export function powerOfTwo(total: bigint): string | undefined {
 
 /** The IPv4 form of a network inside `::ffff:0:0/96` (prefix 96 or more), or `undefined`. */
 export function mappedToIpv4(network: Network): Network | undefined {
-  if (network.version !== 6 || network.prefix < 96) {
+  // An IPv4 network has a prefix of at most 32, so the prefix check alone refuses it.
+  if (network.prefix < 96) {
     return undefined;
   }
   const v4 = fromMapped({ version: 6, value: network.address });
@@ -336,7 +338,8 @@ export function parseList(text: string): ParsedList {
   const ranges: Range[] = [];
   const lines = text.split(/\r\n|\r|\n/);
   for (const [index, line] of lines.entries()) {
-    const content = line.split('#', 1)[0] ?? '';
+    const comment = line.indexOf('#');
+    const content = comment === -1 ? line : line.slice(0, comment);
     for (const piece of content.split(/[,;]/)) {
       const entry = piece.trim();
       if (entry === '') {
@@ -379,11 +382,13 @@ export function summarise(ranges: readonly Range[]): Summary[] {
     if (own.length === 0) {
       continue;
     }
-    const sorted = [...own].sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+    // The sign of the difference is the order; `Number` keeps it (and zero for equal starts) for any bigint.
+    const sorted = [...own].sort((a, b) => Number(a.start - b.start));
     const merged: Range[] = [];
     for (const range of sorted) {
       const previous = merged.at(-1);
       if (previous !== undefined && range.start <= previous.end + 1n) {
+        // Stryker disable next-line EqualityOperator: with equal ends the replacement is the same range, so `>` and `>=` give the same result (`<=` is checked by hand: a contained range must not shrink the merged one, see summarise in the tests)
         if (range.end > previous.end) {
           merged[merged.length - 1] = { version, start: previous.start, end: range.end };
         }
@@ -392,7 +397,9 @@ export function summarise(ranges: readonly Range[]): Summary[] {
       }
     }
     const bits = BITS[version];
+    // Stryker disable next-line OptionalChaining: `own` is not empty, so `merged` is not either; the fallback only satisfies the compiler
     const low = merged[0]?.start ?? 0n;
+    // Stryker disable next-line OptionalChaining: as above
     const high = merged.at(-1)?.end ?? 0n;
     const prefix = bits - bitLength(low ^ high);
     summaries.push({

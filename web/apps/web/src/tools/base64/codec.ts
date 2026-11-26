@@ -51,7 +51,8 @@ export function encodeBytes(bytes: Uint8Array, options: EncodeOptions): string {
   // The last one or two bytes: one more character than bytes, then `=` up to four when asked.
   let tail = '';
   if (rest > 0) {
-    const value = ((bytes[source] ?? 0) << 16) | (rest === 2 ? (bytes[source + 1] ?? 0) << 8 : 0);
+    // With one byte left there is no second one: `bytes[source + 1]` is undefined and reads as 0.
+    const value = ((bytes[source] ?? 0) << 16) | ((bytes[source + 1] ?? 0) << 8);
     for (let position = 0; position <= rest; position += 1) {
       tail += String.fromCharCode(at((value >> (18 - 6 * position)) & 63));
     }
@@ -167,7 +168,8 @@ export function decodeBase64(source: string): Decoded {
   let characters = 0;
   let padding = 0;
   let paddingAt = 0;
-  let alphabet: 'standard' | 'url' | undefined;
+  // Which alphabet the text uses, once a character that tells the two apart has come.
+  let urlSafe: boolean | undefined;
   for (let index = start; index < source.length; index += 1) {
     const code = source.charCodeAt(index);
     if (code === 32 || code === 9 || code === 10 || code === 13) {
@@ -190,11 +192,11 @@ export function decodeBase64(source: string): Decoded {
       return fail('badPadding', paddingAt);
     }
     if (code === 43 || code === 47 || code === 45 || code === 95) {
-      const kind = code === 43 || code === 47 ? 'standard' : 'url';
-      if (alphabet !== undefined && alphabet !== kind) {
+      const url = code === 45 || code === 95;
+      if (urlSafe !== undefined && urlSafe !== url) {
         return fail('mixedAlphabet', index, source.charAt(index));
       }
-      alphabet = kind;
+      urlSafe = url;
     }
     held = (held << 6) | value;
     bits += 6;
@@ -235,13 +237,13 @@ function hasBinaryControl(text: string): boolean {
 
 /** The bytes as text when they are valid UTF-8 (and not a binary file), or `undefined`. */
 export function asText(bytes: Uint8Array): string | undefined {
+  let text: string;
   try {
-    const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-    return hasBinaryControl(text) ? undefined : text;
-    // Stryker disable next-line BlockStatement: a function that ends without a return gives undefined as well; the return only says so
+    text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   } catch {
     return undefined;
   }
+  return hasBinaryControl(text) ? undefined : text;
 }
 
 /** `89 50 4e 47`: the first bytes in hexadecimal. */

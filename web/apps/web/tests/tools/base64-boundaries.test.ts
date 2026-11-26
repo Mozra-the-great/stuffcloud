@@ -100,6 +100,11 @@ describe('decodeBase64: where an error is', () => {
     expect(at('\r\r!')).toEqual(['invalidChar', 2, 3, 1]);
     expect(at('A\r\n\r\n!')).toEqual(['invalidChar', 5, 3, 1]);
     expect(at('AA !')).toEqual(['invalidChar', 3, 1, 4]);
+    // What comes after the error does not count.
+    expect(at('AAAA!\nAAAA\r\nAA')).toEqual(['invalidChar', 4, 1, 5]);
+    expect(at('A\nAAA!\n\n')).toEqual(['invalidChar', 5, 2, 4]);
+    // A text that only looks like a data URI further in is no data URI.
+    expect(at('xdata:text/plain;base64,QUJD')).toEqual(['invalidChar', 5, 1, 6]);
   });
 
   it('puts the end of the text at the end of its last line', () => {
@@ -447,7 +452,17 @@ describe('the input check of the worker', () => {
   });
 
   it('wants a media type that is one, when there is one', () => {
-    for (const mediaType of [5, null, 'text', ' text/plain', '', {}]) {
+    // An array or an object that reads as a media type is still not a string.
+    for (const mediaType of [
+      5,
+      null,
+      'text',
+      ' text/plain',
+      '',
+      {},
+      ['text/plain'],
+      { toString: () => 'text/plain' },
+    ]) {
       expect(isInput({ op: 'encode', file, options: plain, mediaType })).toBe(false);
     }
     expect(isInput({ op: 'encode', file, options: plain, mediaType: undefined })).toBe(true);

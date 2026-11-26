@@ -21,7 +21,8 @@ export type DecodeResult =
 const FORM_EXTRA = /[!'()~]/g;
 
 function percent(char: string): string {
-  return `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`;
+  // Only the ASCII characters of FORM_EXTRA come here (0x21 to 0x7e): always two hex digits.
+  return `%${char.charCodeAt(0).toString(16).toUpperCase()}`;
 }
 
 /** Percent-encodes `text` as UTF-8. A lone surrogate half cannot be encoded as UTF-8 and is an error. */
@@ -40,7 +41,8 @@ export function encodeText(text: string, mode: EncodeMode): EncodeResult {
   }
 }
 
-const HEX_PAIR = /^[0-9a-fA-F]{2}$/;
+// Tested on a slice of at most two characters, so the pattern needs no anchors.
+const HEX_PAIR = /[0-9a-fA-F]{2}/;
 
 function decodeWith(mode: EncodeMode, text: string): string {
   return mode === 'uri' ? decodeURI(text) : decodeURIComponent(text);
@@ -56,13 +58,15 @@ export function decodeText(text: string, mode: EncodeMode): DecodeResult {
   const source = mode === 'form' ? text.replaceAll('+', ' ') : text;
   let decoded = '';
   let index = 0;
-  while (index < source.length) {
+  for (;;) {
     const next = source.indexOf('%', index);
     if (next < 0) {
       return { ok: true, text: decoded + source.slice(index) };
     }
     decoded += source.slice(index, next);
     index = next;
+    // A run of escapes: each is a percent sign and two hex digits. The percent sign must be checked too, or
+    // the run would hop over plain text that looks like hex digits and report the wrong start.
     while (source[index] === '%' && HEX_PAIR.test(source.slice(index + 1, index + 3))) {
       index += 3;
     }
@@ -75,7 +79,6 @@ export function decodeText(text: string, mode: EncodeMode): DecodeResult {
       return { ok: false, error: 'malformed', index: next };
     }
   }
-  return { ok: true, text: decoded };
 }
 
 export interface QueryParam {

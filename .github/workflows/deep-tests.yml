@@ -179,7 +179,9 @@ jobs:
     name: web-mutants-full (${{ matrix.package }} ${{ matrix.shard }})
     if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # A shard of the tools took 2.3 to more than 3.5 hours on sixteen local workers (the end of a run is slow);
+    # one eighth of the scope on a hosted runner may need as much (a job may run six hours at most).
+    timeout-minutes: 330
     defaults:
       run:
         working-directory: web

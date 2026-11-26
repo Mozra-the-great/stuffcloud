@@ -102,11 +102,11 @@ async function setField(name: string, value: string): Promise<void> {
 }
 
 function statusText(): string {
-  return document.querySelector('main .tool-status:not(.alert)')?.textContent.trim() ?? '';
+  return document.querySelector('main [data-tool-status][role="status"]')?.textContent.trim() ?? '';
 }
 
 function alertText(): string {
-  return document.querySelector('main .tool-status.alert')?.textContent.trim() ?? '';
+  return document.querySelector('main [data-tool-status][role="alert"]')?.textContent.trim() ?? '';
 }
 
 function counts(): Record<string, string> {
@@ -162,7 +162,7 @@ describe('textops', () => {
       screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent),
     ).toEqual(['Text', 'Operation', 'Result']);
     expect(output().readOnly).toBe(true);
-    expect(document.querySelectorAll('main .tool-status')).toHaveLength(2);
+    expect(document.querySelectorAll('main [data-tool-status]')).toHaveLength(2);
   });
 });
 

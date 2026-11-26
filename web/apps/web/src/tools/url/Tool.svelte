@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { Input, Select, Button, Textarea } from '@mozra-the-great/kern';
+  import { Input, Select, Button, Textarea, StatusMessage } from '@mozra-the-great/kern';
   import { t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import {
     MAX_LENGTH,
     decodeText,
@@ -142,8 +141,8 @@
           }}>{t('url.decode')}</Button
         >
       </div>
-      <ToolStatus message={status} />
-      <ToolStatus kind="alert" message={failure} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
+      <StatusMessage data-tool-status kind="alert" message={failure} />
       {#if converted !== undefined}
         <Textarea label={t('url.result')} value={converted} readonly rows={4} />
         <div>
@@ -166,7 +165,7 @@
         spellcheck={false}
         onchange={announceParse}
       />
-      <ToolStatus message={parseStatus} />
+      <StatusMessage data-tool-status tone="ok" message={parseStatus} />
       {#if url !== undefined}
         <table aria-label={t('url.parts.caption')}>
           <thead>

@@ -66,7 +66,7 @@ function rows(): Record<string, string> {
 }
 
 function statusText(): string {
-  return [...document.querySelectorAll('main .tool-status')]
+  return [...document.querySelectorAll('main [data-tool-status]')]
     .map((region) => region.textContent.trim())
     .filter((text) => text !== '')
     .join('|');

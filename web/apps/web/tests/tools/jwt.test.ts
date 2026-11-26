@@ -62,11 +62,11 @@ function pre(heading: string): string {
 }
 
 function alertText(): string {
-  return document.querySelector('main .tool-status.alert')?.textContent ?? '';
+  return document.querySelector('main [data-tool-status][role="alert"]')?.textContent ?? '';
 }
 
 function statusText(): string {
-  return [...document.querySelectorAll('main .tool-status:not(.alert)')]
+  return [...document.querySelectorAll('main [data-tool-status][role="status"]')]
     .map((region) => region.textContent.trim())
     .join('');
 }

@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
+  import { Input, Select, Button, Checkbox, Textarea, StatusMessage } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import DownloadButton from '../../app/DownloadButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import { DEFAULT_COUNT, LIMITS, generateLorem, type LoremUnit } from './generate.ts';
 
   let unit = $state<LoremUnit>('paragraphs');
@@ -65,7 +64,7 @@
       <div class="actions">
         <Button onclick={again} disabled={!result.ok}>{t('lorem.generate')}</Button>
       </div>
-      <ToolStatus message={status} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
     </section>
 
     <section class="block">

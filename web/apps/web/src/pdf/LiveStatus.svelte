@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { StatusMessage } from '@mozra-the-great/kern';
+
   interface Props {
     /** What happened or is happening: working, done, cancelled (announced politely). */
     status: string;
@@ -10,13 +12,19 @@
 </script>
 
 <!--
-  The two live regions of a tool. They are in the page from the start, empty, and get their text
-  later (a region that arrives together with its text is not announced by every screen reader).
-  App-local: covered by the LiveAnnouncer primitive of kern (#64).
+  The two live regions of a tool: kern's StatusMessage twice, one polite and one assertive. They are
+  in the page from the start, empty, and get their text later (a region that arrives together with its
+  text is not announced by every screen reader). The PDF layout never reserved a line for them, so
+  `reserve` is off; a message of the error region gets a box (the design's error edge).
 -->
 <div class="live">
-  <p class="status" role="status">{status}</p>
-  <p class="error" role="alert">{error}</p>
+  <StatusMessage message={status} reserve={false} />
+  <StatusMessage
+    kind="alert"
+    message={error}
+    reserve={false}
+    class={error === '' ? 'live-error' : 'live-error has-error'}
+  />
 </div>
 
 <style>
@@ -26,21 +34,8 @@
     gap: var(--space-8);
   }
 
-  p {
-    margin: 0;
-    overflow-wrap: anywhere;
-  }
-
-  .status {
-    color: var(--fg);
-  }
-
-  .error {
-    color: var(--pink);
-  }
-
-  .error:not(:empty) {
+  .live :global(.live-error.has-error) {
     padding: var(--space-12) var(--space-16);
-    border: 1px solid var(--pink);
+    border: 1px solid var(--k-danger);
   }
 </style>

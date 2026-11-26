@@ -23,7 +23,7 @@ function expression(page: Page): ReturnType<Page['getByRole']> {
 
 /** The tool's own polite status line (the first one on the page is the search count). */
 function status(page: Page): ReturnType<Page['locator']> {
-  return page.locator('main .tool-status');
+  return page.locator('main [data-tool-status]');
 }
 
 function explanation(page: Page): ReturnType<Page['locator']> {

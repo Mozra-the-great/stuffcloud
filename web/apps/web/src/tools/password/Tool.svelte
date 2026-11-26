@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { Input, Button, Checkbox } from '@mozra-the-great/kern';
+  import { Input, Button, Checkbox, StatusMessage } from '@mozra-the-great/kern';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import {
     DEFAULT_LENGTH,
     MAX_LENGTH,
@@ -101,7 +100,7 @@
       <div>
         <Button onclick={again} disabled={!result.ok}>{t('password.generate')}</Button>
       </div>
-      <ToolStatus message={status} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
     </section>
 
     {#if result.ok}

@@ -28,7 +28,7 @@ async function choose(page: Page, mode: Mode): Promise<void> {
 
 /** The tool's own polite status line (the first one on the page is the search count). */
 function status(page: Page): ReturnType<Page['locator']> {
-  return page.locator('main .tool-status');
+  return page.locator('main [data-tool-status]');
 }
 
 function value(page: Page, label: string): ReturnType<Page['locator']> {

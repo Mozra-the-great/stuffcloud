@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { Input, Select, Button } from '@mozra-the-great/kern';
+  import { Input, Select, Button, StatusMessage } from '@mozra-the-great/kern';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import {
     categoryName,
     categoryOrFirst,
@@ -159,7 +158,7 @@
         spellcheck={false}
         autocomplete="off"
       />
-      <ToolStatus message={searchStatus} />
+      <StatusMessage data-tool-status tone="ok" message={searchStatus} />
       {#if hits.length > 0}
         <ul class="hits" aria-label={t('units.search.results')}>
           {#each hits as hit (`${hit.category.id}/${hit.unit.id}`)}
@@ -227,7 +226,7 @@
           />
         </div>
       </div>
-      <ToolStatus message={status} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
     </section>
 
     <section class="block">

@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { Input, Select, Button, VisuallyHidden } from '@mozra-the-great/kern';
+  import { Input, Select, Button, VisuallyHidden, StatusMessage } from '@mozra-the-great/kern';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import { listTimeZones } from '../cron/time-zone.ts';
   import { relativeTime } from './relative.ts';
   import {
@@ -141,7 +140,7 @@
       <div>
         <Button variant="secondary" onclick={useNow}>{t('timestamp.now')}</Button>
       </div>
-      <ToolStatus message={status} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
     </section>
 
     {#if formats !== undefined}

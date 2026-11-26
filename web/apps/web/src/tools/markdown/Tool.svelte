@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { Textarea } from '@mozra-the-great/kern';
+  import { Textarea, StatusMessage } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import type { Input as TaskInput, Output as TaskOutput } from './parse.ts';
   import { createPool } from './pool.ts';
   import { MAX_MARKDOWN_CHARS, sanitiseHtml, toPreview } from './render.ts';
@@ -110,8 +109,8 @@
           autocapitalize="off"
           spellcheck={false}
         />
-        <ToolStatus message={status} />
-        <ToolStatus kind="alert" message={failure} />
+        <StatusMessage data-tool-status tone="ok" message={status} />
+        <StatusMessage data-tool-status kind="alert" message={failure} />
       </section>
 
       <section class="block">

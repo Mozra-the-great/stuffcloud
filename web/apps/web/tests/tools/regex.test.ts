@@ -89,7 +89,7 @@ async function replace(user: User, field: HTMLElement, value: string): Promise<v
 }
 
 function statusText(): string {
-  return [...document.querySelectorAll('main .tool-status')]
+  return [...document.querySelectorAll('main [data-tool-status]')]
     .map((region) => region.textContent.trim())
     .filter((text) => text !== '')
     .join('|');
@@ -304,9 +304,9 @@ describe('a pattern that runs away', () => {
     await replace(user, pattern(), '(a+)+$');
     await waitFor(
       () => {
-        expect(document.querySelector('main .tool-status.alert')?.textContent).toContain(
-          'Stopped after 2 seconds.',
-        );
+        expect(
+          document.querySelector('main [data-tool-status][role="alert"]')?.textContent,
+        ).toContain('Stopped after 2 seconds.');
       },
       { timeout: 4500 },
     );
@@ -317,7 +317,7 @@ describe('a pattern that runs away', () => {
     pool.behaviour = 'real';
     await replace(user, pattern(), 'a');
     await waitFor(() => {
-      expect(document.querySelector('main .tool-status.alert')?.textContent).toBe('');
+      expect(document.querySelector('main [data-tool-status][role="alert"]')?.textContent).toBe('');
     });
   }, 15_000);
 
@@ -325,7 +325,7 @@ describe('a pattern that runs away', () => {
     pool.behaviour = 'fail';
     await replace(user, pattern(), 'b');
     await waitFor(() => {
-      expect(document.querySelector('main .tool-status.alert')?.textContent).toBe(
+      expect(document.querySelector('main [data-tool-status][role="alert"]')?.textContent).toBe(
         'The match could not be run. Change the pattern or the text and try again.',
       );
     });
@@ -357,7 +357,7 @@ describe('a pattern that runs away', () => {
     await waitFor(() => {
       expect(pool.jobs.at(-1)).toMatchObject({ pattern: 'c' });
     });
-    expect(document.querySelector('main .tool-status.alert')?.textContent).toBe('');
+    expect(document.querySelector('main [data-tool-status][role="alert"]')?.textContent).toBe('');
     expect(pool.created).toBe(1);
   });
 });

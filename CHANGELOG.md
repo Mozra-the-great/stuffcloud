@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   username, the password as a reference `{"ref": "STUFFCLOUD_SECRET_..."}` to deployment configuration, sender; part of the
   bootstrap file) and `GET /api/v1/features` (`{"mail": bool}`). With it an account asks for a password reset link itself:
   `POST /api/v1/auth/password-reset/request` answers `202` with no body for every login name or address, known or not (the
-  work happens after the answer), throttled per client address and one link per account per 5 minutes, never for an admin
+  work happens after the answer), throttled per client address, one link per account per 5 minutes and three an hour, never replacing an admin's valid link, never for an admin
   account, only to the stored address; without mail it is `409 mail-not-configured`. The mail is plain text in German or
   English (no HTML, image or tracking), built so no header or recipient can be injected, sent by the new crate `crates/mail`
   (`lettre`, TLS with rustls and ring, `STARTTLS` required where asked, system root certificates) from an in-memory queue with

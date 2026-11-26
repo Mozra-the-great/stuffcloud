@@ -52,6 +52,9 @@ accounts exist and a way to send mail to a stranger. And the app has to run with
    job runs and lives in memory until the mail is delivered or given up. At most 4 mails are in
    flight and 64 requests wait; a full queue answers `429` with `Retry-After`. A restart drops what
    waits and the person asks again. The settings are read again for every attempt.
+   At most 4 mails talk to the server at once; a mail that waits for its next attempt holds no such
+   place, so addresses that the server keeps deferring (a stranger can register them) take at most
+   64 of the places in the queue and cannot stop other mail.
 5. **Retries.** A transient failure (connection, timeout, TLS, a 4xx answer) is tried again after 15
    seconds, 1 minute, 5 minutes and 15 minutes; a rejection for good (5xx, a refused login), a
    message that cannot be built and the end of the schedule give the mail up. The last attempt is
@@ -63,8 +66,10 @@ accounts exist and a way to send mail to a stranger. And the app has to run with
      the answer, so even the time does not tell. Without mail it is `409 mail-not-configured`, which
      depends on the instance only.
    - The client address is throttled for every request (5 free, then waits up to an hour), and an
-     account gets at most one token per 5 minutes, so the endpoint cannot be used to flood a mailbox
-     or to void the link in a person's inbox again and again.
+     account gets at most one token per 5 minutes and three mails an hour, whoever asks; an
+     admin's link that is still valid is never replaced. So the endpoint cannot be used to flood a
+     mailbox, and a link in a person's inbox can be voided by a stranger only three times an hour
+     (not more, however many addresses the stranger asks from).
    - The mail goes only to the address stored for the account, never to one from the request.
    - **Admin accounts get no link by mail** (the host command `stuffcloud-app reset-link` stays their
      way, as in #147): a hijacked mailbox would otherwise be enough to take over an admin account.
@@ -90,6 +95,12 @@ accounts exist and a way to send mail to a stranger. And the app has to run with
 - Positive: the app runs without mail and says why; with mail, the reset flow works by itself and
   tells nothing about which accounts exist; no secret and no token is stored or logged because of
   mail; mail is a normal settings resource (API, dry run, ETag, bootstrap, later `plan`/`apply`).
+- Negative: whoever has `admin:settings:write` can point `host` at a server of their own and keep
+  the reference, so the app logs in there with the operator's SMTP secret; that role can already
+  issue reset links for every non-admin account, so it is no escalation, but a deployment that
+  wants the host pinned has to do it outside the settings (a later addition, with #152's binding
+  rule `secret-needs-reentry`). The same role can aim `host` and `port` at internal addresses; only
+  the kind of failure and the status code come back, in logs and metrics.
 - Negative: a mail that waits in the queue is lost on a restart; a person who is mailed at the
   moment of a restart asks again. The password cannot be set through the API until #152; an
   operator sets a variable or a file. An operator behind a private CA sets `SSL_CERT_FILE`. The

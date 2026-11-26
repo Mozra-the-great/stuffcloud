@@ -316,7 +316,8 @@ Authentication
   with no body for every name, known or not, an admin, an account without an address or a service
   account, and mails the link, in plain text and only to the address stored for the account, after
   the answer. Per client address 5 requests are free, then waits up to an hour; an account is sent
-  at most one link per 5 minutes; admin accounts get no link by mail. Without SMTP the request is `409
+  at most one link per 5 minutes and three an hour, and a valid link of an admin is not replaced;
+  admin accounts get no link by mail. Without SMTP the request is `409
   mail-not-configured` and `GET /api/v1/features` says `{"mail": false}`. A password change needs the
   current password, ends the account's other sessions and voids an open reset link.
 - Sessions: `__Host-` prefixed, HttpOnly, Secure, SameSite=Lax cookies, host-only on the

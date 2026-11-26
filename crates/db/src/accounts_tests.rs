@@ -796,3 +796,88 @@ fn an_admin_with_an_address_gets_no_mail_either() {
         assert_eq!(mailed(&db, &who, 1, 1_000_000), MailedReset::AdminAccount);
     }
 }
+
+#[test]
+fn an_admins_link_that_is_still_valid_is_never_replaced_by_a_mail() {
+    let (_dir, db) = db();
+    let admin = db
+        .create_user("admin", UserKind::Person, Role::Admin, None, 1)
+        .unwrap();
+    let _alice = created(register(&db, "alice", "alice@example.org", None));
+    let who = Identifier::Login(login("alice"));
+    assert!(matches!(
+        db.issue_password_reset(
+            &login("alice"),
+            &hash(1),
+            Some(admin.id),
+            9_000_000,
+            1_000_000
+        )
+        .unwrap(),
+        ResetIssue::Issued(_)
+    ));
+    // Long after the cool-down, but before the link expires: the link stays.
+    assert_eq!(
+        db.issue_password_reset_for_mail(&who, &hash(2), 12_000_000, 5_000_000, COOLDOWN)
+            .unwrap(),
+        MailedReset::Cooldown
+    );
+    assert!(
+        db.password_reset_target(&hash(1), 5_000_001)
+            .unwrap()
+            .is_some()
+    );
+    assert_eq!(db.password_reset_target(&hash(2), 5_000_001).unwrap(), None);
+    // Once it has expired a mail may be sent.
+    assert!(matches!(
+        db.issue_password_reset_for_mail(&who, &hash(3), 13_000_000, 9_000_000, COOLDOWN)
+            .unwrap(),
+        MailedReset::Issued { .. }
+    ));
+}
+
+#[test]
+fn an_account_is_mailed_at_most_three_times_an_hour() {
+    let (_dir, db) = db();
+    let _alice = created(register(&db, "alice", "alice@example.org", None));
+    let who = Identifier::Login(login("alice"));
+    let start = 10_000_000_i64;
+    assert_eq!(MAX_MAILED_PER_HOUR, 3);
+    for (index, token) in [1_u8, 2, 3].into_iter().enumerate() {
+        let now = start + i64::try_from(index).unwrap() * COOLDOWN;
+        assert!(
+            matches!(mailed(&db, &who, token, now), MailedReset::Issued { .. }),
+            "{index}"
+        );
+    }
+    // A fourth request, one cool-down after the third, is refused and changes nothing.
+    assert_eq!(
+        mailed(&db, &who, 4, start + 3 * COOLDOWN),
+        MailedReset::Cooldown
+    );
+    assert!(
+        db.password_reset_target(&hash(3), start + 3 * COOLDOWN)
+            .unwrap()
+            .is_some()
+    );
+    assert_eq!(
+        mailed(&db, &who, 4, start + 3_600_000 - 1),
+        MailedReset::Cooldown
+    );
+    // The first of the three leaves the window exactly one hour after it was made.
+    assert!(matches!(
+        mailed(&db, &who, 5, start + 3_600_000),
+        MailedReset::Issued { .. }
+    ));
+    // Another account has its own count.
+    let _bob = created(register(&db, "bob", "bob@example.net", None));
+    assert!(matches!(
+        mailed(
+            &db,
+            &Identifier::Login(login("bob")),
+            6,
+            start + 3 * COOLDOWN
+        ),
+        MailedReset::Issued { .. }
+    ));
+}

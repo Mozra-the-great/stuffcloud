@@ -131,10 +131,18 @@ pub enum MailedReset {
     AdminAccount,
     /// The account has no e-mail address.
     NoAddress,
-    /// A token was issued for the account less than the cool-down ago: it gets no second mail
-    /// (and nobody can void the link in a person's inbox by asking again and again).
+    /// The account gets no mail now, and nothing is changed: a token was issued for it less than
+    /// the cool-down ago, or [`MAX_MAILED_PER_HOUR`] mails were requested for it in the last hour,
+    /// or an admin's link for it is still valid (a request must not void it). Nobody can void the
+    /// link in a person's inbox by asking again and again, nor flood the mailbox.
     Cooldown,
 }
+
+/// Most reset mails one account is sent in an hour (however many clients ask).
+pub const MAX_MAILED_PER_HOUR: i64 = 3;
+
+/// One hour in milliseconds.
+const HOUR_MS: i64 = 3_600_000;
 
 /// Reads an account and its password by login name or e-mail address.
 fn read_record(
@@ -608,6 +616,24 @@ impl Database {
             |row| row.get(0),
         )?;
         if recent {
+            return Ok(MailedReset::Cooldown);
+        }
+        let admins_link: bool = tx.query_row(
+            "SELECT EXISTS (SELECT 1 FROM password_resets
+                            WHERE user_id = ?1 AND created_by IS NOT NULL AND expires_at > ?2)",
+            params![user.id, now],
+            |row| row.get(0),
+        )?;
+        if admins_link {
+            return Ok(MailedReset::Cooldown);
+        }
+        let asked: i64 = tx.query_row(
+            "SELECT COUNT(*) FROM audit_log
+             WHERE action = 'password.reset_requested' AND kind = ?1 AND key = ?2 AND at > ?3",
+            params![USER_KIND, user.id.to_string(), now.saturating_sub(HOUR_MS)],
+            |row| row.get(0),
+        )?;
+        if asked >= MAX_MAILED_PER_HOUR {
             return Ok(MailedReset::Cooldown);
         }
         let _rows = tx.execute(

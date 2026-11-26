@@ -17,8 +17,11 @@
 //! - **Retries.** A delivery that fails in a way that may pass ([`stuffcloud_mail::SendError::is_transient`]) is
 //!   tried again after 15 seconds, 1 minute, 5 minutes and 15 minutes ([`Delivery::delay`]),
 //!   with the settings read again each time; a refusal for good, a message that cannot be built
-//!   and the end of the schedule give the mail up. At most [`WORKERS`] mails are in flight; the
-//!   queue holds [`QUEUE_CAPACITY`] more, and a full queue refuses new requests.
+//!   and the end of the schedule give the mail up. At most [`WORKERS`] mails are being sent at the
+//!   same time (a mail that waits for its next attempt holds no such slot, so a few addresses that
+//!   the server keeps deferring cannot stop the others); at most [`MAX_IN_FLIGHT`] mails are
+//!   being handled or waiting for a retry, the queue holds [`QUEUE_CAPACITY`] more, and a full
+//!   queue refuses new requests.
 //! - **Nothing personal in the logs.** A line says what became of a mail (`sent`, `retry`,
 //!   `failed`) with the kind of failure and the SMTP status code; never an address, a name, a
 //!   token or what the server said. The counter `stuffcloud_mail_deliveries_total{result}` has
@@ -59,8 +62,11 @@ pub const RESULT_NOT_CONFIGURED: &str = "not_configured";
 /// How many requests may wait for a worker.
 pub const QUEUE_CAPACITY: usize = 64;
 
-/// How many mails are handled at the same time.
+/// How many mails are being sent (talking to the server) at the same time.
 pub const WORKERS: usize = 4;
+
+/// How many mails are being handled at the same time, those waiting for a retry included.
+pub const MAX_IN_FLIGHT: usize = 64;
 
 /// An account that got a reset token less than this ago gets no second one (5 minutes).
 pub const RESET_COOLDOWN_MS: i64 = 5 * MINUTE_MS;
@@ -133,6 +139,8 @@ pub struct Delivery {
     transport: Arc<dyn Transport>,
     env: Arc<dyn Environment + Send + Sync>,
     delays: Arc<[Duration]>,
+    /// The places for talking to the server: [`WORKERS`], shared by every clone.
+    slots: Arc<Semaphore>,
 }
 
 impl fmt::Debug for Delivery {
@@ -163,6 +171,7 @@ impl Delivery {
             transport,
             env,
             delays: delays.into(),
+            slots: Arc::new(Semaphore::new(WORKERS)),
         }
     }
 
@@ -183,14 +192,15 @@ pub struct Worker {
 }
 
 impl Worker {
-    /// Handles the jobs of the queue until every [`Mailer`] is gone, [`WORKERS`] at a time.
+    /// Handles the jobs of the queue until every [`Mailer`] is gone, [`MAX_IN_FLIGHT`] at a time
+    /// (and [`WORKERS`] of them talking to the server).
     #[must_use]
     pub fn spawn(self, state: AppState, delivery: Delivery) -> JoinHandle<()> {
         tokio::spawn(async move {
             let mut receiver = self.receiver;
-            let slots = Arc::new(Semaphore::new(WORKERS));
+            let in_flight = Arc::new(Semaphore::new(MAX_IN_FLIGHT));
             while let Some(job) = receiver.recv().await {
-                let Ok(slot) = Arc::clone(&slots).acquire_owned().await else {
+                let Ok(slot) = Arc::clone(&in_flight).acquire_owned().await else {
                     return;
                 };
                 let state = state.clone();
@@ -347,6 +357,10 @@ async fn attempt(state: &AppState, delivery: &Delivery, prepared: &Prepared) -> 
         subject: prepared.subject.clone(),
         text: prepared.text.clone(),
         message_id: prepared.message_id.clone(),
+    };
+    // Only the talking holds a place; the wait for the next attempt does not.
+    let Ok(_place) = delivery.slots.acquire().await else {
+        return failed(false, "the mailer is shutting down");
     };
     match delivery.transport.send(&server, &outgoing).await {
         Ok(()) => Attempt::Sent,
@@ -875,6 +889,42 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_mail_that_waits_for_its_retry_holds_no_place_for_the_others() {
+        let recording = Recording::new();
+        let state = state_with_delays(&recording, vec![Duration::from_secs(5)]);
+        store(&state, &smtp());
+        let people = ["alice", "bob", "carol", "dave", "erin"];
+        for name in people {
+            let login = Login::parse(name).unwrap();
+            let email = Email::parse(&format!("{name}@example.org")).unwrap();
+            let _created = state
+                .database()
+                .register(
+                    &NewAccount {
+                        login: &login,
+                        email: Some(&email),
+                        role: Role::User,
+                        password_hash: "phc",
+                    },
+                    None,
+                    1,
+                )
+                .unwrap();
+        }
+        // The first four deliveries fail for now (all the places a mail may talk in), the
+        // fifth goes through while those four wait for their retry in five seconds.
+        for _ in 0..WORKERS {
+            recording.fail_next(SendError::new(FailureKind::Connection));
+        }
+        for name in people {
+            state.mailer().submit(job(name, Language::En)).unwrap();
+        }
+        until(|| recording.sent().len() == 1).await;
+        assert_eq!(recording.attempts(), WORKERS + 1);
+        assert!(metrics_of(&state).contains(&counter("retry", 4)));
+    }
+
+    #[tokio::test]
     async fn a_schedule_that_runs_out_ends_the_mail() {
         let recording = Recording::new();
         let state = state_with_recording(&recording);
@@ -976,6 +1026,7 @@ mod tests {
     fn the_documented_numbers_hold() {
         assert_eq!(QUEUE_CAPACITY, 64);
         assert_eq!(WORKERS, 4);
+        assert_eq!(MAX_IN_FLIGHT, 64);
         assert_eq!(RESET_COOLDOWN_MS, 300_000);
         assert_eq!(QUEUE_FULL_WAIT_MS, 60_000);
         assert_eq!(

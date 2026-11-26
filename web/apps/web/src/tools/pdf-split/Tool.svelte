@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Progress } from '@mozra-the-great/kern';
+  import { Input, Progress, Select } from '@mozra-the-great/kern';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import { i18n, t } from '../../i18n/index.ts';
   import { buildFiles } from '../../pdf/client.ts';
@@ -15,9 +15,7 @@
   import { buildZip, ZipLimitError } from '../../pdf/zip.ts';
   import Button from '../../ui/Button.svelte';
   import FileDropzone from '../../ui/FileDropzone.svelte';
-  import Input from '../../ui/Input.svelte';
   import LinkButton from '../../ui/LinkButton.svelte';
-  import Select from '../../ui/Select.svelte';
 
   const doc = new SingleDocument();
 
@@ -190,6 +188,7 @@
       <Select label={t('pdf.split.mode')} options={modeOptions} bind:value={mode} />
       {#if mode === 'ranges'}
         <Input
+          keepHint
           label={t('pdf.split.rangesLabel')}
           hint={t('pdf.split.rangesHint')}
           error={rangesText.trim() === '' ? '' : message}
@@ -199,6 +198,7 @@
         />
       {:else if mode === 'every'}
         <Input
+          keepHint
           label={t('pdf.split.everyLabel')}
           hint={t('pdf.split.everyHint')}
           error={everyText.trim() === '' ? '' : message}

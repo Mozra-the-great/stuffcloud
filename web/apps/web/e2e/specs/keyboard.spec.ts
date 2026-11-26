@@ -89,6 +89,33 @@ test.describe('the checks can fail', () => {
     );
   });
 
+  test('a field whose ring sits on its wrapper counts, and is caught once the wrapper loses it', async ({
+    page,
+  }) => {
+    // kern's Input draws the focus on the box around the <input> (:focus-within), not on it.
+    await page.goto('/tools/uuid');
+    const count = page.getByRole('spinbutton').first();
+    await expect(count).toBeVisible();
+    await expectKeyboardOnly(page, 'uuid');
+    await count.focus();
+    const ring = await page.evaluate(() => {
+      const input = document.activeElement;
+      return {
+        own: input === null ? '' : getComputedStyle(input).outlineStyle,
+        wrapper: input?.parentElement ? getComputedStyle(input.parentElement).outlineStyle : '',
+      };
+    });
+    expect(ring).toEqual({ own: 'none', wrapper: 'solid' });
+    await page.reload();
+    await expect(count).toBeVisible();
+    await page.addStyleTag({
+      content: '*:focus-within { outline: none !important; box-shadow: none !important; }',
+    });
+    await expect(expectKeyboardOnly(page, 'uuid without the wrapper ring')).rejects.toThrow(
+      'shows its focus',
+    );
+  });
+
   test('a page whose focus is covered by something is caught', async ({ page }) => {
     await open(page, '/', 'Your stuff, in your cloud.');
     await page.evaluate(() => {

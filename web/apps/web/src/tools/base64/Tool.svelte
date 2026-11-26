@@ -1,17 +1,15 @@
 <script lang="ts">
-  import { Progress } from '@mozra-the-great/kern';
+  import { Input, Progress, Select } from '@mozra-the-great/kern';
+  import Checkbox from '../../ui/Checkbox.svelte';
+  import TextArea from '../../app/TextArea.svelte';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import { saveBlob, saveText } from '../../app/download.ts';
   import CopyButton from '../../app/CopyButton.svelte';
-  import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import Button from '../../ui/Button.svelte';
-  import Checkbox from '../../ui/Checkbox.svelte';
   import FileDropzone from '../../ui/FileDropzone.svelte';
-  import Input from '../../ui/Input.svelte';
-  import Select from '../../ui/Select.svelte';
   import {
     MAX_DECODE_FILE_BYTES,
     MAX_FILE_BYTES,
@@ -357,6 +355,7 @@
         </div>
         {#if asUri}
           <Input
+            keepHint
             label={t('base64.mediaType')}
             hint={t('base64.mediaTypeHint')}
             bind:value={

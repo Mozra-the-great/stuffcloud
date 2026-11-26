@@ -1,11 +1,10 @@
 <script lang="ts">
+  import { Input, Select } from '@mozra-the-great/kern';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import Button from '../../ui/Button.svelte';
-  import Input from '../../ui/Input.svelte';
-  import Select from '../../ui/Select.svelte';
   import {
     categoryName,
     categoryOrFirst,

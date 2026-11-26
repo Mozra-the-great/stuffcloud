@@ -7,6 +7,7 @@ import manifest from '../../src/tools/user-agent/manifest.ts';
 import { MAX_USER_AGENT_LENGTH } from '../../src/tools/user-agent/user-agent.ts';
 import { toaster } from '../../src/ui/toast.svelte.ts';
 import { openTool } from '../tool-helpers.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 type User = ReturnType<typeof userEvent.setup>;
 
@@ -168,7 +169,7 @@ describe('reading a string', () => {
 
   it('refuses a text that is too long, and does not parse it', async () => {
     await paste(user, 'x'.repeat(MAX_USER_AGENT_LENGTH + 1));
-    expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
+    expect(fieldErrorText()).toBe(
       'This text is too long for a user-agent string (at most 2,000 characters).',
     );
     expect(input().getAttribute('aria-invalid')).toBe('true');
@@ -176,7 +177,7 @@ describe('reading a string', () => {
     await user.tab();
     expect(statusText()).toContain('too long');
     await paste(user, 'x'.repeat(MAX_USER_AGENT_LENGTH));
-    expect(document.querySelector('.sc-fld__error')).toBeNull();
+    expect(fieldErrorText()).toBeNull();
     expect(rows().get('Browser')).toBe('Not recognised');
   });
 

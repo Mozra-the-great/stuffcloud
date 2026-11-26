@@ -1,14 +1,13 @@
 <script lang="ts">
+  import { Input, Select } from '@mozra-the-great/kern';
+  import TextArea from '../../app/TextArea.svelte';
   import { tick } from 'svelte';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import { saveText } from '../../app/download.ts';
-  import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import Button from '../../ui/Button.svelte';
-  import Input from '../../ui/Input.svelte';
-  import Select from '../../ui/Select.svelte';
   import { BITS, expandV6, formatAddress, type AddressErrorCode } from './ip.ts';
   import {
     MAX_ENTRIES,
@@ -376,6 +375,7 @@
         />
       {:else}
         <Input
+          keepHint
           label={networkLabel}
           hint={t('subnet.networkHint')}
           bind:value={networkText}
@@ -395,6 +395,7 @@
             onchange={onSplitBy}
           />
           <Input
+            keepHint
             label={splitBy === 'count'
               ? t('subnet.splitValue.count')
               : t('subnet.splitValue.prefix')}
@@ -411,6 +412,7 @@
         </div>
       {:else if mode === 'contains'}
         <Input
+          keepHint
           label={t('subnet.other')}
           hint={t('subnet.otherHint')}
           bind:value={otherText}

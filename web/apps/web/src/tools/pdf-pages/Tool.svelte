@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Progress } from '@mozra-the-great/kern';
+  import { Input, Progress } from '@mozra-the-great/kern';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import { i18n, t } from '../../i18n/index.ts';
   import { buildFiles } from '../../pdf/client.ts';
@@ -38,7 +38,6 @@
   import { SingleDocument } from '../../pdf/session.svelte.ts';
   import Button from '../../ui/Button.svelte';
   import FileDropzone from '../../ui/FileDropzone.svelte';
-  import Input from '../../ui/Input.svelte';
   import LinkButton from '../../ui/LinkButton.svelte';
 
   const doc = new SingleDocument();

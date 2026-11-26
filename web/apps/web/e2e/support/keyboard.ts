@@ -57,9 +57,44 @@ export async function currentStop(page: Page): Promise<Stop> {
     if (element === null || element === document.body) {
       return { name: '(body)', visibleFocus: false, obscured: false };
     }
-    const style = getComputedStyle(element);
-    const outline = style.outlineStyle !== 'none' && Number.parseFloat(style.outlineWidth) > 0;
-    const ring = style.boxShadow !== 'none';
+    const drawn = (target: Element): boolean => {
+      const style = getComputedStyle(target);
+      const outline = style.outlineStyle !== 'none' && Number.parseFloat(style.outlineWidth) > 0;
+      return outline || style.boxShadow !== 'none';
+    };
+    // A field with content inside its edge (kern's Input: the ring is on the box around the
+    // <input>) draws the focus on a wrapper with :focus-within. That counts only when a rule
+    // whose selector needs focus is what draws it, so a wrapper with a permanent outline does not.
+    const focusRules = (rules: CSSRuleList): CSSStyleRule[] =>
+      [...rules].flatMap((rule) => {
+        if (rule instanceof CSSStyleRule) {
+          const draws = rule.style.outlineStyle !== '' || rule.style.outline !== '';
+          return rule.selectorText.includes(':focus') && draws ? [rule] : [];
+        }
+        return rule instanceof CSSGroupingRule ? focusRules(rule.cssRules) : [];
+      });
+    const wrapperRing = (): boolean => {
+      const rules = [...document.styleSheets].flatMap((sheet) => focusRules(sheet.cssRules));
+      let wrapper = element.parentElement;
+      for (let depth = 0; wrapper !== null && depth < 2; depth += 1) {
+        const candidate = wrapper;
+        if (
+          candidate.matches(':focus-within') &&
+          drawn(candidate) &&
+          rules.some((rule) => {
+            try {
+              return candidate.matches(rule.selectorText);
+            } catch {
+              return false; // a selector with a pseudo-element never matches an element
+            }
+          })
+        ) {
+          return true;
+        }
+        wrapper = candidate.parentElement;
+      }
+      return false;
+    };
     // WCAG 2.4.11: the focused element is not entirely hidden. Firefox scrolls a partly visible
     // element no further, so the middle of the visible part is what is looked at.
     const rect = element.getBoundingClientRect();
@@ -73,7 +108,7 @@ export async function currentStop(page: Page): Promise<Stop> {
         : null;
     return {
       name: name(element),
-      visibleFocus: outline || ring,
+      visibleFocus: drawn(element) || wrapperRing(),
       obscured: hit === null || !(element.contains(hit) || hit.contains(element)),
     };
   });

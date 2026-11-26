@@ -1,7 +1,7 @@
 <script lang="ts">
+  import { Input } from '@mozra-the-great/kern';
   import { i18n, t } from '../i18n/index.ts';
   import Dialog from '../ui/Dialog.svelte';
-  import Input from '../ui/Input.svelte';
   import { CATEGORY_LABELS, searchTools, toolPath, type ToolEntry } from './tools.ts';
 
   interface Props {

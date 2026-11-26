@@ -1,12 +1,12 @@
 <script lang="ts">
+  import { Select } from '@mozra-the-great/kern';
+  import TextArea from '../../app/TextArea.svelte';
   import { t, type MessageKey } from '../../i18n/index.ts';
   import { saveText } from '../../app/download.ts';
   import CopyButton from '../../app/CopyButton.svelte';
-  import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import Button from '../../ui/Button.svelte';
-  import Select from '../../ui/Select.svelte';
   import { formatSql } from './layout.ts';
   import { DIALECTS, isDialect, type Dialect, type KeywordCase } from './tokens.ts';
 

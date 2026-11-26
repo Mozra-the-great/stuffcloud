@@ -1,14 +1,13 @@
 <script lang="ts">
+  import { Input, Select } from '@mozra-the-great/kern';
+  import Checkbox from '../../ui/Checkbox.svelte';
+  import TextArea from '../../app/TextArea.svelte';
   import { t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import { saveText } from '../../app/download.ts';
-  import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import Button from '../../ui/Button.svelte';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import Input from '../../ui/Input.svelte';
-  import Select from '../../ui/Select.svelte';
   import { DEFAULT_COUNT, LIMITS, generateLorem, type LoremUnit } from './generate.ts';
 
   let unit = $state<LoremUnit>('paragraphs');
@@ -57,6 +56,7 @@
     <section class="block">
       <Select label={t('lorem.unit')} options={unitOptions} bind:value={unit} onchange={onUnit} />
       <Input
+        keepHint
         type="number"
         inputmode="numeric"
         min={1}

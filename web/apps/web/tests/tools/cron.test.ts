@@ -8,6 +8,7 @@ import manifest from '../../src/tools/cron/manifest.ts';
 import { ERROR_KEYS, FIELD_KEYS } from '../../src/tools/cron/messages.ts';
 import { toaster } from '../../src/ui/toast.svelte.ts';
 import { openTool } from '../tool-helpers.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 type User = ReturnType<typeof userEvent.setup>;
 
@@ -93,7 +94,7 @@ function statusText(): string {
 }
 
 function problemShown(): string | null {
-  return document.querySelector('.sc-fld__error')?.textContent ?? null;
+  return fieldErrorText();
 }
 
 function notes(): string[] {

@@ -89,7 +89,7 @@ function fieldError(name: string): string {
   const ids = (box.getAttribute('aria-describedby') ?? '').split(' ');
   return ids
     .filter((id) => id.endsWith('-error'))
-    .map((id) => document.getElementById(id)?.textContent ?? '')
+    .map((id) => document.getElementById(id)?.textContent.trim() ?? '')
     .join(' ');
 }
 

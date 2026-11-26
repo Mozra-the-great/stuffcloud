@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readAppFile, readCustomProperties, readRepoFile, readRepoFiles } from './helpers.ts';
+import { readCustomProperties, readKernFile, readRepoFile, readRepoFiles } from './helpers.ts';
 import { contrastRatio, parseHex, relativeLuminance } from './contrast.ts';
 
 const tokens = readCustomProperties('src/styles/tokens.css', 'src/styles/theme.css');
@@ -125,10 +125,16 @@ function ruleBody(css: string, selector: string): string {
 }
 
 describe('field borders use the token', () => {
-  it('draws the border of every Input and Select with --field-border', () => {
-    const body = ruleBody(readAppFile('src/ui/field.css'), '.sc-field');
-    expect(body).toMatch(/border:\s*1px solid var\(--field-border\)/);
-    expect(body).not.toMatch(/--line/);
+  it('draws the border of every Input, Select and Textarea (kern, theme code) in --field-border', () => {
+    // kern's fields draw their edge with --k-border (kern docs/themes.md); under the Code theme
+    // that token is the design's --field-border, not a hairline.
+    const css = readKernFile('dist/themes/brands/code.css');
+    const start = css.indexOf("[data-theme='code'],");
+    const block = css.slice(start, css.indexOf('}', start));
+    const border = /--k-border:\s*(#[0-9a-f]{6});/i.exec(block)?.[1];
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(border).toBe(tokens.get('--field-border'));
+    expect(border).not.toBe(tokens.get('--line2'));
   });
 
   it('draws the border of the design source .field with --field-border', () => {

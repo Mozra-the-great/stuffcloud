@@ -1,11 +1,11 @@
 <script lang="ts">
+  import { Select } from '@mozra-the-great/kern';
+  import Checkbox from '../../ui/Checkbox.svelte';
+  import TextArea from '../../app/TextArea.svelte';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
-  import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import Select from '../../ui/Select.svelte';
   import { createPool } from './pool.ts';
   import {
     DEFAULT_CONTEXT,

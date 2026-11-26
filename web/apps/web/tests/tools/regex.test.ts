@@ -5,6 +5,7 @@ import { i18n } from '../../src/i18n/index.ts';
 import { findMatches, type Input } from '../../src/tools/regex/match.ts';
 import manifest from '../../src/tools/regex/manifest.ts';
 import { openTool } from '../tool-helpers.ts';
+import { FIELD_ERROR, fieldErrorText } from '../helpers.ts';
 
 type User = ReturnType<typeof userEvent.setup>;
 
@@ -224,9 +225,7 @@ describe('testing a pattern', () => {
     const before = pool.jobs.length;
     await replace(user, pattern(), 'a(');
     expect(pattern().getAttribute('aria-invalid')).toBe('true');
-    expect(document.querySelector('.sc-fld__error')?.textContent).toContain(
-      'This is not a valid pattern: Invalid regular expression',
-    );
+    expect(fieldErrorText()).toContain('This is not a valid pattern: Invalid regular expression');
     expect(screen.queryByRole('table')).toBeNull();
     expect(document.querySelector('.explain')).toBeNull();
     await new Promise((resolve) => setTimeout(resolve, 400));
@@ -238,7 +237,7 @@ describe('testing a pattern', () => {
   it('refuses flags that cannot be combined', async () => {
     await user.click(screen.getByRole('checkbox', { name: /^u: Unicode mode/ }));
     await user.click(screen.getByRole('checkbox', { name: /^v: Unicode sets mode/ }));
-    expect(document.querySelector('.sc-fld__error')?.textContent).toContain('Invalid flags');
+    expect(fieldErrorText()).toContain('Invalid flags');
   });
 
   it('shows nothing for an empty pattern', async () => {
@@ -250,14 +249,12 @@ describe('testing a pattern', () => {
 
   it('limits the length of the pattern and of the text', async () => {
     await replace(user, pattern(), 'a'.repeat(2001));
-    expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-      'This pattern is too long (at most 2,000 characters).',
-    );
+    expect(fieldErrorText()).toBe('This pattern is too long (at most 2,000 characters).');
     await replace(user, pattern(), 'a');
     await user.click(testText());
     await user.paste('a'.repeat(200_001));
     expect(
-      [...document.querySelectorAll('.sc-fld__error')].map((error) => error.textContent),
+      [...document.querySelectorAll(FIELD_ERROR)].map((error) => error.textContent.trim()),
     ).toEqual(['This text is too long (at most 200,000 characters).']);
     expect(screen.queryByRole('table')).toBeNull();
   });
@@ -341,7 +338,7 @@ describe('a pattern that runs away', () => {
       expect(pool.release).toBeDefined();
     });
     await replace(user, pattern(), 'b(');
-    expect(document.querySelector('.sc-fld__error')).not.toBeNull();
+    expect(fieldErrorText()).not.toBeNull();
     pool.release?.();
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(screen.queryByRole('table')).toBeNull();

@@ -1,27 +1,34 @@
 <script lang="ts">
-  import { Card, CodeBlock, Progress, TabLinks, Tabs, Tile, TileGrid } from '@mozra-the-great/kern';
-  import type { TabItem, TabLinkItem } from '@mozra-the-great/kern';
+  import {
+    Card,
+    CodeBlock,
+    Input,
+    Progress,
+    Select,
+    TabLinks,
+    Tabs,
+    Tile,
+    TileGrid,
+  } from '@mozra-the-great/kern';
+  import Checkbox from '../ui/Checkbox.svelte';
   import '../styles/index.css';
   import Button from '../ui/Button.svelte';
-  import Checkbox from '../ui/Checkbox.svelte';
   import Dialog from '../ui/Dialog.svelte';
   import FileDropzone from '../ui/FileDropzone.svelte';
-  import Input from '../ui/Input.svelte';
   import LinkButton from '../ui/LinkButton.svelte';
   import Mascot from '../ui/Mascot.svelte';
   import { MASCOT_NAMES } from '../ui/mascots.ts';
-  import Select from '../ui/Select.svelte';
   import ToastRegion from '../ui/ToastRegion.svelte';
   import { toaster, type ToastKind } from '../ui/toast.svelte.ts';
-  import type { SelectOption } from '../ui/types.ts';
+  import type { SelectOption, TabItem, TabLinkItem } from '@mozra-the-great/kern';
   import { GALLERY_COLOURS, GALLERY_FONTS } from './swatches.ts';
 
-  const selectOptions: readonly SelectOption[] = [
+  // The lists are mutable until kern takes readonly ones (kern issue 142).
+  const selectOptions: SelectOption[] = [
     { value: 'one', label: 'One day' },
     { value: 'seven', label: 'Seven days' },
     { value: 'never', label: 'Never', disabled: true },
   ];
-  // Mutable until kern takes readonly lists (kern issue 142).
   const tabs: TabItem[] = [
     { id: 'json', label: 'JSON' },
     { id: 'yaml', label: 'YAML' },

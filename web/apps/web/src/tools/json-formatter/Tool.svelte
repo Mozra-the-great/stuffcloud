@@ -1,14 +1,13 @@
 <script lang="ts">
+  import { Input, Select } from '@mozra-the-great/kern';
+  import Checkbox from '../../ui/Checkbox.svelte';
+  import TextArea from '../../app/TextArea.svelte';
   import { t } from '../../i18n/index.ts';
   import { saveText } from '../../app/download.ts';
   import CopyButton from '../../app/CopyButton.svelte';
-  import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import Button from '../../ui/Button.svelte';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import Input from '../../ui/Input.svelte';
-  import Select from '../../ui/Select.svelte';
   import {
     formatJson,
     formatPath,
@@ -190,6 +189,7 @@
       <section class="block">
         <h2 class="heading">{t('json.pathFind')}</h2>
         <Input
+          keepHint
           label={t('json.pathFind')}
           hint={t('json.pathFindHint')}
           bind:value={pathQuery}

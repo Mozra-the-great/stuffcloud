@@ -1,10 +1,9 @@
 <script lang="ts">
+  import { Input, Select } from '@mozra-the-great/kern';
   import { i18n, t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Input from '../../ui/Input.svelte';
-  import Select from '../../ui/Select.svelte';
   import { parseCron, type CronError } from './cron.ts';
   import { explainCron } from './explain.ts';
   import { ERROR_KEYS, FIELD_KEYS } from './messages.ts';
@@ -99,6 +98,7 @@
   <div class="tool">
     <section class="block">
       <Input
+        keepHint
         label={t('cron.expression')}
         hint={t('cron.expressionHint')}
         bind:value={expression}
@@ -116,6 +116,7 @@
           onchange={announce}
         />
         <Input
+          keepHint
           type="number"
           inputmode="numeric"
           min={MIN_RUNS}

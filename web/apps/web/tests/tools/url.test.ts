@@ -5,6 +5,7 @@ import { i18n } from '../../src/i18n/index.ts';
 import manifest from '../../src/tools/url/manifest.ts';
 import { toaster } from '../../src/ui/toast.svelte.ts';
 import { openTool } from '../tool-helpers.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 type User = ReturnType<typeof userEvent.setup>;
 
@@ -122,9 +123,7 @@ describe('encoding and decoding', () => {
     await openTool(manifest);
     await user.click(text());
     await user.paste('a'.repeat(100_001));
-    expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-      'This text is too long (at most 100,000 characters).',
-    );
+    expect(fieldErrorText()).toBe('This text is too long (at most 100,000 characters).');
     await user.click(screen.getByRole('button', { name: 'Encode' }));
     expect(result()).toBeUndefined();
     expect(statuses()).toBe('');
@@ -198,7 +197,7 @@ describe('parsing', () => {
     await openTool(manifest);
     await paste(user, address(), 'example.com/path');
     expect(address().getAttribute('aria-invalid')).toBe('true');
-    expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
+    expect(fieldErrorText()).toBe(
       'This is not a complete URL. It needs a scheme such as https:// at the start.',
     );
     expect(screen.queryByRole('table', { name: 'The parts of the URL' })).toBeNull();
@@ -210,13 +209,11 @@ describe('parsing', () => {
     const user = userEvent.setup();
     await openTool(manifest);
     await paste(user, address(), '');
-    expect(document.querySelector('.sc-fld__error')).toBeNull();
+    expect(fieldErrorText()).toBeNull();
     expect(screen.queryByRole('table', { name: 'The parts of the URL' })).toBeNull();
     await user.click(address());
     await user.paste(`https://example.com/${'a'.repeat(100_001)}`);
-    expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-      'This text is too long (at most 100,000 characters).',
-    );
+    expect(fieldErrorText()).toBe('This text is too long (at most 100,000 characters).');
   });
 
   it('shows German texts', async () => {

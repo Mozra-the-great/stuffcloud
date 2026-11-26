@@ -7,6 +7,7 @@ import type * as TextopsTask from '../../src/tools/textops/task.ts';
 import { runTask, type Input } from '../../src/tools/textops/task.ts';
 import { toaster } from '../../src/ui/toast.svelte.ts';
 import { openTool } from '../tool-helpers.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 const pool = vi.hoisted(() => ({
   behaviour: 'real',
@@ -289,9 +290,7 @@ describe('number lines', () => {
     for (const bad of ['', 'abc', '1.5', '2000000000']) {
       await setField('First number', bad);
       await waitFor(() => {
-        expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-          'Enter a whole number, at most 1,000,000,000 in size.',
-        );
+        expect(fieldErrorText()).toBe('Enter a whole number, at most 1,000,000,000 in size.');
       });
       await waitForOutput('');
     }
@@ -301,7 +300,7 @@ describe('number lines', () => {
     });
     await setField('Text after the number', 'x'.repeat(11));
     await waitFor(() => {
-      expect(document.querySelector('.sc-fld__error')?.textContent).toBe('At most 10 characters.');
+      expect(fieldErrorText()).toBe('At most 10 characters.');
     });
     await waitForOutput('');
   }, 20_000);
@@ -337,9 +336,7 @@ describe('find and replace', () => {
     await waitForOutput('19.11.2026 and 02.01.2027');
     await setField('Find', '(');
     await waitFor(() => {
-      expect(document.querySelector('.sc-fld__error')?.textContent).toMatch(
-        /^This pattern does not work: /,
-      );
+      expect(fieldErrorText()).toMatch(/^This pattern does not work: /);
     });
     expect(output().value).toBe('');
     expect(screen.getByRole('textbox', { name: 'Find' }).getAttribute('aria-invalid')).toBe('true');
@@ -362,9 +359,7 @@ describe('find and replace', () => {
     await chooseOperation(user, 'replace');
     await setField('Find', 'x'.repeat(1001));
     await waitFor(() => {
-      expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-        'At most 1,000 characters.',
-      );
+      expect(fieldErrorText()).toBe('At most 1,000 characters.');
     });
     await waitForOutput('');
   });
@@ -426,9 +421,7 @@ describe('limits and failures', () => {
     const jobs = pool.jobs.length;
     await setInput('x'.repeat(121));
     await waitFor(() => {
-      expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-        'This text is longer than 120 characters.',
-      );
+      expect(fieldErrorText()).toBe('This text is longer than 120 characters.');
     });
     expect(output().value).toBe('');
     expect(statusText()).toBe('');

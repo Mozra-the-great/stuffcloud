@@ -6,6 +6,7 @@ import manifest from '../../src/tools/uuid/manifest.ts';
 import { v7Milliseconds } from '../../src/tools/uuid/uuid.ts';
 import { toaster } from '../../src/ui/toast.svelte.ts';
 import { openTool } from '../tool-helpers.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 const downloads = vi.hoisted(() => ({
   saved: [] as { name: string; text: string }[],
@@ -147,9 +148,7 @@ describe('uuid', () => {
     for (const bad of ['0', '1001', '-1', '']) {
       await setCount(user, bad);
       expect(uuids()).toEqual([]);
-      expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-        'Enter a whole number from 1 to 1,000.',
-      );
+      expect(fieldErrorText()).toBe('Enter a whole number from 1 to 1,000.');
       expect(count().getAttribute('aria-invalid')).toBe('true');
       expect(
         screen.getByRole<HTMLButtonElement>('button', { name: 'Generate new UUIDs' }).disabled,
@@ -160,7 +159,7 @@ describe('uuid', () => {
     }
     await setCount(user, '1000');
     expect(uuids()).toHaveLength(1000);
-    expect(document.querySelector('.sc-fld__error')).toBeNull();
+    expect(fieldErrorText()).toBeNull();
   });
 
   it('copies all UUIDs and downloads them one per line', async () => {

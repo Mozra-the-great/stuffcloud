@@ -5,6 +5,7 @@ import { i18n } from '../../src/i18n/index.ts';
 import manifest from '../../src/tools/unit-converter/manifest.ts';
 import { toaster } from '../../src/ui/toast.svelte.ts';
 import { openTool } from '../tool-helpers.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 type User = ReturnType<typeof userEvent.setup>;
 
@@ -64,7 +65,7 @@ function statusText(): string {
 }
 
 function problemShown(): string | null {
-  return document.querySelector('.sc-fld__error')?.textContent ?? null;
+  return fieldErrorText();
 }
 
 /** The "all units" table as unit id to value text, keyed by the name in the first column. */

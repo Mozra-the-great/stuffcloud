@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { Input } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
-  import Input from '../../ui/Input.svelte';
   import type { ColorEntry } from './color-entry.svelte.ts';
   import { formatHex, rgbFromPicker } from './color.ts';
   import { ERROR_KEYS } from './messages.ts';
@@ -29,6 +29,7 @@
 <div class="color-field">
   <div class="text">
     <Input
+      keepHint
       {label}
       bind:value={entry.text}
       hint={hint ?? ''}

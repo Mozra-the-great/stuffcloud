@@ -141,7 +141,7 @@ come from neither package manager are in
 | @jridgewell/resolve-uri | 3.1.3 | MIT | [npm](https://www.npmjs.com/package/@jridgewell/resolve-uri/v/3.1.3) |
 | @jridgewell/sourcemap-codec | 1.6.0 | MIT | [npm](https://www.npmjs.com/package/@jridgewell/sourcemap-codec/v/1.6.0) |
 | @jridgewell/trace-mapping | 0.3.31 | MIT | [npm](https://www.npmjs.com/package/@jridgewell/trace-mapping/v/0.3.31) |
-| @mozra-the-great/kern | 0.12.3 | GPL-3.0-or-later | [release](https://github.com/Mozra-the-great/kern/releases/download/v0.12.3/mozra-the-great-kern-0.12.3.tgz) |
+| @mozra-the-great/kern | 0.13.1 | GPL-3.0-or-later | [release](https://github.com/Mozra-the-great/kern/releases/download/v0.13.1/mozra-the-great-kern-0.13.1.tgz) |
 | @pdf-lib/standard-fonts | 1.0.0 | MIT | [npm](https://www.npmjs.com/package/@pdf-lib/standard-fonts/v/1.0.0) |
 | @pdf-lib/upng | 1.0.1 | MIT | [npm](https://www.npmjs.com/package/@pdf-lib/upng/v/1.0.1) |
 | @sveltejs/acorn-typescript | 1.0.13 | MIT | [npm](https://www.npmjs.com/package/@sveltejs/acorn-typescript/v/1.0.13) |

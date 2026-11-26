@@ -42,46 +42,39 @@
   }
 </script>
 
-<!--
-  kern's Modal renders its title row as <header> (and actions as <footer>); outside sectioning
-  content these become banner/contentinfo landmarks next to the shell's own (kern#154). An unnamed
-  <section> is role generic, adds no landmark and scopes them. Goes with the kern version that fixes it.
--->
-<section>
-  <Modal
-    bind:open
-    title={t('search.title')}
-    closeLabel={t('search.close')}
-    onclose={() => {
-      query = '';
-    }}
-  >
-    <div class="search">
-      <form role="search" onsubmit={submit}>
-        <Input
-          label={t('search.label')}
-          type="search"
-          autocomplete="off"
-          autofocus
-          bind:value={query}
-        />
-      </form>
-      <p class="status" role="status">{status}</p>
-      {#if results.length > 0}
-        <ul class="results" aria-label={t('search.results')}>
-          {#each results as tool (tool.id)}
-            <li>
-              <a href={toolPath(tool.id)} onclick={close}>
-                <span>{tool.name[i18n.locale]}</span>
-                <span class="category">{t(CATEGORY_LABELS[tool.category])}</span>
-              </a>
-            </li>
-          {/each}
-        </ul>
-      {/if}
-    </div>
-  </Modal>
-</section>
+<Modal
+  bind:open
+  title={t('search.title')}
+  closeLabel={t('search.close')}
+  onclose={() => {
+    query = '';
+  }}
+>
+  <div class="search">
+    <form role="search" onsubmit={submit}>
+      <Input
+        label={t('search.label')}
+        type="search"
+        autocomplete="off"
+        autofocus
+        bind:value={query}
+      />
+    </form>
+    <p class="status" role="status">{status}</p>
+    {#if results.length > 0}
+      <ul class="results" aria-label={t('search.results')}>
+        {#each results as tool (tool.id)}
+          <li>
+            <a href={toolPath(tool.id)} onclick={close}>
+              <span>{tool.name[i18n.locale]}</span>
+              <span class="category">{t(CATEGORY_LABELS[tool.category])}</span>
+            </a>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  </div>
+</Modal>
 
 <style>
   /* kern's Modal puts the content in one block: the rows keep the old dialog's 20 px rhythm. */

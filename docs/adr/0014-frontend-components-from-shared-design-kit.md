@@ -119,6 +119,18 @@ None.
   (each element puts a `<style>` into its shadow root) and bring their own runtime; the app is
   Svelte already.
 
+## Addendum: kern 0.13.1 (2026-11-26, #121, PR #183)
+
+Decision 3 put `data-theme="code"` on `<body>` because kern's theme rule gave the themed element a px
+font size, which on `<html>` would have frozen every `rem` at 16 px, and because the Code theme set a
+fixed line height of 1.5 that the app overrode with `body[data-theme] { line-height: normal }`. Both
+were kern defects found by this migration, and kern 0.13.0 fixed them: the root takes the reader's
+default size (`calc(var(--k-root-scale) * 1rem)`, kern#144) and the Code theme's line height is
+`normal` like the design's (`--k-leading-body`, kern#145). The original text above stays as the record
+of the decision at the time; since 0.13.1 the app sets `data-theme="code"` on `<html>` and carries
+neither workaround. The unnamed `<section>` around the search `Modal` (kern#154, fixed in 0.13.1: the
+title row and footer are `role="none"`) went with them.
+
 ## Links
 
 - Issue [#121](https://github.com/Mozra-the-great/stuffcloud/issues/121), kern

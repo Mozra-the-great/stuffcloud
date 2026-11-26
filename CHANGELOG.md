@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   4 workers and retries after 15 s, 1, 5 and 15 minutes; logs and the counter `stuffcloud_mail_deliveries_total{result}` name no
   address, name, token or server text. The dev stack's Mailpit receives the mail (its bootstrap file sets up `smtp` and opens
   sign-up); the smoke test registers an account, asks for a reset mail, reads it in Mailpit and redeems the link. Fuzz target
-  `smtp_settings`, property tests and a regression corpus of injections; the write-only SMTP password stays with #152. (#PR)
+  `smtp_settings`, property tests and a regression corpus of injections; the write-only SMTP password stays with #152. (#197)
 - Performance budgets and a Lighthouse gate (T-25, #29, `docs/PERFORMANCE.md`): job `perf-budgets` in `ci.yml` (part of `build`)
   checks the gzip size of the shell (first-load JavaScript, CSS, fonts; `apps/web/perf-budgets.json`) and of every tool (its lazy
   code and what its workers can download; the `budget` of its manifest) against a production build made with the Vite manifest

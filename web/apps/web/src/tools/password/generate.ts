@@ -102,6 +102,7 @@ export function countPasswords(sets: readonly string[], length: number): bigint 
     let size = 0;
     let used = 0;
     sets.forEach((set, index) => {
+      // Stryker disable next-line EqualityOperator: selecting the sets whose bit is NOT set walks the same subsets in another order (the mask and its complement), and the sum does not depend on the order
       if ((mask & (1 << index)) !== 0) {
         size += set.length;
         // Stryker disable next-line AssignmentOperator: only the parity of `used` is read below, and -1 and +1 have the same parity

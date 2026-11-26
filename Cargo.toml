@@ -1,8 +1,8 @@
 # stuffcloud Rust workspace (docs/SPEC.md, section 4).
 #
 # crates/core: domain types and validation without I/O; crates/db: SQLite (WAL), migrations
-# and the resource store; crates/app: the LAN API (axum). edge (public endpoints) and cli
-# join them in phases 3 and later.
+# and the resource store; crates/mail: the optional SMTP transport and message builder;
+# crates/app: the LAN API (axum). edge (public endpoints) and cli join them in phases 3 and later.
 # fuzz/ is a separate workspace because cargo-fuzz needs a nightly toolchain.
 
 [workspace]
@@ -22,10 +22,17 @@ publish = false
 [workspace.dependencies]
 stuffcloud-core = { path = "crates/core" }
 stuffcloud-db = { path = "crates/db" }
+stuffcloud-mail = { path = "crates/mail" }
 unicode-normalization = "0.1.24"
 proptest = "1.12.0"
 # The operating system's random source, for session and CSRF tokens.
 getrandom = { version = "0.4.3", default-features = false }
+# SMTP client and message builder (A-10); TLS is rustls with ring, the roots come from the system.
+lettre = { version = "0.11.24", default-features = false, features = ["builder", "smtp-transport", "tokio1", "tokio1-rustls", "rustls-native-certs", "ring"] }
+# Test-only: a self-signed certificate and a TLS acceptor for the fake SMTP servers of the mail tests.
+rcgen = { version = "0.14.7", default-features = false, features = ["crypto", "pem", "ring"] }
+rustls = { version = "0.23.27", default-features = false, features = ["ring", "std", "tls12"] }
+tokio-rustls = { version = "0.26.4", default-features = false, features = ["ring", "tls12"] }
 # Password hashing (Argon2id, A-03).
 argon2 = { version = "0.6.0", default-features = false, features = ["alloc", "password-hash", "zeroize"] }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "matched-path", "tokio", "tower-log"] }

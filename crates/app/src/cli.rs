@@ -25,12 +25,14 @@ use stuffcloud_db::Database;
 use stuffcloud_core::account::{Login, PasswordContext};
 use stuffcloud_core::session::Role;
 use stuffcloud_db::NewAccount;
+use stuffcloud_mail::SmtpTransport;
 
 use crate::access::{MatrixPolicy, permissions_markdown, verify};
 use crate::accounts::Accounts;
 use crate::auth::AuthSettings;
-use crate::config::{self, Config, Environment};
+use crate::config::{self, Config, Environment, ProcessEnvironment};
 use crate::invitations::{Issued, issue_reset_link};
+use crate::mail::{Delivery, Mailer, QUEUE_CAPACITY};
 use crate::maintenance::{PURGE_INTERVAL, spawn_purger};
 use crate::password::{Blocklist, Passwords};
 use crate::state::{AppState, Clock, SystemClock};
@@ -333,6 +335,9 @@ pub fn start(config: &Config) -> Result<(), String> {
     tracing::info!(target: "stuffcloud::server", purged, "expired sessions purged");
     // A route without a declared policy never serves a request: the start fails instead.
     verify(&server::declared_routes(), &openapi::document()).map_err(|error| error.to_string())?;
+    // The queue of the optional mailer; its worker starts with the server and sends only while the
+    // settings group `smtp` exists.
+    let (mailer, mail_worker) = Mailer::queue(QUEUE_CAPACITY);
     let state = AppState::new(
         Arc::new(db),
         Arc::new(MatrixPolicy),
@@ -344,6 +349,7 @@ pub fn start(config: &Config) -> Result<(), String> {
             max_sessions: config.accounts.max_sessions,
         },
         Accounts::new(passwords, config.accounts.trusted_proxies.clone()),
+        mailer,
     );
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -356,6 +362,13 @@ pub fn start(config: &Config) -> Result<(), String> {
             .map_err(|error| format!("cannot listen on {listen}: {error}"))?;
         tracing::info!(target: "stuffcloud::server", %listen, "listening");
         let _purger = spawn_purger(state.clone(), PURGE_INTERVAL);
+        let _mailer = mail_worker.spawn(
+            state.clone(),
+            Delivery::new(
+                Arc::new(SmtpTransport::default()),
+                Arc::new(ProcessEnvironment),
+            ),
+        );
         server::serve(listener, server::router(state), server::shutdown_signal())
             .await
             .map_err(|error| format!("server error: {error}"))

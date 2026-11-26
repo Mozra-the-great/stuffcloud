@@ -55,6 +55,14 @@ pub struct ReasonLabels {
     pub reason: String,
 }
 
+/// Labels of the counter of mail deliveries.
+#[derive(Debug, Clone, Hash, PartialEq, Eq, EncodeLabelSet)]
+pub struct MailLabels {
+    /// What became of a mail: one of the fixed names in [`crate::mail`] (`sent`, `retry`,
+    /// `failed`, `not_configured`, `dropped`).
+    pub result: String,
+}
+
 type HistogramFamily = Family<RouteLabels, Histogram, fn() -> Histogram>;
 
 fn latency_histogram() -> Histogram {
@@ -68,6 +76,7 @@ pub struct Metrics {
     requests: Family<RequestLabels, Counter>,
     durations: HistogramFamily,
     rejections: Family<ReasonLabels, Counter>,
+    mails: Family<MailLabels, Counter>,
 }
 
 impl fmt::Debug for Metrics {
@@ -120,6 +129,12 @@ impl Metrics {
             "Requests refused by the CSRF checks, an invalid Authorization header or the access policy, by rule",
             rejections.clone(),
         );
+        let mails = Family::<MailLabels, Counter>::default();
+        registry.register(
+            "mail_deliveries",
+            "Mails of the optional mailer, by result",
+            mails.clone(),
+        );
         registry.register(
             "build",
             "Version of the running build",
@@ -133,7 +148,19 @@ impl Metrics {
             requests,
             durations,
             rejections,
+            mails,
         }
+    }
+
+    /// Records what became of one mail. `result` must come from the fixed set of names in
+    /// [`crate::mail`], so the label stays bounded.
+    pub fn record_mail(&self, result: &'static str) {
+        let _total = self
+            .mails
+            .get_or_create(&MailLabels {
+                result: result.to_owned(),
+            })
+            .inc();
     }
 
     /// Records one request refused by an authentication rule. `reason` must come from a fixed
@@ -264,6 +291,20 @@ mod tests {
             "{text}"
         );
         assert!(text.contains("stuffcloud_auth_rejections_total{reason=\"token_mismatch\"} 1"));
+    }
+
+    #[test]
+    fn renders_mail_deliveries_by_result() {
+        let metrics = Metrics::default();
+        metrics.record_mail("sent");
+        metrics.record_mail("sent");
+        metrics.record_mail("failed");
+        let text = metrics.render().unwrap();
+        assert!(
+            text.contains("stuffcloud_mail_deliveries_total{result=\"sent\"} 2"),
+            "{text}"
+        );
+        assert!(text.contains("stuffcloud_mail_deliveries_total{result=\"failed\"} 1"));
     }
 
     #[test]

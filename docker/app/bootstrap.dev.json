@@ -3,6 +3,18 @@
   "settings": {
     "reserved-names": {
       "names": ["intranet", "wiki", "vault"]
+    },
+    "signup": {
+      "mode": "open"
+    },
+    "smtp": {
+      "host": "mailpit",
+      "port": 1025,
+      "security": "none",
+      "username": null,
+      "password": null,
+      "from": "noreply@stuff.localhost",
+      "from_name": "stuffcloud (dev)"
     }
   }
 }

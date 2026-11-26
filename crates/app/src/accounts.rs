@@ -846,7 +846,7 @@ mod tests {
         );
         // Nothing was checked, so nothing counts: the reservation went back.
         assert_eq!(state.accounts().passwords().verifications(), 0);
-        assert_eq!(state.accounts().throttles().sizes(), [0, 0, 0, 0]);
+        assert_eq!(state.accounts().throttles().sizes(), [0, 0, 0, 0, 0]);
     }
 
     #[tokio::test]
@@ -871,7 +871,7 @@ mod tests {
         let response = login(State(state.clone()), request).await;
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
         // The reservation was not refunded: the address and both account keys count it.
-        assert_eq!(state.accounts().throttles().sizes(), [1, 2, 0, 0]);
+        assert_eq!(state.accounts().throttles().sizes(), [1, 2, 0, 0, 0]);
     }
 
     #[test]

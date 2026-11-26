@@ -37,7 +37,7 @@ docker compose -f compose.dev.yml up --build     # or: export COMPOSE_FILE=compo
 |---|---|
 | <http://stuff.localhost:8080> | the web app (static build; every path that is not an asset falls back to `index.html`, so deep links such as `/tools/<id>` work); `/api/*` goes to the API (`app`), for example <http://stuff.localhost:8080/api/v1/openapi.json> |
 | `http://<any name>.sites.localhost:8080` | a placeholder site; any random name works, the site base `sites.localhost` itself and unknown names are `404` |
-| <http://mail.localhost:8080> | Mailpit web UI; SMTP is `mailpit:1025` inside the stack and `127.0.0.1:1025` on the host |
+| <http://mail.localhost:8080> | Mailpit web UI; SMTP is `mailpit:1025` inside the stack and `127.0.0.1:1025` on the host; the app sends its mail there (the `smtp` group of the dev bootstrap file) |
 
 The app address and the site base are different registrable names, so app and sites are
 cross-site. Setting `STUFFCLOUD_SITES_BASE=stuff.localhost` in `.env` puts the sites below the
@@ -68,7 +68,8 @@ docker compose -f compose.dev.yml exec caddy curl -si -H 'Host: stuff.localhost'
 
 **The API.** `app` (`crates/app`, image from `docker/app/Dockerfile`) serves `/api/v1` behind
 Caddy; it is not published on the host. On its first start it applies
-`docker/app/bootstrap.dev.json` once (the settings group `reserved-names`), so
+`docker/app/bootstrap.dev.json` once (the settings groups `reserved-names`, `signup` (open, so you
+can register an account) and `smtp` (Mailpit)), so
 <http://stuff.localhost:8080/api/v1/settings/reserved-names> answers with data right away. Writes
 answer `401` until accounts exist (A-02); errors are RFC 9457 problem documents
 ([`docs/api/problems.md`](docs/api/problems.md)). Without Docker, from the repository root:
@@ -79,6 +80,18 @@ STUFFCLOUD_APP_URL=http://stuff.localhost:8000 STUFFCLOUD_DATA_DIR=target/dev-da
   STUFFCLOUD_LOG_FORMAT=text cargo run -p stuffcloud-app
 curl -s http://127.0.0.1:8000/readyz
 ```
+
+**Mail.** E-mail is optional (ADR 0015): without the settings group `smtp` the app sends nothing,
+`GET /api/v1/features` says `{"mail": false}` and an admin hands out reset links. In the dev stack the
+group points at Mailpit, so a reset mail can be tried end to end: register an account (sign-up is open
+in the dev stack), `POST /api/v1/auth/password-reset/request` with `{"login": "<name or address>",
+"language": "de"}` (with the CSRF headers of every anonymous write), open Mailpit, copy the link; the
+smoke test does exactly this. For a real server write the group with `PUT /api/v1/settings/smtp`
+(`security` `starttls` or `tls`; the password only as `{"ref": "STUFFCLOUD_SECRET_SMTP"}`, the name of a
+variable or, with `_FILE`, a file in the app's environment; a private CA goes into `SSL_CERT_FILE`).
+Mail waits in memory and is retried after 15 seconds, 1, 5 and 15 minutes; a restart drops what waits.
+The bootstrap file is applied once: run `docker compose -f compose.dev.yml down --volumes` to see a
+changed one.
 
 **Reverse proxy.** Behind Caddy (or any proxy) the app sees the proxy's address, so the login
 throttles would count every client as one: 20 failed logins by anyone would slow down everyone.

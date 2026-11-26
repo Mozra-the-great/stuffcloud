@@ -171,7 +171,7 @@ fn a_refund_counts_nothing_and_a_success_forgets_the_account_only() {
     let key = account_key("alice");
     let a = client("192.0.2.1");
     throttles.reserve_login(a, key, true, 0).unwrap().refund();
-    assert_eq!(throttles.sizes(), [0, 0, 0, 0]);
+    assert_eq!(throttles.sizes(), [0, 0, 0, 0, 0]);
     for _ in 0..5 {
         fail_login(&throttles, a, key, 0).unwrap();
     }
@@ -192,7 +192,7 @@ fn a_refund_counts_nothing_and_a_success_forgets_the_account_only() {
             in_flight: 0
         })
     );
-    assert_eq!(throttles.sizes(), [1, 0, 0, 1]);
+    assert_eq!(throttles.sizes(), [1, 0, 0, 1, 0]);
 }
 
 #[test]
@@ -493,7 +493,7 @@ fn registrations_are_counted_per_address() {
         Some(2 * MINUTE_MS)
     );
     assert_eq!(throttles.register_attempt(client("192.0.2.2"), 0), None);
-    assert_eq!(throttles.sizes(), [0, 0, 2, 0]);
+    assert_eq!(throttles.sizes(), [0, 0, 2, 0, 0]);
 }
 
 #[test]
@@ -531,17 +531,59 @@ fn the_sweep_drops_forgotten_keys_only() {
         .reserve_login(b, account_key("z"), true, 0)
         .unwrap()
         .succeeded(0);
-    assert_eq!(throttles.sizes(), [3, 2, 1, 1]);
+    assert_eq!(throttles.sizes(), [3, 2, 1, 1, 0]);
     assert_eq!(throttles.sweep(HOUR_MS - 1), 0);
     // An hour after their failure the address and account keys go (the running one stays),
     // the registration needs six hours, the known address 30 days.
     assert_eq!(throttles.sweep(HOUR_MS), 2);
-    assert_eq!(throttles.sizes(), [2, 1, 1, 1]);
+    assert_eq!(throttles.sizes(), [2, 1, 1, 1, 0]);
     assert_eq!(throttles.sweep(HOUR_MS + 10), 2);
-    assert_eq!(throttles.sizes(), [1, 0, 1, 1]);
+    assert_eq!(throttles.sizes(), [1, 0, 1, 1, 0]);
     assert_eq!(throttles.sweep(6 * HOUR_MS), 1);
     assert_eq!(throttles.sweep(KNOWN_FOR_MS), 1);
-    assert_eq!(throttles.sizes(), [1, 0, 0, 0]);
+    assert_eq!(throttles.sizes(), [1, 0, 0, 0, 0]);
     running.refund();
-    assert_eq!(throttles.sizes(), [0, 0, 0, 0]);
+    assert_eq!(throttles.sizes(), [0, 0, 0, 0, 0]);
+}
+
+#[test]
+fn reset_requests_are_counted_per_address_and_swept() {
+    let throttles = Throttles::default();
+    let a = client("192.0.2.1");
+    for _ in 0..6 {
+        assert_eq!(throttles.reset_request_attempt(a, 0), None);
+    }
+    // Five are free, the sixth is counted and the seventh waits a minute.
+    assert_eq!(throttles.reset_request_attempt(a, 0), Some(MINUTE_MS));
+    // A refused attempt does not count.
+    assert_eq!(throttles.reset_request_attempt(a, MINUTE_MS - 1), Some(1));
+    assert_eq!(throttles.reset_request_attempt(a, MINUTE_MS), None);
+    assert_eq!(
+        throttles.reset_request_attempt(a, MINUTE_MS),
+        Some(2 * MINUTE_MS)
+    );
+    // Another address has its own count, and the other tables are untouched.
+    assert_eq!(
+        throttles.reset_request_attempt(client("192.0.2.2"), 0),
+        None
+    );
+    assert_eq!(throttles.sizes(), [0, 0, 0, 0, 2]);
+    assert_eq!(throttles.register_attempt(a, 0), None);
+    assert_eq!(throttles.sweep(6 * HOUR_MS - 1), 0);
+    // The window of six hours has passed for both reset-request keys.
+    assert_eq!(throttles.sweep(7 * HOUR_MS), 3);
+    assert_eq!(throttles.sizes(), [0, 0, 0, 0, 0]);
+}
+
+#[test]
+fn a_full_reset_request_table_stays_bounded() {
+    let throttles = Throttles::with_capacity(2);
+    for address in ["192.0.2.1", "192.0.2.2", "192.0.2.3", "192.0.2.4"] {
+        assert_eq!(throttles.reset_request_attempt(client(address), 0), None);
+        assert!(throttles.sizes()[4] <= 2);
+    }
+    assert_eq!(RESET_REQUEST_RULE.free, 5);
+    assert_eq!(RESET_REQUEST_RULE.base_ms, MINUTE_MS);
+    assert_eq!(RESET_REQUEST_RULE.max_ms, HOUR_MS);
+    assert_eq!(RESET_REQUEST_RULE.window_ms, 6 * HOUR_MS);
 }

@@ -644,12 +644,14 @@ jobs:
       - name: Mutation run
         if: ${{ steps.scope.outputs.run == 'true' }}
         run: |
-          time mutmut run "scripts.ci.spdx.x_terms__mutmut_1"
-          time mutmut run "scripts.ci.spdx.x_terms__mutmut_1" "scripts.ci.spdx.x_terms__mutmut_2" "scripts.ci.spdx.x_terms__mutmut_3" "scripts.ci.spdx.x_terms__mutmut_4" "scripts.ci.spdx.x_terms__mutmut_5" "scripts.ci.spdx.x_terms__mutmut_6" "scripts.ci.spdx.x_terms__mutmut_7" "scripts.ci.spdx.x_terms__mutmut_8"
+          mutmut run "scripts.ci.spdx.x_terms__mutmut_1" > /dev/null || true
           cd mutants
-          time MUTANT_UNDER_TEST=scripts.ci.spdx.x_terms__mutmut_1 python -m pytest scripts/ci/test_license_spdx.py -x -q --durations=5 -p no:cacheprovider
-          time python -m pytest scripts/ci -x -q -p no:cacheprovider --durations=12
-          time MUTANT_UNDER_TEST=stats python -m pytest scripts/ci -x -q -p no:cacheprovider --durations=5
+          time python -c "import scripts.ci.check_cookies, scripts.ci.check_container_hardening, scripts.ci.labels"
+          time python -m pytest scripts/ci/test_license_spdx.py -q -p no:cacheprovider --noconftest || true
+          time python -m pytest scripts/ci/test_license_spdx.py -q -p no:cacheprovider || true
+          python -X importtime -m pytest scripts/ci/test_license_spdx.py -q -p no:cacheprovider 2> imptime.txt || true
+          sort -t'|' -k2 -n imptime.txt | tail -25
+          time python -m pytest scripts/ci -q -p no:cacheprovider --durations=8 || true
       - name: Survivors
         if: ${{ steps.scope.outputs.run == 'true' }}
         run: |

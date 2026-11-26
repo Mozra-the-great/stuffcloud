@@ -1,3 +1,4 @@
+import { timeBudget } from '../time-budget.ts';
 import { describe, expect, it } from 'vitest';
 import {
   MAX_XML_DEPTH,
@@ -284,7 +285,7 @@ describe('parseXml: errors', () => {
     expect(parseXml(`<a>${'x'.repeat(2_000_000)}</a>`).ok).toBe(true);
     expect(parseXml('<a>'.repeat(200_000)).ok).toBe(false);
     expect(parseXml(`<a b="${'&amp;'.repeat(200_000)}"/>`).ok).toBe(true);
-    expect(performance.now() - started).toBeLessThan(5000);
+    expect(performance.now() - started).toBeLessThan(timeBudget(5000));
   });
 });
 

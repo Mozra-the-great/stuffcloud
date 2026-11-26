@@ -1,7 +1,7 @@
 name: Deep tests
 
 # The long runs that do not fit into a PR: hours of fuzzing that grow the shared
-# corpus, the full mutation run (Rust, and the Python CI helpers with mutmut), Miri (undefined behaviour, including inside
+# corpus, the full mutation run (Rust, the Python CI helpers with mutmut, and the TypeScript logic of web/ with StrykerJS, on demand until its survivors are closed), Miri (undefined behaviour, including inside
 # dependencies), property tests with a hundred times more cases, a fresh RustSec
 # advisory check (a new advisory needs no code change to matter) and the beta
 # toolchain (breakage before the next pin bump).
@@ -162,6 +162,67 @@ jobs:
             mutants/survivors.txt
             mutants/survivors-diff.txt
             mutants/scripts/ci/*.meta
+          if-no-files-found: ignore
+          retention-days: 30
+
+  # The full run of the same mutation testing as the PR job `web-mutants` in ci.yml (every mutant of
+  # every scoped file of web/apps/web and web/packages/tools, #162, ADR 0007), sharded by file size
+  # (`STRYKER_SHARD`, web/stryker.shared.mjs) like `mutants-full`. It finds what the PR job cannot:
+  # a changed test or a shared helper that lets a mutant of an untouched file live. The HTML and
+  # JSON reports are kept as artifacts either way.
+  #
+  # Not scheduled yet: surviving mutants that are not closed (progress list in #162) would make
+  # every night red, and a job that is allowed to fail would weaken the check (CLAUDE.md), so until
+  # the last one is gone the job runs on demand only (`workflow_dispatch`, which also measures the
+  # runtime). The commit that kills the last survivor removes the `if:` line below.
+  web-mutants-full:
+    name: web-mutants-full (${{ matrix.package }} ${{ matrix.shard }})
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        working-directory: web
+    env:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { package: packages/tools, shard: '0/1', report: tools-0 }
+          - { package: apps/web, shard: '0/8', report: web-0 }
+          - { package: apps/web, shard: '1/8', report: web-1 }
+          - { package: apps/web, shard: '2/8', report: web-2 }
+          - { package: apps/web, shard: '3/8', report: web-3 }
+          - { package: apps/web, shard: '4/8', report: web-4 }
+          - { package: apps/web, shard: '5/8', report: web-5 }
+          - { package: apps/web, shard: '6/8', report: web-6 }
+          - { package: apps/web, shard: '7/8', report: web-7 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: web/.nvmrc
+          package-manager-cache: false
+      - name: Enable pnpm (corepack, version from packageManager)
+        run: corepack enable
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+      - name: Mutation run (one shard)
+        working-directory: web/${{ matrix.package }}
+        env:
+          STRYKER_SHARD: ${{ matrix.shard }}
+        run: pnpm exec stryker run
+      - name: Upload the mutation report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stryker-report-${{ matrix.report }}
+          path: |
+            web/${{ matrix.package }}/reports/mutation/mutation.html
+            web/${{ matrix.package }}/reports/mutation/mutation.json
           if-no-files-found: ignore
           retention-days: 30
 

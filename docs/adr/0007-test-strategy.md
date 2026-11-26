@@ -141,7 +141,7 @@ rule of decisions 2 and 5 holds for it: a surviving mutant is a missing test.
   browserslist; it is data, in no production tree, and sits in `[dev_only]` of the policy with that
   reason.
 - **What is mutated:** `apps/web/src/tools/*/**/*.ts`, `apps/web/src/pdf/**/*.ts` and
-  `packages/tools/src/**/*.ts` without tests, `manifest.ts` (static data checked by the manifest schema,
+  `packages/tools/src/**/*.ts` without tests, the `manifest.ts` of each tool (static data checked by the manifest schema,
   which is mutated, and by `pnpm check-tools`) and `.d.ts` files. Not yet: `packages/api-client`
   (generated), `src/i18n/messages` (catalogues), `src/styles` (generated tokens) and the `.svelte`
   components (they render, the e2e specs with axe cover them); the components are to be revisited when the

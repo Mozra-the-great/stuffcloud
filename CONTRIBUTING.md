@@ -106,8 +106,8 @@ small step at a time (an inverted comparison, a removed statement, a changed str
 reruns the Vitest tests that cover that line; a mutant that no test notices fails the check.
 
 - **Scope:** the `.ts` files of `web/apps/web/src/tools/<id>/` and `web/apps/web/src/pdf/`, and of
-  `web/packages/tools/src/`, without tests, `manifest.ts` files (static data the manifest schema and
-  `pnpm check-tools` check) and `.d.ts` files. The scope and its exclusions, each with its reason,
+  `web/packages/tools/src/`, without tests, the `manifest.ts` of each tool (static data that the manifest schema, which is
+  mutated, and `pnpm check-tools` check) and `.d.ts` files. The scope and its exclusions, each with its reason,
   are in `web/apps/web/stryker.config.mjs`, `web/packages/tools/stryker.config.mjs` and
   `web/stryker.shared.mjs`. Not in scope for now: `packages/api-client` (generated), `src/i18n/messages`
   (catalogues, string literals only), `src/styles` (generated tokens) and the `.svelte` components (they

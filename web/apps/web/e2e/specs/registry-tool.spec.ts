@@ -19,6 +19,10 @@ test.describe('the sample tool in the registry', () => {
     await expect
       .poll(() => sticker.evaluate((image: HTMLImageElement) => image.naturalWidth))
       .toBeGreaterThan(0);
+    // The grid fills the page: it once collapsed to a few pixels (`.page > div` aligned it to the
+    // start, and kern's grid has inline-size containment), which put one letter on each line.
+    const box = await tile.boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThan(200);
     await a11y.check(page, 'tools page with tools');
     await attachScreenshot(page, testInfo, 'tools-with-tools.png');
   });

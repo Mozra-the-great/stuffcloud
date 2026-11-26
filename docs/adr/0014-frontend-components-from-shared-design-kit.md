@@ -197,6 +197,14 @@ green: one rule in `styles/index.css` (selecting the tools' `data-tool-status` l
 ships, then the rule goes. And the tests and e2e specs no longer select `.tool-status`: they
 use role plus the attribute `data-tool-status`, because kern's field errors are `role="alert"` too and a
 role alone would also find them. kern's alert colour (`--k-danger`, `#ff4f8b`) is the old `--pink2`.
+## Addendum: stickers (2026-11-26, #121, PR #196)
+
+`Sticker` is kern's `Mascot` with code art (`tool-stickers/sticker-<name>`), still and decorative, which
+replaces the "still local" sentence about `Sticker` in the app-local addendum. The pixel grid is kern's
+(`CODE_ART`, checked against the viewBox of every design file by a test), the SVG files stay in
+`docs/design/prototypes` and are served by the app's own glob (decision 7: the art is the design's).
+Accepted difference: `Mascot` draws at a whole-number scale, so a sticker is 44 to 50 px high (the scale
+nearest to the old 48 px) with crisp pixels instead of a stretched 48 px image.
 
 ## Links
 

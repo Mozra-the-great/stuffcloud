@@ -183,6 +183,26 @@ number, texts from the catalogue). This replaces the "still local" sentence abou
 gone (kern's `tests/dom/sortablelist.test.ts`, `tests/dom/selectgrid.test.ts` and `tests/unit/reorder.test.ts`
 cover the same cases). Accepted difference: kern's list buttons are ghost buttons. Gap: kern#175 (the
 grid throws when its last item goes away); the wrapper renders it only while there are pages.
+## Addendum: kern 0.13.4, short visible labels (2026-11-26, #121, PR #193)
+
+kern 0.13.2 to 0.13.4 are additions and fixes only (pill-tab overflow kern#159; `accessibleLabel` on
+`CopyButton` and `DownloadButton` kern#166; `copyAccessibleLabel` on `Code` and `CodeBlock` kern#168).
+The two accepted differences of the previous addendum that came from the missing feature are gone: the
+copy button shows the word "Copy" again (it is no longer an icon-only button; the icon stays next to the
+word and turns into a check mark for two seconds), and a download button shows "Download", as in the
+design. The tool's longer label ("Copy HEX", "Download result") is the accessible name, so a screen reader
+still hears which value a button belongs to; `tests/button-names.test.ts` checks in both languages that
+every such name contains the visible word (WCAG 2.5.3 Label in Name), which kern documents but does not
+check. The gallery's code block uses `copyAccessibleLabel`.
+
+## Addendum: stickers (2026-11-26, #121, PR #196)
+
+`Sticker` is kern's `Mascot` with code art (`tool-stickers/sticker-<name>`), still and decorative, which
+replaces the "still local" sentence about `Sticker` in the app-local addendum. The pixel grid is kern's
+(`CODE_ART`, checked against the viewBox of every design file by a test), the SVG files stay in
+`docs/design/prototypes` and are served by the app's own glob (decision 7: the art is the design's).
+Accepted difference: `Mascot` draws at a whole-number scale, so a sticker is 44 to 50 px high (the scale
+nearest to the old 48 px) with crisp pixels instead of a stretched 48 px image.
 
 ## Links
 

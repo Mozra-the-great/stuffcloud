@@ -1,3 +1,4 @@
+import type { CodeArt } from '@mozra-the-great/kern';
 import type { StickerName } from '@stuffcloud/tools';
 
 const SOURCE_DIR = '../../../../../docs/design/prototypes';
@@ -18,4 +19,17 @@ export function stickerUrl(
     throw new Error(`sticker art for ${name} is missing: sticker-${name}.svg`);
   }
   return url;
+}
+
+/** kern's code art of a design sticker (`tool-stickers/sticker-<name>`: its pixel grid); a test checks that kern has it for every sticker. */
+export function stickerArt(name: StickerName): CodeArt {
+  return `tool-stickers/sticker-${name}` as CodeArt;
+}
+
+/**
+ * The whole number of CSS pixels per art pixel that brings a sticker of `rows` art rows closest to
+ * `height` CSS pixels, at least one: a sticker is crisp or not drawn at all, never stretched.
+ */
+export function stickerScale(height: number, rows: number): number {
+  return Math.max(1, Math.round(height / rows));
 }

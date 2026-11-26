@@ -44,7 +44,7 @@
     </div>
   {:else}
     <p class="note">{t('tools.count', { count: visible.length })}</p>
-    <TileGrid>
+    <TileGrid class="tiles">
       {#each visible as tool (tool.id)}
         <Tile href={toolPath(tool.id)}>
           <Sticker name={tool.sticker} />
@@ -72,6 +72,12 @@
     margin: 0;
     font: 13px var(--mono);
     color: var(--mut);
+  }
+
+  /* kern's grid has inline-size containment, so `.page > div { align-self: flex-start }` (page.css)
+     would shrink it to nothing: it fills the page. */
+  .tools :global(.tiles) {
+    align-self: stretch;
   }
 
   .name {

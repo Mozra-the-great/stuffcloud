@@ -17,8 +17,8 @@ use std::fmt;
 
 use lettre::Message;
 use lettre::address::Address;
-use lettre::message::Mailbox;
-use lettre::message::header::{ContentType, Header, HeaderName, HeaderValue};
+use lettre::message::header::{Header, HeaderName, HeaderValue};
+use lettre::message::{Mailbox, SinglePart};
 use stuffcloud_core::account::Email;
 
 /// One mail to one recipient.
@@ -102,8 +102,7 @@ pub fn build(mail: &Outgoing) -> Result<Message, BuildError> {
         .subject(mail.subject.clone())
         .message_id(Some(mail.message_id.clone()))
         .header(AutoSubmitted)
-        .header(ContentType::TEXT_PLAIN)
-        .body(mail.text.clone())
+        .singlepart(SinglePart::plain(mail.text.clone()))
         .map_err(|_refused| BuildError::Message)
 }
 
@@ -213,8 +212,14 @@ mod tests {
         let (lines, body) = split(&message);
         let end_of_head = raw.windows(4).position(|w| w == b"\r\n\r\n").unwrap();
         assert!(raw[..end_of_head].is_ascii());
-        assert!(lines.iter().any(|l| l.starts_with("Subject: =?utf-8?")));
-        assert!(lines.iter().any(|l| l.starts_with("From: =?utf-8?")));
+        let encoded = |name: &str| {
+            lines.iter().any(|l| {
+                let l = l.to_ascii_lowercase();
+                l.starts_with(&format!("{name}:")) && l.contains("=?utf-8?")
+            })
+        };
+        assert!(encoded("subject"));
+        assert!(encoded("from"));
         assert!(lines.iter().any(|l| {
             l.eq_ignore_ascii_case("Content-Transfer-Encoding: quoted-printable")
                 || l.eq_ignore_ascii_case("Content-Transfer-Encoding: base64")

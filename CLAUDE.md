@@ -49,6 +49,7 @@ web/            pnpm workspace (Node 24, own lockfile; the backend never depends
                 src/pdf (what the PDF tools share: engine on pdf-lib, workers + pools, pictures on pdf.js,
                 page grid, ZIP writer; ADR 0013; the network scan covers it like src/tools),
                 tools.config.json (disabled tools), scripts/ (tokens, check-tools, new-tool),
+                stryker.config.mjs + vitest.stryker.config.ts (mutation testing; shared options and the scope helper in web/stryker.shared.mjs),
                 src/i18n (catalogues de/en, typed keys, CI check), src/gallery (component gallery),
                 src/assets/fonts (self-hosted), bench/ (animation benchmark: `node bench/run.ts bench|verify|size`),
                 perf/ (large-PDF measurement: `pnpm e2e:build && node perf/pdf-large.ts`),
@@ -112,6 +113,7 @@ Frontend, from `web/` (`corepack enable` once; Node per `.nvmrc`):
 ```sh
 pnpm install --frozen-lockfile
 pnpm lint && pnpm typecheck && pnpm test && pnpm build   # coverage floor 95 % per package
+pnpm test:mutation                                       # StrykerJS: every mutant of the TypeScript logic must be caught (apps/web: tools + pdf, packages/tools); `pnpm --filter @stuffcloud/tools test:mutation` for one package
 pnpm tokens                                              # regenerate src/styles/tokens.css from docs/design (test fails when stale)
 pnpm new-tool <id> [--category c] [--sticker s] [--name "N"] [--worker]   # scaffold a tool (ADR 0012)
 pnpm check-tools                                         # validate all tool manifests (`vite build` runs the same check)
@@ -132,20 +134,22 @@ Tests are part of the security design; err on the side of too many (SPEC section
   `fuzz/seeds/<target>/`.
 - A surviving mutant is a missing test: add the test, do not skip the mutant. This holds for the
   Python CI helpers in `scripts/ci/` too (mutmut, ADR 0007 addendum): an equivalent mutant gets
-  `# pragma: no mutate` with the proof next to it, nothing else.
+  `# pragma: no mutate` with the proof next to it, nothing else. And for the TypeScript logic of `web/`
+  (StrykerJS, ADR 0007 addendum): an equivalent mutant gets `// Stryker disable next-line <mutator>: <reason>`
+  with the proof as the reason; never exclude a file from the scope to get green.
 - Never weaken a check (`#[allow]`, `ignore`, lower thresholds, `continue-on-error`)
   to make CI pass; `#[expect(..., reason = "...")]` only where the reason is a proof.
 
 ## CI
 
 `ci.yml` job `build` is the required check: an aggregate over fmt, clippy, test,
-docs, coverage, mutants (6 shards), mutation-python (mutmut over `scripts/ci/*.py`, gate in `mutation_gate.py`), fuzz, web (lint, typecheck, test, build of `web/`), e2e (Playwright +
+docs, coverage, mutants (6 shards), mutation-python (mutmut over `scripts/ci/*.py`, gate in `mutation_gate.py`), web-mutants (StrykerJS over the scoped `.ts` files the PR changes, 2 legs: `apps/web`, `packages/tools`), fuzz, web (lint, typecheck, test, build of `web/`), e2e (Playwright +
 axe a11y gate, no retries), openapi (committed OpenAPI document and generated TS client match the
 handlers), licenses (npm
 license gate + THIRD-PARTY.md freshness), dev-stack (container hardening gate on every compose file
 and Dockerfile, Caddyfile check, smoke test of the dev stack), supply-chain, codeql and repo-checks (add new jobs to its `needs`; no job skips itself on changed
 paths, because the aggregate counts a skipped job as a failure). `deep-tests.yml` runs nightly: long fuzzing (grows the cached corpus),
-full mutants, full mutmut run (with report artifact), Miri, 500k proptest cases, fresh advisories, beta toolchain.
+full mutants, full mutmut run (with report artifact), the full StrykerJS run (`web-mutants-full`, report artifacts; on demand until the survivors listed in #162 are closed), Miri, 500k proptest cases, fresh advisories, beta toolchain.
 Toolchain bump: `rust-toolchain.toml` + `rust-version` in `Cargo.toml` + the `rust:` image in
 `docker/app/Dockerfile` (a test enforces it); nightly
 bump: `NIGHTLY` in both workflows. Dependabot handles actions, cargo, npm (`/web`,

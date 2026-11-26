@@ -445,7 +445,7 @@ class TestCopyManifests(unittest.TestCase):
             target.mkdir()
             nl._copy_manifests(web, target)
             self.assertFalse((target / "." / "." / "package.json").is_dir())
-            self.assertEqual([p.name for p in target.iterdir() if p.is_dir()], ["apps", "packages"])
+            self.assertEqual(sorted(p.name for p in target.iterdir() if p.is_dir()), ["apps", "packages"])
 
 
 class TestCollectDetails(unittest.TestCase):

@@ -387,6 +387,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `docs/TEMPLATE-SETUP.md`: secrets, runner choice, rulesets and costs of a new repo.
 
 ### Changed
+- File drop zone and toasts from kern (#121, ADR 0014): the file tools use kern's `FileDrop` in `dispatch` mode (refused files still reported by each tool), and the shell shows notifications in kern's `Toaster` at the bottom left; `FileDropzone`, `accept.ts`, `ToastRegion`, the toast store and their tests go. (#177)
 - Base components from kern (#121, ADR 0014), first batch: `Card`, `Tile`, `TileGrid`, `CodeBlock` and `Progress` (bare bar with `hideLabel`, the label stays its accessible name) replace the app's own copies, which go together with their tests. (#172)
 - CI: `claude-review` is now a tiered Claude review. Agents with pinned models in
   `.claude/agents/review-*.md`: haiku triage, sonnet CLAUDE.md and documentation

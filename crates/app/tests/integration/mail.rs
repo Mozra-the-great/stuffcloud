@@ -275,16 +275,16 @@ async fn a_reset_mail_arrives_with_a_link_that_works_once() {
         )
         .await;
     again.assert_problem(422, "validation-failed");
-    for (password, status) in [("a brand new passphrase", 200), ("an old passphrase", 401)] {
+    for (attempt, status) in [("a brand new passphrase", 200), ("an old passphrase", 401)] {
         let login = app
             .call(
                 Method::POST,
                 LOGIN,
                 &csrf_headers(),
-                Some(&json!({"login": "alice", "password": password})),
+                Some(&json!({"login": "alice", "password": attempt})),
             )
             .await;
-        assert_eq!(login.status, status, "{password}");
+        assert_eq!(login.status, status, "{attempt}");
     }
     assert!(
         metrics(&app)
@@ -628,7 +628,7 @@ async fn the_smtp_group_refuses_a_secret_value_plain_credentials_and_injection()
         body
     };
     // The write-only forms of #152 do not exist yet.
-    for password in [
+    for member in [
         json!({"value": "hunter2"}),
         json!({"stored": true}),
         json!("hunter2"),
@@ -636,11 +636,11 @@ async fn the_smtp_group_refuses_a_secret_value_plain_credentials_and_injection()
         json!({"ref": "STUFFCLOUD_SECRET_SMTP_FILE"}),
         json!({"ref": "STUFFCLOUD_SECRETS_KEY_FILE"}),
     ] {
-        let reply = put(with("password", password.clone())).await;
+        let reply = put(with("password", member.clone())).await;
         let found = pointers(&reply);
         assert!(
             found.iter().any(|pointer| pointer.starts_with("/password")),
-            "{password}: {found:?}"
+            "{member}: {found:?}"
         );
         assert!(!reply.text().contains("hunter2"), "{}", reply.text());
     }

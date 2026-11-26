@@ -691,7 +691,7 @@ fn smtp_settings_injection_attempts_stay_refused() {
 fn a_secret_value_is_never_echoed_in_a_field_error() {
     use stuffcloud_core::body::{BodyError, parse_writable};
     use stuffcloud_core::smtp::Smtp;
-    for password in [
+    for member in [
         r#""hunter2""#,
         r#"{"value":"hunter2"}"#,
         r#"{"ref":"STUFFCLOUD_SECRET_SMTP","value":"hunter2"}"#,
@@ -699,16 +699,16 @@ fn a_secret_value_is_never_echoed_in_a_field_error() {
         r#"{"ref":{"value":"hunter2"}}"#,
     ] {
         let body = format!(
-            r#"{{"host":"smtp.example.com","port":587,"security":"starttls","username":"u","password":{password},"from":"noreply@example.com","from_name":null}}"#
+            r#"{{"host":"smtp.example.com","port":587,"security":"starttls","username":"u","password":{member},"from":"noreply@example.com","from_name":null}}"#
         );
         match parse_writable::<Smtp>(body.as_bytes()) {
             Err(BodyError::Invalid(errors)) => {
                 assert!(
                     errors.iter().all(|e| !e.detail.contains("hunter2")),
-                    "{password}: {errors:?}"
+                    "{member}: {errors:?}"
                 );
             }
-            other => panic!("{password}: {other:?}"),
+            other => panic!("{member}: {other:?}"),
         }
     }
 }

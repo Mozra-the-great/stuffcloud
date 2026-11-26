@@ -817,7 +817,7 @@ mod tests {
         assert!(!mail.message_id.contains(token));
         let text = log.text();
         assert!(text.contains("mail delivered"), "{text}");
-        for secret in [
+        for fragment in [
             "alice",
             "example.org",
             token,
@@ -826,7 +826,7 @@ mod tests {
             "noreply",
             "smtp.example.com",
         ] {
-            assert!(!text.contains(secret), "{secret} in {text}");
+            assert!(!text.contains(fragment), "{fragment} in {text}");
         }
         assert!(metrics_of(&state).contains(&counter("sent", 1)));
     }
@@ -910,7 +910,7 @@ mod tests {
                 RESET_COOLDOWN_MS,
             )
             .unwrap();
-        assert!(matches!(issued, MailedReset::Issued { .. }), "{issued:?}");
+        assert!(matches!(issued, MailedReset::Issued { .. }));
     }
 
     #[tokio::test]

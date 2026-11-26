@@ -1,0 +1,132 @@
+# ADR 0014: Frontend components from the shared design kit kern
+
+- Status: Accepted
+- Date: 2026-11-26
+- Decided in: issue [#121](https://github.com/Mozra-the-great/stuffcloud/issues/121) (readiness
+  re-check of 2026-11-26), kern's readiness programme
+  ([kern#60](https://github.com/Mozra-the-great/kern/issues/60)), [SPEC 4](../SPEC.md#4-architecture-overview),
+  [SPEC 12](../SPEC.md#12-design-and-ux)
+- Supersedes: nothing. The design rules of [SPEC 12](../SPEC.md#12-design-and-ux) and
+  [`docs/design/README.md`](../design/README.md), the animation runtime of
+  [ADR 0008](0008-pixel-art-animation-runtime.md) and the test strategy of
+  [ADR 0007](0007-test-strategy.md) stay as they are; this record only changes where the base
+  components come from.
+
+## Context
+
+`web/apps/web/src/ui` holds the base components of the first build: Button, LinkButton, Card,
+Checkbox, CodeBlock, Dialog, FileDropzone, Input, Progress, Select, Tabs, TabLinks, Tile, TileGrid,
+ToastRegion and the Mascot, with their CSS, helpers and tests. The same components are needed by the
+maintainer's other apps, and keeping a copy per app means every accessibility fix (#118, #124) has to
+be ported by hand.
+
+[kern](https://github.com/Mozra-the-great/kern) (`@mozra-the-great/kern`, Svelte 5,
+GPL-3.0-or-later, no runtime dependencies) is the maintainer's shared kit. It has its own maintainer
+agent and release process. Its theme `code` is drawn from this repository's `docs/design`; the
+readiness programme of kern#60 (released in v0.2.0 to v0.11.0, aligned item by item in v0.12.0) closed
+every gap the 2026-11-19 analysis found: tests with a coverage ratchet above 95 %, axe and keyboard
+suites in every theme variant, forced colours, a machine-readable theme source with a drift check
+against `docs/design`, visual regression of our components' look, and the Svelte path tested under a
+policy with `style-src 'self'` and no `'unsafe-inline'` (kern#125, v0.12.2).
+
+kern is not on the npm registry (the name `kern-ui` there belongs to someone else, kern#19). Each
+release attaches a tarball plus its sha256 and sha512.
+
+## Decision
+
+1. **The base components come from kern.** New generic pieces go to kern as issues, not into
+   `src/ui` (CLAUDE.md, "Tools"). The components of `src/ui` are replaced one or a few per pull
+   request by their kern counterparts (mapping in kern's `docs/consumer-guide.md`, "Umstieg von
+   stuffcloud", and the readiness comment on #121). `src/ui` is removed when the last one is gone;
+   #121 stays open until then.
+2. **Consumed as a pinned release tarball through pnpm.** `web/apps/web/package.json` names the
+   release URL (`https://github.com/Mozra-the-great/kern/releases/download/vX.Y.Z/mozra-the-great-kern-X.Y.Z.tgz`),
+   and `pnpm-lock.yaml` holds the same URL with its `integrity: sha512-…`. `pnpm install
+   --frozen-lockfile` (CI, Docker build, license gate) fails when the file behind the URL changes.
+   Before a version is pinned its sha512 is checked against the release notes ("Integrity") and the
+   attached `.sha256`/`.sha512` files, as kern's consumer guide describes. No git dependency (it
+   pins a commit, not content, and builds with kern's dev dependencies), no registry, no token.
+3. **One theme, dark only.** The app imports `@mozra-the-great/kern/themes/code.css` (base tokens
+   plus the Code brand only; kern's tests prove no other brand lands in it) and sets
+   `data-theme="code"` on `<body>` (not `<html>`: the theme gives its element a px font size, which
+   on the root would override the reader's default size for `rem`). kern's light, paper and contrast
+   variants of `code` are not used: the UI is dark only (SPEC 12). The app's own `src/styles`
+   (fonts, generated `tokens.css`, `theme.css`) stays for the app's layout, pages and tools;
+   components read only kern's `--k-*` tokens.
+4. **kern owns the Code theme; `docs/design` stays the design source.** kern generates the theme
+   from `code.tokens.json`, whose every value names its source in `docs/design` (or in this app where
+   the design has no value), and its drift check fails when a recorded design value changes. A design
+   change here is followed by a kern issue to refresh the theme. Where the sources disagree, the
+   design wins (kern `docs/themes.md`, "Code theme source").
+5. **Accepted differences.** These remain between kern under `code` and the old `src/ui`, each for a
+   reason that holds in every theme (kern `docs/themes.md`, "Remaining differences", #111), and are
+   accepted here: the Modal keeps a visible close button; Progress shows its label unless `hideLabel`
+   (our bare bar is `hideLabel`); the Toaster position is a prop (we pass `bottom-left`); the Tabs
+   edge fades only while tabs are hidden behind it; FileDrop's edge turns solid as well as pink while
+   dragging (a cue that does not rely on colour); FileDrop's picker is the secondary button; under
+   forced colours the field error icon, the toast tone dot and kern's checkbox are drawn. The Modal
+   follows the design's dialogs S and T (520 px, 32 px heading), not the old `Dialog.svelte`.
+6. **Updates by hand, one version per pull request.** Dependabot cannot follow a URL dependency, so
+   a bump is a pull request that: reads kern's `CHANGELOG.md` from the old to the new version (under
+   1.0 a minor version may break, marked **BREAKING:**; patch versions never do), runs
+   `pnpm --filter @stuffcloud/web add <new URL>`, checks that the diff is exactly one new URL in
+   `package.json` and one new URL plus `integrity` in the lockfile, checks that sha512 against the
+   release notes, regenerates `docs/THIRD-PARTY.md`, and passes the full `build` check (unit tests,
+   Playwright with the axe gate in Chromium and Firefox). A breaking change is migrated in the same
+   pull request. One copy of kern per app (`pnpm why @mozra-the-great/kern`).
+7. **What stays local.** The app shell, router, pages, `ToolFrame`, the tool registry, the PDF
+   engine and everything else only stuffcloud knows; the fonts (kern ships none); the mascot art in
+   `docs/design` and the animation benchmark (`bench/`, ADR 0008), which measures runtime variants
+   rather than a component. Each local test stays until its component is migrated, and is removed
+   only where kern's test (kern `docs/testing.md`, "stuffcloud mapping") covers the same behaviour;
+   app-level checks (axe on every state, keyboard walks, i18n catalogues, privacy check) always stay
+   here and run against the kern components. Texts are passed from our catalogues as props; kern's
+   own English defaults are never shown.
+
+## Consequences
+
+- Positive: one implementation of each base component, tested in kern (behaviour, axe, keyboard,
+  forced colours, visual regression, strict CSP) and here (app states, both browsers). Fixes reach
+  every app with a version bump instead of a port.
+- Positive: the license gate covers kern like any npm package; it is GPL-3.0-or-later, already on
+  the allow list of `scripts/ci/license-policy.toml` and `deny.toml`, so neither changes.
+  `scripts/ci/npm_licenses.py` now reads tarball entries of the lockfile (key `name@<url>`, version on
+  its own line) and fails on any entry key it does not understand, so a tarball dependency cannot slip
+  past the completeness check; `docs/THIRD-PARTY.md` links such a package to its release, not to the
+  registry.
+- Negative: an external dependency on a kit with its own release cadence. A breaking minor version
+  before 1.0 costs a migration here; kern's changelog marks each one.
+- Negative: no automatic update pull requests. New kern releases are seen through kern's
+  release notifications and the issues kern's agent opens here; a bump follows decision 6.
+- Negative: the CSP of the app must keep `style-src 'self'` working for the Svelte path; kern's
+  custom elements (`@mozra-the-great/kern/elements`) would need `'unsafe-inline'` and are therefore
+  not used. Vite must not inline kern's assets as `data:` URIs (`assetsInlineLimit: 0` stays).
+
+## Open points
+
+None.
+
+## Alternatives considered
+
+- **Keep `src/ui` and port fixes by hand**: rejected; every fix lands twice and the copies drift (the
+  #118 and #124 fixes had to be ported to kern by hand already).
+- **Git dependency (`github:Mozra-the-great/kern#vX.Y.Z`)**: pins a commit, not the content, and
+  runs kern's build with its dev dependencies at install time; the tarball with `integrity` is
+  stricter and simpler.
+- **Vendoring kern's sources into this repository**: no single source, no release notes to follow,
+  and kern's tests would not run on the copy.
+- **kern's custom elements instead of the Svelte package**: they need `style-src 'unsafe-inline'`
+  (each element puts a `<style>` into its shadow root) and bring their own runtime; the app is
+  Svelte already.
+
+## Links
+
+- Issue [#121](https://github.com/Mozra-the-great/stuffcloud/issues/121), kern
+  [#60](https://github.com/Mozra-the-great/kern/issues/60) (readiness),
+  [#111](https://github.com/Mozra-the-great/kern/issues/111) (alignment),
+  [#125](https://github.com/Mozra-the-great/kern/issues/125) (strict CSP),
+  [#142](https://github.com/Mozra-the-great/kern/issues/142) (readonly list props),
+  [#144](https://github.com/Mozra-the-great/kern/issues/144) (root font size).
+- kern `docs/consumer-guide.md`, `docs/themes.md`, `docs/testing.md`.
+- [ADR 0007](0007-test-strategy.md), [ADR 0008](0008-pixel-art-animation-runtime.md),
+  [SPEC 3](../SPEC.md#3-license-and-reuse-policy), [SPEC 12](../SPEC.md#12-design-and-ux).

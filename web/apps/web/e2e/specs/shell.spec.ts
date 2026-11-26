@@ -265,3 +265,43 @@ test.describe('smoke screenshots', () => {
     await attachScreenshot(page, testInfo, 'gallery.png');
   });
 });
+
+test.describe('design kit theme (ADR 0014)', () => {
+  test('kern’s Code theme is on the body and keeps the design’s text metrics', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('body')).toHaveAttribute('data-theme', 'code');
+    const metrics = await page.evaluate(() => {
+      const root = getComputedStyle(document.documentElement);
+      const body = getComputedStyle(document.body);
+      return {
+        kernBg: body.getPropertyValue('--k-bg').trim(),
+        background: body.backgroundColor,
+        lineHeight: body.lineHeight,
+        rootFontSize: root.fontSize,
+      };
+    });
+    expect(metrics.kernBg).toBe('#101012');
+    expect(metrics.background).toBe('rgb(16, 16, 18)');
+    // The design sets no line height (kern#145) and the root keeps the reader's font size (kern#144).
+    expect(metrics.lineHeight).toBe('normal');
+    expect(metrics.rootFontSize).toBe('16px');
+  });
+
+  test('the root font size follows the reader’s default (no px size on <html>)', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const sizes = await page.evaluate(() => ({
+      inline: document.documentElement.style.fontSize,
+      rule: [...document.styleSheets]
+        .flatMap((sheet) => [...sheet.cssRules])
+        .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
+        .filter((rule) =>
+          rule.selectorText.split(',').some((s) => s.trim() === 'html' || s.trim() === ':root'),
+        )
+        .map((rule) => rule.style.fontSize)
+        .filter((size) => size !== ''),
+    }));
+    expect(sizes).toEqual({ inline: '', rule: [] });
+  });
+});

@@ -22,6 +22,7 @@ stuffcloud is, an ADR says *why* a core choice was made and what it costs.
 | [0011](0011-spa-routing-and-i18n.md) | SPA routing, focus management and internationalisation | Accepted | 2026-11-19 |
 | [0012](0012-tool-registry-and-worker-pool.md) | Tool registry, manifest schema and worker pool | Accepted | 2026-11-19 |
 | [0013](0013-pdf-tools.md) | PDF tools: engines, workers, what a new file keeps, limits | Accepted | 2026-11-19 |
+| [0014](0014-frontend-components-from-shared-design-kit.md) | Frontend components from the shared design kit kern | Accepted | 2026-11-26 |
 
 ADRs 0001 to 0007 were written together (2026-11-16, issue
 [#8](https://github.com/Mozra-the-great/stuffcloud/issues/8)) from decisions that had already

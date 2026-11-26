@@ -62,6 +62,14 @@ body {
   font-family: var(--sans);
 }
 
+/*
+ * kern's theme rule gives the themed element `line-height: 1.5`; the design sets none on body
+ * (normal). Keeps the pages as designed until kern has a token for it (kern#145), then this goes.
+ */
+body[data-theme] {
+  line-height: normal;
+}
+
 a {
   color: var(--fg);
   text-decoration: none;

@@ -31,7 +31,7 @@ import shutil
 import subprocess
 import tempfile
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from license_policy import Package
 
@@ -52,6 +52,8 @@ class InventoryError(RuntimeError):
 class Inventory:
     packages: tuple[Package, ...]  # every package, runtime and dev
     runtime: frozenset[tuple[str, str]]  # (name, version) in a production tree
+    # (name, version) -> release URL of a package pinned to a tarball instead of the registry
+    tarballs: dict[tuple[str, str], str] = field(default_factory=dict)
 
 
 # -- pure parsing (unit-tested) --------------------------------------------------
@@ -86,10 +88,18 @@ def _main_lockfile_document(text: str) -> str:
     return re.split(r"^---\s*$", text, flags=re.MULTILINE)[-1]
 
 
-def lockfile_packages(text: str) -> set[tuple[str, str]]:
-    """(name, version) of every entry in the `packages:` section."""
-    found: set[tuple[str, str]] = set()
-    section = ""  # pragma: no mutate -- only compared with "packages", so any other start value acts the same
+def lockfile_entries(text: str) -> dict[tuple[str, str], str | None]:
+    """(name, version) of every entry in the `packages:` section, with its tarball URL.
+
+    A registry entry is keyed `name@version` (URL `None`). A tarball entry (a dependency
+    pinned to a release URL, such as the design kit kern, ADR 0014) is keyed `name@<url>`
+    and names its version on its own `version:` line, which is what `pnpm licenses`
+    reports. An entry key of any other form fails: it would otherwise go unchecked.
+    """
+    found: dict[tuple[str, str], str | None] = {}
+    # Equivalent mutants: only compared with "packages", so any other start value acts the same.
+    section = ""  # pragma: no mutate
+    tarball: tuple[str, str] | None = None  # (name, url) of a tarball entry awaiting its version
     for line in _main_lockfile_document(text).splitlines():
         top = re.match(r"^([A-Za-z]\w*):", line)
         if top:
@@ -97,10 +107,41 @@ def lockfile_packages(text: str) -> set[tuple[str, str]]:
             continue
         if section != "packages":
             continue
+        if not line.startswith("  ") or line.startswith("   "):
+            version = re.match(r"^    version: '?([^'\s]+)'?\s*$", line)
+            if tarball is not None and version:
+                found[(tarball[0], version.group(1))] = tarball[1]
+                tarball = None
+            continue
+        _close_tarball_entry(tarball)
+        tarball = None
         entry = re.match(r"^  '?(@?[^@'\s]+)@([^'\s:]+)'?:\s*$", line)
         if entry:
-            found.add((entry.group(1), entry.group(2)))
+            found[(entry.group(1), entry.group(2))] = None
+            continue
+        url = re.match(r"^  '(@?[^@'\s]+)@(https://[^'\s]+\.tgz)':\s*$", line)
+        if url:
+            tarball = (url.group(1), url.group(2))
+            continue
+        raise InventoryError(f"pnpm-lock.yaml: unrecognised package entry {line.strip()!r}")
+    _close_tarball_entry(tarball)
     return found
+
+
+def _close_tarball_entry(tarball: tuple[str, str] | None) -> None:
+    """A tarball entry must have named its version before the next entry starts."""
+    if tarball is not None:
+        raise InventoryError(f"pnpm-lock.yaml: tarball entry {tarball[0]}@{tarball[1]} has no version")
+
+
+def lockfile_packages(text: str) -> set[tuple[str, str]]:
+    """(name, version) of every entry in the `packages:` section (see `lockfile_entries`)."""
+    return set(lockfile_entries(text))
+
+
+def lockfile_tarballs(text: str) -> dict[tuple[str, str], str]:
+    """(name, version) -> URL of every package the lockfile pins to a release tarball."""
+    return {key: url for key, url in lockfile_entries(text).items() if url is not None}
 
 
 def lockfile_platforms(text: str) -> dict[str, list[str]]:
@@ -199,4 +240,4 @@ def collect(web: pathlib.Path = WEB, run: PnpmRunner = _run_pnpm) -> Inventory:
             f"go unchecked: {listing}"
         )
     runtime = frozenset((p.name, p.version) for p in production)
-    return Inventory(tuple(everything), runtime)
+    return Inventory(tuple(everything), runtime, lockfile_tarballs(lock_text))

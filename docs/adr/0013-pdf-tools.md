@@ -72,8 +72,8 @@ the file, not just hidden.
    Alt+arrow moves the page); every drag and drop has a keyboard route (buttons, "move to position",
    Alt+arrow); every action and every result is announced in a live region that exists from the
    start; actions without a selection are `aria-disabled` (they stay focusable, so the focus is not
-   lost when the last undo is pressed) and say what is missing. `ReorderList` and `PageGrid` are
-   app-local (kern candidates, #121).
+   lost when the last undo is pressed) and say what is missing. `ReorderList` and `PageGrid` were
+   app-local; they are kern's `SortableList` and `SelectGrid` now ([ADR 0014](0014-frontend-components-from-shared-design-kit.md)).
 
 ## Consequences
 

@@ -1,22 +1,8 @@
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
-import { createRawSnippet } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import ReorderList from '../src/app/ReorderList.svelte';
 import { i18n } from '../src/i18n/index.ts';
 import { release, toResult } from '../src/pdf/download.ts';
-import {
-  allIds,
-  between,
-  columnsOf,
-  idsBetween,
-  isNavKey,
-  moveStep,
-  nextIndex,
-  noIds,
-  toggled,
-  toggledAt,
-} from '../src/pdf/grid-nav.ts';
 import { failureText, isAbort, issueText } from '../src/pdf/issues.ts';
 import LiveStatus from '../src/pdf/LiveStatus.svelte';
 import { describeAction, pageName, parsePosition } from '../src/pdf/page-actions.ts';
@@ -38,85 +24,6 @@ function drag(): {
 
 beforeEach(() => {
   i18n.setLocale('en');
-});
-
-describe('grid navigation', () => {
-  it('knows the keys it handles', () => {
-    for (const key of [
-      'ArrowLeft',
-      'ArrowRight',
-      'ArrowUp',
-      'ArrowDown',
-      'Home',
-      'End',
-      'PageUp',
-      'PageDown',
-    ]) {
-      expect(isNavKey(key)).toBe(true);
-    }
-    expect(isNavKey('a')).toBe(false);
-    expect(isNavKey('Tab')).toBe(false);
-  });
-
-  it('moves by one place and by one row, inside the grid', () => {
-    // 10 items in rows of 4: 0-3, 4-7, 8-9.
-    expect(nextIndex('ArrowRight', 3, 10, 4)).toBe(4);
-    expect(nextIndex('ArrowRight', 9, 10, 4)).toBe(9);
-    expect(nextIndex('ArrowLeft', 0, 10, 4)).toBe(0);
-    expect(nextIndex('ArrowLeft', 4, 10, 4)).toBe(3);
-    expect(nextIndex('ArrowDown', 1, 10, 4)).toBe(5);
-    expect(nextIndex('ArrowDown', 5, 10, 4)).toBe(9);
-    expect(nextIndex('ArrowDown', 6, 10, 4)).toBe(6);
-    expect(nextIndex('ArrowUp', 5, 10, 4)).toBe(1);
-    expect(nextIndex('ArrowUp', 3, 10, 4)).toBe(3);
-    expect(nextIndex('Home', 7, 10, 4)).toBe(0);
-    expect(nextIndex('End', 2, 10, 4)).toBe(9);
-    expect(nextIndex('PageDown', 0, 30, 2)).toBe(10);
-    expect(nextIndex('PageDown', 25, 30, 2)).toBe(29);
-    expect(nextIndex('PageUp', 12, 30, 2)).toBe(2);
-    expect(nextIndex('PageUp', 3, 30, 2)).toBe(0);
-    expect(nextIndex('End', 0, 0, 4)).toBe(0);
-  });
-
-  it('turns Alt+arrow into a step', () => {
-    expect(moveStep('ArrowLeft', 4)).toBe(-1);
-    expect(moveStep('ArrowRight', 4)).toBe(1);
-    expect(moveStep('ArrowUp', 4)).toBe(-4);
-    expect(moveStep('ArrowDown', 4)).toBe(4);
-    expect(moveStep('Home', 4)).toBeUndefined();
-  });
-
-  it('counts the columns from the offsets of the items, at least one', () => {
-    expect(columnsOf([0, 0, 0, 120, 120, 120])).toBe(3);
-    expect(columnsOf([0, 120, 240])).toBe(1);
-    expect(columnsOf([5, 5])).toBe(2);
-    expect(columnsOf([])).toBe(1);
-  });
-
-  it('toggles a page in the selection without changing the original', () => {
-    const selected = new Set([1, 2]);
-    expect(toggled(selected, 3)).toEqual(new Set([1, 2, 3]));
-    expect(toggled(selected, 2)).toEqual(new Set([1]));
-    expect(selected).toEqual(new Set([1, 2]));
-    const pages = [{ id: 7 }, { id: 9 }];
-    expect(toggledAt(selected, pages, 1)).toEqual(new Set([1, 2, 9]));
-    expect(toggledAt(selected, pages, 5)).toEqual(new Set([1, 2]));
-    expect(toggledAt(selected, pages, 5)).not.toBe(selected);
-  });
-
-  it('selects the ids between two positions, skips positions that are not there', () => {
-    const pages = [{ id: 10 }, { id: 11 }, { id: 12 }, { id: 13 }];
-    expect(idsBetween(pages, 3, 1)).toEqual(new Set([11, 12, 13]));
-    expect(idsBetween(pages, 2, 9)).toEqual(new Set([12, 13]));
-    expect(allIds(pages)).toEqual(new Set([10, 11, 12, 13]));
-    expect(noIds()).toEqual(new Set());
-  });
-
-  it('lists the places between two, either way round', () => {
-    expect(between(2, 5)).toEqual([2, 3, 4, 5]);
-    expect(between(5, 2)).toEqual([2, 3, 4, 5]);
-    expect(between(3, 3)).toEqual([3]);
-  });
 });
 
 describe('page actions and split plans', () => {
@@ -367,114 +274,6 @@ describe('drawThumb and PageThumb', () => {
   });
 });
 
-function textRow(prefix: string): ReturnType<typeof createRawSnippet<[string, number]>> {
-  return createRawSnippet<[string, number]>((item) => ({
-    render: () => `<span>${prefix}${item()}</span>`,
-  }));
-}
-
-describe('ReorderList', () => {
-  const texts = {
-    up: 'Up',
-    down: 'Down',
-    remove: 'Remove',
-    upLabel: (item: string) => `Move ${item} up`,
-    downLabel: (item: string) => `Move ${item} down`,
-    removeLabel: (item: string) => `Remove ${item}`,
-  };
-
-  function setup(items: string[]): {
-    onmove: ReturnType<typeof vi.fn>;
-    onremove: ReturnType<typeof vi.fn>;
-  } {
-    const onmove = vi.fn();
-    const onremove = vi.fn();
-    render(ReorderList<string>, {
-      props: {
-        items,
-        keyOf: (item: string) => item,
-        label: 'Files',
-        texts,
-        onmove,
-        onremove,
-        row: textRow(''),
-      },
-    });
-    return { onmove, onremove };
-  }
-
-  it('lists the items with named buttons and disables the ones that cannot move', () => {
-    setup(['a', 'b', 'c']);
-    const list = screen.getByRole('list', { name: 'Files' });
-    expect(within(list).getAllByRole('listitem')).toHaveLength(3);
-    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Move a up' }).disabled).toBe(
-      true,
-    );
-    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Move a down' }).disabled).toBe(
-      false,
-    );
-    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Move c down' }).disabled).toBe(
-      true,
-    );
-    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Remove b' }).disabled).toBe(
-      false,
-    );
-  });
-
-  it('moves with the buttons and removes', async () => {
-    const user = userEvent.setup();
-    const { onmove, onremove } = setup(['a', 'b', 'c']);
-    await user.click(screen.getByRole('button', { name: 'Move b up' }));
-    expect(onmove).toHaveBeenCalledWith(1, 0);
-    await user.click(screen.getByRole('button', { name: 'Move b down' }));
-    expect(onmove).toHaveBeenCalledWith(1, 2);
-    await user.click(screen.getByRole('button', { name: 'Remove c' }));
-    expect(onremove).toHaveBeenCalledWith(2);
-  });
-
-  it('moves by drag and drop, and ignores a drop that is not from the list', async () => {
-    const { onmove } = setup(['a', 'b', 'c']);
-    const [first, , third] = within(screen.getByRole('list')).getAllByRole('listitem');
-    if (first === undefined || third === undefined) {
-      throw new Error('items missing');
-    }
-    // A drag from outside (no dragstart in the list) is not handled.
-    await fireEvent(third, dragEvent('dragover', drag()));
-    await fireEvent(third, dragEvent('drop', drag()));
-    expect(onmove).not.toHaveBeenCalled();
-
-    await fireEvent(first, dragEvent('dragstart', drag()));
-    await fireEvent(third, dragEvent('dragover', drag()));
-    expect(third.className).toContain('drop');
-    await fireEvent(third, dragEvent('drop', drag()));
-    expect(onmove).toHaveBeenCalledWith(0, 2);
-    expect(third.className).not.toContain('drop');
-
-    // Dropping on itself moves nothing; ending a drag clears the marks.
-    onmove.mockClear();
-    await fireEvent(first, dragEvent('dragstart', drag()));
-    await fireEvent(first, dragEvent('drop', drag()));
-    expect(onmove).not.toHaveBeenCalled();
-    await fireEvent(first, dragEvent('dragstart', drag()));
-    await fireEvent(third, dragEvent('dragover', drag()));
-    await fireEvent(first, dragEvent('dragend', drag()));
-    expect(third.className).not.toContain('drop');
-    expect(first.className).not.toContain('dragging');
-  });
-
-  it('moves by drag and drop when the browser gives no data transfer', async () => {
-    const { onmove } = setup(['a', 'b']);
-    const [first, second] = within(screen.getByRole('list')).getAllByRole('listitem');
-    if (first === undefined || second === undefined) {
-      throw new Error('items missing');
-    }
-    await fireEvent(first, new Event('dragstart', { bubbles: true }));
-    await fireEvent(second, new Event('dragover', { bubbles: true, cancelable: true }));
-    await fireEvent(second, new Event('drop', { bubbles: true, cancelable: true }));
-    expect(onmove).toHaveBeenCalledWith(0, 1);
-  });
-});
-
 describe('PageGrid', () => {
   const store = {
     bitmap: (page: number) => (page === 1 ? undefined : fakeBitmap()),
@@ -543,14 +342,24 @@ describe('PageGrid', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
+  it('survives the last page going away and comes back with the pages', async () => {
+    const { rerender } = setup({ selected: new Set([0, 1]) });
+    expect(screen.getAllByRole('option')).toHaveLength(5);
+    await rerender({ pages: [], selected: new Set<number>() });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    await rerender({ pages, selected: new Set<number>() });
+    expect(screen.getAllByRole('option')).toHaveLength(5);
+  });
+
   it('toggles a page with a click and extends with Shift+click', async () => {
     const user = userEvent.setup();
     const { onselect } = setup({ selected: new Set([1]) });
     const options = screen.getAllByRole('option');
     await user.click(at(options, 3));
     expect(onselect).toHaveBeenLastCalledWith(new Set([1, 3]));
+    // kern keeps the selection it reported until the parent passes a new one (this test never does).
     await user.click(at(options, 1));
-    expect(onselect).toHaveBeenLastCalledWith(new Set());
+    expect(onselect).toHaveBeenLastCalledWith(new Set([3]));
     await user.keyboard('{Shift>}');
     await user.click(at(options, 4));
     await user.keyboard('{/Shift}');
@@ -649,7 +458,7 @@ describe('PageGrid', () => {
     const user = userEvent.setup();
     const { onselect } = setup({ withMove: false });
     const options = screen.getAllByRole('option');
-    expect(options[0]?.getAttribute('draggable')).toBe('false');
+    expect(options[0]?.hasAttribute('draggable')).toBe(false);
     at(options, 1).focus();
     await user.keyboard('{Alt>}{ArrowRight}{/Alt}');
     expect(onselect).not.toHaveBeenCalled();

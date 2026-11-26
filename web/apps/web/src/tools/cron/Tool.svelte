@@ -89,9 +89,8 @@
 </script>
 
 <!--
-  Candidates for kern (#121), both already in kern, so no new issue: the table of runs is a DataTable,
-  and the time zone list (about 420 names) is a Combobox. Until the freeze lifts they are a plain
-  <table> and the base Select.
+  kern has a DataTable for the table of runs and a Combobox for the time zone list (about 420 names); they stay a
+  plain <table> and the base Select for now (follow-up #202, ADR 0014 final addendum).
 -->
 <ToolFrame id="cron">
   <div class="tool">

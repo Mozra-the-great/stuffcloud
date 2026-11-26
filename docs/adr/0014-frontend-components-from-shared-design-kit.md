@@ -174,6 +174,16 @@ instead of green and 75 selectors depend on `.tool-status`), `ReorderList` and `
 (`SortableList`, `SelectGrid`) and `Sticker` (`Mascot` with code art). `src/pdf/LiveStatus.svelte` keeps its
 two regions with `ToolStatus`.
 
+## Addendum: reorder list and page grid (2026-11-26, #121, PR #195)
+
+The merge tool's file list is kern's `SortableList`; `src/pdf/PageGrid.svelte` is a thin wrapper around
+kern's `SelectGrid` (page ids and a `Set` mapped to kern's keys, the thumbnail on a canvas, the page
+number, texts from the catalogue). This replaces the "still local" sentence about `ReorderList` and
+`PageGrid` in the app-local addendum; `ReorderList.svelte`, `grid-nav.ts` and their duplicated tests are
+gone (kern's `tests/dom/sortablelist.test.ts`, `tests/dom/selectgrid.test.ts` and `tests/unit/reorder.test.ts`
+cover the same cases). Accepted difference: kern's list buttons are ghost buttons. Gap found on the way: kern#175 (the
+grid threw when its last item went away), fixed in kern 0.14.0.
+
 ## Addendum: kern 0.13.4, short visible labels (2026-11-26, #121, PR #193)
 
 kern 0.13.2 to 0.13.4 are additions and fixes only (pill-tab overflow kern#159; `accessibleLabel` on
@@ -214,6 +224,36 @@ kern 0.14.0 closes the three gaps this package filed or met: `StatusMessage tone
 **BREAKING** item). The two grids of the app (tools page, gallery) have free space on their left, so the
 new line shows once and nothing is set; a grid flush against a bordered container would set
 `--k-tile-grid-left-w: 0`.
+
+## Addendum: final state of the migration (2026-11-26, #121, PRs #169 to #198)
+
+The package of #121 is done. Every base component that stuffcloud had in `src/ui` and every app-local
+candidate listed in the app-local addendum now comes from kern 0.14.0: Button, Card, Checkbox, Textarea, Input,
+Select, FileDrop, Tabs, TabLinks, Tile, TileGrid, Progress, Modal, Toaster, CodeBlock, CopyButton,
+DownloadButton, SkipLink, LiveAnnouncer, OnlineStatus, VisuallyHidden, StatusMessage (the result, error and PDF
+status lines), SortableList (the merge file list), SelectGrid (the page grid of the PDF tools) and Mascot (the
+stickers). `src/ui` is gone, and so are `ToolStatus`, `ReorderList`, `grid-nav.ts` and their duplicated tests. The
+tool budgets went up by a few hundred bytes for the kern code (`docs/PERFORMANCE.md`, "Raised since").
+
+What stays local, and why (decision 7):
+
+| Local | Why it stays |
+| ----- | ------------ |
+| `Shell`, `Header`, `Footer`, `LanguageSwitch`, `SearchDialog`, `Outlet`, `ErrorState`, the router, the pages | The app shell: it composes kern's parts (`Button`, `Modal`, `Input`, `Mascot`, `Progress`, `SkipLink`, `Toaster`) around content only stuffcloud has (navigation, language, the tool search over the registry). |
+| `ToolFrame`, the tool registry, `tool-entries.ts` | They read the registry and the capability check; no other app has them. |
+| `CopyButton`, `DownloadButton`, `Sticker`, `PageGrid`, `LiveStatus` | Thin wrappers around kern's components that bind the app's texts, toast, art and PDF page model. The behaviour is kern's. |
+| `PageThumb`, `thumb-draw.ts`, the PDF engine, workers and pools, ZIP writer | The picture of a page is drawn from a pdf.js bitmap onto a canvas; kern's `SelectGrid` only shows it. The rest is stuffcloud's domain code. |
+| Fonts | kern ships none (decision 7). |
+| The mascot art in `docs/design`, the animation benchmark (`bench/`) | The design's art (decision 7) and a measurement of runtime variants (ADR 0008). After #199 the art moves to kern. |
+| App-level tests: axe on every state, keyboard walks, i18n catalogues, privacy check, button names | Decision 7: they run against the kern components and stay here. |
+
+Not migrated although kern has a counterpart, because #121 covered `src/ui` and the listed app-local pieces only:
+the result tables of eleven tools are plain `<table>` elements with row headers and a caption (kern `Table`,
+`DataTable`), the cron tool's time zone list is a `Select` (kern `Combobox`), the colour tool uses
+`<input type="color">` (kern `ColorPicker`), and the header's phone menu is a hand-made button (kern `Navbar`). They
+work, are tested and accessible as they are; each swap changes the markup of a tool and its tests and needs its own
+look at the size budgets, so they are follow-up work (issue [#202](https://github.com/Mozra-the-great/stuffcloud/issues/202)), not part of this
+decision.
 
 ## Addendum: kern is the design source (2026-11-26, #199)
 

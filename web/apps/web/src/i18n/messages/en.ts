@@ -157,6 +157,7 @@ export const en = {
   'pdf.range.tooMany': 'That would make more than {max} files.',
   'pdf.pages.keys':
     'Arrow keys move between pages, Space selects, Shift extends the selection, Ctrl+A selects all. With Alt and an arrow key the page moves.',
+  'pdf.pages.reorderHint': 'Hold Alt and press an arrow key to move this page.',
   'pdf.pages.summary': {
     one: '{count} of {total} page kept',
     other: '{count} of {total} pages kept',

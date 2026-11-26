@@ -98,8 +98,8 @@
 </script>
 
 <!--
-  Candidate for kern (#121), already in kern, so no new issue: the result table is a DataTable. Until
-  the freeze lifts it is a plain <table> with row headers.
+  kern has a DataTable for this result table; it stays a plain <table> with row headers for now (follow-up
+  #202, ADR 0014 final addendum).
 -->
 <ToolFrame id="user-agent">
   <div class="tool">

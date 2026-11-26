@@ -104,11 +104,14 @@ export function countPasswords(sets: readonly string[], length: number): bigint 
     sets.forEach((set, index) => {
       if ((mask & (1 << index)) !== 0) {
         size += set.length;
+        // Stryker disable next-line AssignmentOperator: only the parity of `used` is read below, and -1 and +1 have the same parity
         used += 1;
       }
     });
     const term = BigInt(size) ** BigInt(length);
-    total += (sets.length - used) % 2 === 0 ? term : -term;
+    // Stryker disable next-line ArithmeticOperator: `sets.length + used` and `sets.length - used` have the same parity
+    const missing = sets.length - used;
+    total += missing % 2 === 0 ? term : -term;
   }
   return total;
 }
@@ -130,6 +133,7 @@ export function generatePassword(
   for (;;) {
     const password = Array.from(
       { length: options.length },
+      // Stryker disable next-line StringLiteral: `randomBelow` stays below `pool.length`, so the character exists
       () => pool[randomBelow(pool.length, fill)] ?? '',
     ).join('');
     // Drawing again until every chosen kind of character is there keeps all valid passwords equally likely.

@@ -3,7 +3,7 @@
 # standard-library only. Run from the repository root (CLAUDE.md, "Commands").
 [tool.mutmut]
 source_paths = ["scripts/ci"]
-do_not_mutate = ["scripts/ci/test_*.py", "scripts/ci/dev_stack_smoke.py"]
+do_not_mutate = ["scripts/ci/test_*.py", "scripts/ci/conftest.py", "scripts/ci/dev_stack_smoke.py"]
 pytest_add_cli_args_test_selection = ["scripts/ci"]
 # The helpers find the repository from their own location (`parents[2]`), which inside the
 # `mutants/` copy is `mutants/`. Their tests also read the real repository, so what they read
@@ -28,7 +28,7 @@ also_copy = [
 [tool.coverage.run]
 branch = true
 source = ["scripts/ci"]
-omit = ["scripts/ci/test_*.py", "scripts/ci/dev_stack_smoke.py"]
+omit = ["scripts/ci/test_*.py", "scripts/ci/conftest.py", "scripts/ci/dev_stack_smoke.py"]
 
 [tool.coverage.report]
 exclude_also = ['if __name__ == "__main__":']

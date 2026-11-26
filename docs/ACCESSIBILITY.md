@@ -100,8 +100,8 @@ key (WCAG 2.1.4); the one global shortcut uses a modifier.
 - **Back / forward** do the same.
 - **A page that fails to load** is replaced by the error page; its `h1` takes the focus, and
   "Try again" brings the focus to the next page's `h1`.
-- **Dialogs** use the native modal `<dialog>`: focus moves in when it opens, the background is
-  inert, `Esc` closes, and the browser returns focus to the opener.
+- **Dialogs** are kern's `Modal`, a native modal `<dialog>`: focus moves in when it opens, the
+  background is inert and does not scroll, `Esc` closes, and the browser returns focus to the opener.
 - **Menus** (phone menu): the button has `aria-expanded` / `aria-controls`; `Esc` closes and returns
   focus to the button; a navigation closes it.
 - **Tool results**: when a tool replaces content the visitor is looking at (an error page, a result

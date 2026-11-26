@@ -131,7 +131,7 @@ of the decision at the time; since 0.13.1 the app sets `data-theme="code"` on `<
 neither workaround. The unnamed `<section>` around the search `Modal` (kern#154, fixed in 0.13.1: the
 title row and footer are `role="none"`) went with them.
 
-## Addendum: Checkbox and Textarea, `src/ui` removed (2026-11-26, #121, PR #PR)
+## Addendum: Checkbox and Textarea, `src/ui` removed (2026-11-26, #121, PR #185)
 
 The last base components moved with kern 0.13.1: `Checkbox` (the box is its own hit target, kern#150, so
 Playwright's `check()` works) and `Textarea` (reads the Code field tokens, kern#149); `src/ui` no longer

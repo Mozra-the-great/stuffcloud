@@ -431,6 +431,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   available; D6: workflows are copied per repo, no central reusable workflows).
 
 ### Fixed
+- Hash tool tests: the length field of the SHA padding is a pure function tested on both sides of the 32-bit boundary instead of an end-to-end hash of 528 MiB that ran into its 120 s timeout on busy CI runners and failed `web (test)` on every pull request. (#170)
 - **Nightly deep tests green again (#163).** Miri reported 18 leaks from a test helper in
   `core::cookie` that leaked every header on purpose; it now takes the `'static` literals it is
   given. The beta toolchain (1.101) adds lints that would break the build on the next stable:

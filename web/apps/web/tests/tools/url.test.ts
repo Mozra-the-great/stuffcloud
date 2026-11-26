@@ -28,7 +28,7 @@ function result(): string | undefined {
 }
 
 function statuses(): string {
-  return [...document.querySelectorAll('main .tool-status')]
+  return [...document.querySelectorAll('main [data-tool-status]')]
     .map((region) => region.textContent.trim())
     .filter((line) => line !== '')
     .join('|');
@@ -97,13 +97,13 @@ describe('encoding and decoding', () => {
     await openTool(manifest);
     await paste(user, text(), 'ok%2');
     await user.click(screen.getByRole('button', { name: 'Decode' }));
-    expect(document.querySelector('main .tool-status.alert')?.textContent).toContain(
+    expect(document.querySelector('main [data-tool-status][role="alert"]')?.textContent).toContain(
       'the percent sequence at character 3',
     );
     expect(result()).toBeUndefined();
     await paste(user, text(), 'fine');
     await user.click(screen.getByRole('button', { name: 'Decode' }));
-    expect(document.querySelector('main .tool-status.alert')?.textContent).toBe('');
+    expect(document.querySelector('main [data-tool-status][role="alert"]')?.textContent).toBe('');
     expect(result()).toBe('fine');
   });
 
@@ -112,7 +112,7 @@ describe('encoding and decoding', () => {
     await openTool(manifest);
     await paste(user, text(), 'x\ud800');
     await user.click(screen.getByRole('button', { name: 'Encode' }));
-    expect(document.querySelector('main .tool-status.alert')?.textContent).toContain(
+    expect(document.querySelector('main [data-tool-status][role="alert"]')?.textContent).toContain(
       'unpaired surrogate',
     );
     expect(result()).toBeUndefined();

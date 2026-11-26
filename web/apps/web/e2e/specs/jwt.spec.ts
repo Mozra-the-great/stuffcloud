@@ -56,11 +56,11 @@ function keyField(page: Page): ReturnType<Page['getByRole']> {
 }
 
 function verified(page: Page): ReturnType<Page['locator']> {
-  return page.locator('main .tool-status:not(.alert)');
+  return page.locator('main [data-tool-status][role="status"]');
 }
 
 function failed(page: Page): ReturnType<Page['locator']> {
-  return page.locator('main .tool-status.alert');
+  return page.locator('main [data-tool-status][role="alert"]');
 }
 
 test.describe('jwt', () => {

@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { Input, Button } from '@mozra-the-great/kern';
+  import { Input, Button, StatusMessage } from '@mozra-the-great/kern';
   import { t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import {
     MAX_USER_AGENT_LENGTH,
     parseUserAgent,
@@ -122,7 +121,7 @@
         <Button variant="secondary" size="sm" onclick={clear}>{t('ua.clear')}</Button>
       </div>
       <p class="note">{t('ua.useHint')}</p>
-      <ToolStatus message={status} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
     </section>
 
     <section class="block">

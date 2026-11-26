@@ -186,6 +186,18 @@ still hears which value a button belongs to; `tests/button-names.test.ts` checks
 every such name contains the visible word (WCAG 2.5.3 Label in Name), which kern documents but does not
 check. The gallery's code block uses `copyAccessibleLabel`.
 
+## Addendum: status lines (2026-11-26, #121, PR #194)
+
+`ToolStatus` is gone: the result and error line of every tool is kern's `StatusMessage` (`kind` status or
+alert; rendered from the first paint, empty, so a screen reader has the region before its first text),
+and so are the two regions of `src/pdf/LiveStatus.svelte`, which keeps its job (both regions always
+present, the error in a box). This replaces the "still local" sentence about `ToolStatus` and `LiveStatus` in
+the previous addendum. The result line is green as designed through `tone="ok"` (kern#173, filed by this
+package, released in kern 0.14.0; until then one local rule did it). The tests and e2e specs no longer
+select `.tool-status`: they use role plus the attribute `data-tool-status`, because kern's field errors are
+`role="alert"` too and a role alone would also find them. kern's alert colour (`--k-danger`, `#ff4f8b`) is
+the old `--pink2`.
+
 ## Addendum: stickers (2026-11-26, #121, PR #196)
 
 `Sticker` is kern's `Mascot` with code art (`tool-stickers/sticker-<name>`), still and decorative, which

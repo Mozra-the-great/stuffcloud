@@ -94,11 +94,11 @@ async function setText(name: 'Original' | 'Changed', value: string): Promise<voi
 }
 
 function statusText(): string {
-  return document.querySelector('main .tool-status:not(.alert)')?.textContent.trim() ?? '';
+  return document.querySelector('main [data-tool-status][role="status"]')?.textContent.trim() ?? '';
 }
 
 function alertText(): string {
-  return document.querySelector('main .tool-status.alert')?.textContent.trim() ?? '';
+  return document.querySelector('main [data-tool-status][role="alert"]')?.textContent.trim() ?? '';
 }
 
 function table(): HTMLElement | null {

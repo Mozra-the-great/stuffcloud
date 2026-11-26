@@ -84,7 +84,7 @@ function textBox(): HTMLTextAreaElement {
 }
 
 function statusText(): string {
-  return [...document.querySelectorAll('main .tool-status')]
+  return [...document.querySelectorAll('main [data-tool-status]')]
     .map((region) => region.textContent.trim())
     .filter((text) => text !== '')
     .join('|');
@@ -271,7 +271,7 @@ describe('hashing a file', () => {
     setBehaviour('fail');
     await chooseFile(user, new File(['abc'], 'bad.bin'));
     await waitFor(() => {
-      expect(document.querySelector('main .tool-status.alert')?.textContent).toBe(
+      expect(document.querySelector('main [data-tool-status][role="alert"]')?.textContent).toBe(
         'The input could not be hashed. Try again, or choose another file.',
       );
     });

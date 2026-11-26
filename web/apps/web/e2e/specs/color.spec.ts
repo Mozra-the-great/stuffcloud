@@ -22,7 +22,7 @@ function format(page: Page, name: string): ReturnType<Page['locator']> {
 
 /** The polite status line of the tool (the toast region has its own). */
 function status(page: Page): ReturnType<Page['locator']> {
-  return page.locator('.tool-status:not(.alert)');
+  return page.locator('[data-tool-status][role="status"]');
 }
 
 // 20 x 20 pixels: three quarters red, one quarter blue; no scaling, so the colours stay exact.
@@ -194,7 +194,7 @@ test.describe('color', () => {
       mimeType: 'image/png',
       buffer: Buffer.from('not a picture'),
     });
-    const problem = page.locator('.tool-status.alert');
+    const problem = page.locator('[data-tool-status][role="alert"]');
     await expect(problem).toHaveText('This file could not be read as an image.');
     await a11y.check(page, 'color: unreadable image');
 

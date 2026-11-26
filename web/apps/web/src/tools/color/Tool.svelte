@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { Input, Button, FileDrop } from '@mozra-the-great/kern';
+  import { Input, Button, FileDrop, StatusMessage } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import { ColorEntry } from './color-entry.svelte.ts';
   import ColorField from './ColorField.svelte';
   import {
@@ -172,8 +171,8 @@
       {#if !main.inGamut}
         <p class="note">{t('color.gamut')}</p>
       {/if}
-      <ToolStatus message={status} />
-      <ToolStatus message={problem} kind="alert" />
+      <StatusMessage data-tool-status tone="ok" message={status} />
+      <StatusMessage data-tool-status kind="alert" message={problem} />
     </section>
 
     <section class="block">

@@ -94,16 +94,15 @@ function parseV6(text: string): V4Result {
     const low = (embedded.value & 0xffffn).toString(16);
     body = `${body.slice(0, cut + 1)}${high}:${low}`;
   }
-  if (body.includes(':::')) {
-    return { ok: false, error: 'ipv6-colons' };
-  }
+  // Three colons in a row need no check of their own: they leave an empty group (or a third `::`) below.
   const halves = body.split('::');
   if (halves.length > 2) {
     return { ok: false, error: 'ipv6-colons' };
   }
   const split = (part: string): string[] => (part === '' ? [] : part.split(':'));
+  // Stryker disable next-line StringLiteral: `split` always returns at least one piece, so the fallback is never used
   const head = split(halves[0] ?? '');
-  const tail = halves.length === 2 ? split(halves[1] ?? '') : [];
+  const tail = split(halves[1] ?? '');
   const groups = [...head, ...tail];
   if (groups.some((group) => group === '')) {
     return { ok: false, error: 'ipv6-colons' };
@@ -115,11 +114,8 @@ function parseV6(text: string): V4Result {
     return { ok: false, error: 'ipv6-groups' };
   }
   const fill = 8 - groups.length;
-  const full = [
-    ...head,
-    ...Array.from({ length: halves.length === 2 ? fill : 0 }, () => '0'),
-    ...tail,
-  ];
+  // Without `::` the check above leaves exactly eight groups, so `fill` is 0 there.
+  const full = [...head, ...Array.from({ length: fill }, () => '0'), ...tail];
   let value = 0n;
   for (const group of full) {
     value = (value << 16n) | BigInt(`0x${group}`);
@@ -162,7 +158,8 @@ function groupsOf(value: bigint): number[] {
 
 /** Is this an IPv4-mapped IPv6 address (`::ffff:a.b.c.d`)? */
 export function isMapped(address: Address): boolean {
-  return address.version === 6 && address.value >> 32n === 0xffffn;
+  // An IPv4 value has no bit above bit 31, so only an IPv6 address can match.
+  return address.value >> 32n === 0xffffn;
 }
 
 /**
@@ -174,23 +171,25 @@ export function formatV6(value: bigint): string {
     return `::ffff:${formatV4(value & LOW_32)}`;
   }
   const groups = groupsOf(value);
-  let bestStart = -1;
+  let bestStart = 0;
   let bestLength = 0;
-  for (let start = 0; start < 8;) {
-    if (groups[start] !== 0) {
-      start += 1;
-      continue;
+  let runStart = 0;
+  let runLength = 0;
+  groups.forEach((group, index) => {
+    if (group !== 0) {
+      runLength = 0;
+      return;
     }
-    let end = start;
-    while (end < 8 && groups[end] === 0) {
-      end += 1;
+    if (runLength === 0) {
+      runStart = index;
     }
-    if (end - start > bestLength) {
-      bestStart = start;
-      bestLength = end - start;
+    runLength += 1;
+    // Strictly longer: on a tie the first run keeps the `::`.
+    if (runLength > bestLength) {
+      bestStart = runStart;
+      bestLength = runLength;
     }
-    start = end;
-  }
+  });
   const hex = (list: readonly number[]): string =>
     list.map((group) => group.toString(16)).join(':');
   if (bestLength < 2) {

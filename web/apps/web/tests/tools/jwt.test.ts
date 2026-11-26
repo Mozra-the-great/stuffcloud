@@ -14,6 +14,7 @@ import {
   signingInput,
   tamperSignature,
 } from './jwt-helpers.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 type User = ReturnType<typeof userEvent.setup>;
 
@@ -95,7 +96,7 @@ describe('jwt', () => {
     await openTool(manifest);
     expect(tokenField().value).toBe('');
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
-    expect(document.querySelector('.sc-fld__error')).toBeNull();
+    expect(fieldErrorText()).toBeNull();
   });
 });
 
@@ -170,16 +171,14 @@ describe('decoding', () => {
   it('marks something that is not a token, with the reason', async () => {
     await paste(user, tokenField(), 'not a token');
     expect(tokenField().getAttribute('aria-invalid')).toBe('true');
-    expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
+    expect(fieldErrorText()).toBe(
       'A token has three parts joined by dots: header.payload.signature.',
     );
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
     await paste(user, tokenField(), 'a.b.c.d.e');
-    expect(document.querySelector('.sc-fld__error')?.textContent).toContain('encrypted token');
+    expect(fieldErrorText()).toContain('encrypted token');
     await paste(user, tokenField(), 'a'.repeat(100_001));
-    expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-      'This token is too long (at most 100,000 characters).',
-    );
+    expect(fieldErrorText()).toBe('This token is too long (at most 100,000 characters).');
   });
 
   it('copies the header and the payload', async () => {
@@ -328,9 +327,7 @@ describe('checking the signature', () => {
     expect(
       screen.getByRole<HTMLButtonElement>('button', { name: 'Verify signature' }).disabled,
     ).toBe(true);
-    expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-      'This key is too long (at most 20,000 characters).',
-    );
+    expect(fieldErrorText()).toBe('This key is too long (at most 20,000 characters).');
   });
 
   it('never writes a token or a key to the console', async () => {

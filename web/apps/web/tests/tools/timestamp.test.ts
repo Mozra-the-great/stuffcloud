@@ -5,6 +5,7 @@ import { i18n } from '../../src/i18n/index.ts';
 import manifest from '../../src/tools/timestamp/manifest.ts';
 import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 type User = ReturnType<typeof userEvent.setup>;
 
@@ -140,29 +141,21 @@ describe('converting', () => {
     const user = await open();
     await enter(user, 'soon');
     expect(input().getAttribute('aria-invalid')).toBe('true');
-    expect(document.querySelector('.sc-fld__error')?.textContent).toContain(
-      'neither a number nor an ISO 8601 date',
-    );
+    expect(fieldErrorText()).toContain('neither a number nor an ISO 8601 date');
     expect(screen.queryByRole('table')).toBeNull();
     await user.tab();
     expect(statusText()).toContain('neither a number nor an ISO 8601 date');
     await enter(user, '2026-02-30');
-    expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-      'This calendar date does not exist.',
-    );
+    expect(fieldErrorText()).toBe('This calendar date does not exist.');
     await user.selectOptions(zone(), 'Europe/Berlin');
     await enter(user, '2026-03-29T02:30:00');
-    expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
+    expect(fieldErrorText()).toBe(
       'This clock time does not exist in Europe/Berlin (the clocks skip it when they go forward).',
     );
     await enter(user, '');
-    expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-      'Enter a timestamp or a date.',
-    );
+    expect(fieldErrorText()).toBe('Enter a timestamp or a date.');
     await enter(user, '9'.repeat(101));
-    expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-      'This is too long (at most 100 characters).',
-    );
+    expect(fieldErrorText()).toBe('This is too long (at most 100 characters).');
   });
 
   it('announces the moment when the field is left, but not on every key', async () => {

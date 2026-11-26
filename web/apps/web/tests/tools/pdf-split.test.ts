@@ -17,6 +17,7 @@ import {
   fileInput,
 } from '../pdf-helpers.ts';
 import { openTool } from '../tool-helpers.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 const runners = vi.hoisted((): { ops: unknown; thumbs: unknown } => ({
   ops: undefined,
@@ -108,7 +109,7 @@ describe('pdf-split', () => {
     expect(screen.getByText('book.pdf')).toBeDefined();
     expect(button('Split').disabled).toBe(true);
     // Nothing is said about the empty ranges field before the visitor typed.
-    expect(document.querySelector('.sc-fld__error')).toBeNull();
+    expect(fieldErrorText()).toBeNull();
   });
 
   it('splits by ranges: preview, files, ZIP', async () => {

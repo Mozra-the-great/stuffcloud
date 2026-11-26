@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { Button, FileDrop } from '@mozra-the-great/kern';
+  import { Input, Button, FileDrop } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Input from '../../ui/Input.svelte';
   import { ColorEntry } from './color-entry.svelte.ts';
   import ColorField from './ColorField.svelte';
   import {

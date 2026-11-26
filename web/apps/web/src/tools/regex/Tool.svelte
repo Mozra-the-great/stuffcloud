@@ -1,11 +1,11 @@
 <script lang="ts">
+  import { Input } from '@mozra-the-great/kern';
+  import Checkbox from '../../ui/Checkbox.svelte';
+  import TextArea from '../../app/TextArea.svelte';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
-  import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import Input from '../../ui/Input.svelte';
   import { explainPattern } from './explain.ts';
   import {
     DEBOUNCE_MS,
@@ -169,6 +169,7 @@
   <div class="tool">
     <section class="block">
       <Input
+        keepHint
         label={t('regex.pattern')}
         hint={t('regex.patternHint')}
         bind:value={pattern}

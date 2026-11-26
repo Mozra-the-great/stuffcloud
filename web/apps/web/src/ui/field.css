@@ -1,4 +1,4 @@
-/* Shared by Input.svelte and Select.svelte (design: .fld, .label, .field). */
+/* Shared by TextArea.svelte (design: .fld, .label, .field). */
 .sc-fld {
   display: flex;
   flex-direction: column;

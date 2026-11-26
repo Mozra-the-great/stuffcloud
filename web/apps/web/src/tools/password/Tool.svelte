@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { Button } from '@mozra-the-great/kern';
+  import { Input, Button } from '@mozra-the-great/kern';
+  import Checkbox from '../../ui/Checkbox.svelte';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import Input from '../../ui/Input.svelte';
   import {
     DEFAULT_LENGTH,
     MAX_LENGTH,
@@ -77,6 +76,7 @@
   <div class="tool">
     <section class="block">
       <Input
+        keepHint
         type="number"
         inputmode="numeric"
         min={minimum}

@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { Button } from '@mozra-the-great/kern';
+  import { Input, Button } from '@mozra-the-great/kern';
   import { t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Input from '../../ui/Input.svelte';
   import {
     MAX_USER_AGENT_LENGTH,
     parseUserAgent,
@@ -107,10 +106,12 @@
   <div class="tool">
     <section class="block">
       <Input
+        keepHint
         label={t('ua.input')}
         hint={t('ua.inputHint')}
         bind:value={text}
         error={problem}
+        announce={false}
         autocomplete="off"
         autocapitalize="off"
         spellcheck={false}

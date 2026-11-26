@@ -119,7 +119,7 @@ test.describe('textops', () => {
     await expect(status(page)).toHaveText('2 matches replaced.');
     await a11y.check(page, 'textops: replace');
     await page.getByRole('textbox', { name: 'Find' }).fill('(');
-    await expect(page.locator('.sc-fld__error')).toContainText('This pattern does not work');
+    await expect(page.locator('.k-field .error')).toContainText('This pattern does not work');
     await a11y.check(page, 'textops: bad pattern');
   });
 

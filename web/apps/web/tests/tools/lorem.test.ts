@@ -5,6 +5,7 @@ import { i18n } from '../../src/i18n/index.ts';
 import manifest from '../../src/tools/lorem/manifest.ts';
 import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 const downloads = vi.hoisted(() => ({
   saved: [] as { name: string; text: string }[],
@@ -106,9 +107,7 @@ describe('lorem', () => {
     for (const bad of ['0', '5001', '-3', '']) {
       await setAmount(user, bad);
       expect(output().value).toBe('');
-      expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-        'Enter a whole number from 1 to 5,000.',
-      );
+      expect(fieldErrorText()).toBe('Enter a whole number from 1 to 5,000.');
       expect(amount().getAttribute('aria-invalid')).toBe('true');
       expect(
         screen.getByRole<HTMLButtonElement>('button', { name: 'Generate new text' }).disabled,
@@ -116,7 +115,7 @@ describe('lorem', () => {
     }
     await setAmount(user, '12');
     expect(output().value.split(' ')).toHaveLength(12);
-    expect(document.querySelector('.sc-fld__error')).toBeNull();
+    expect(fieldErrorText()).toBeNull();
   });
 
   it('makes new text on request and announces it without reading it out', async () => {

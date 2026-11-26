@@ -7,6 +7,7 @@ import manifest from '../../src/tools/hash/manifest.ts';
 import { runTask, type Input, type Output } from '../../src/tools/hash/task.ts';
 import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 type User = ReturnType<typeof userEvent.setup>;
 type Behaviour = 'real' | 'hang' | 'fail';
@@ -222,9 +223,7 @@ describe('hashing text', () => {
     it('marks a text that is no digest, and announces it', async () => {
       await user.type(expected(), 'not a digest');
       expect(expected().getAttribute('aria-invalid')).toBe('true');
-      expect(document.querySelector('.sc-fld__error')?.textContent).toContain(
-        'This is not a hex digest',
-      );
+      expect(fieldErrorText()).toContain('This is not a hex digest');
       expect(document.querySelector('.verdict')).toBeNull();
       await user.tab();
       expect(statusText()).toContain('This is not a hex digest');

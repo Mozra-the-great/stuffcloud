@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { Modal } from '@mozra-the-great/kern';
+  import { Input, Modal } from '@mozra-the-great/kern';
   import { i18n, t } from '../i18n/index.ts';
-  import Input from '../ui/Input.svelte';
   import { CATEGORY_LABELS, searchTools, toolPath, type ToolEntry } from './tools.ts';
 
   interface Props {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, FileDrop, Progress } from '@mozra-the-great/kern';
+  import { Input, Progress, Button, FileDrop } from '@mozra-the-great/kern';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import { i18n, t } from '../../i18n/index.ts';
   import { buildFiles } from '../../pdf/client.ts';
@@ -36,7 +36,6 @@
   } from '../../pdf/page-edit.ts';
   import PageGrid from '../../pdf/PageGrid.svelte';
   import { SingleDocument } from '../../pdf/session.svelte.ts';
-  import Input from '../../ui/Input.svelte';
 
   const doc = new SingleDocument();
   const START: ActionLabel = { key: 'pdf.pages.did.start', count: 0 };

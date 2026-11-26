@@ -1,8 +1,8 @@
 <script lang="ts">
+  import TextArea from '../../app/TextArea.svelte';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
-  import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import type { Input as TaskInput, Output as TaskOutput } from './parse.ts';

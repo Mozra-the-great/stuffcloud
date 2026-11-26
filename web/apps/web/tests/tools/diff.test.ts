@@ -7,6 +7,7 @@ import type * as DiffTask from '../../src/tools/diff/task.ts';
 import { runTask, type Input, type Output } from '../../src/tools/diff/task.ts';
 import { openTool } from '../tool-helpers.ts';
 import { defined } from './defined.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 const pool = vi.hoisted(() => ({
   behaviour: 'real',
@@ -290,9 +291,7 @@ describe('limits and failures', () => {
     const jobs = pool.jobs.length;
     await setText('Original', 'x'.repeat(201));
     await waitFor(() => {
-      expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-        'This text is longer than 200 characters.',
-      );
+      expect(fieldErrorText()).toBe('This text is longer than 200 characters.');
     });
     expect(field('Original').getAttribute('aria-invalid')).toBe('true');
     expect(table()).toBeNull();
@@ -303,7 +302,7 @@ describe('limits and failures', () => {
     await waitFor(() => {
       expect(statusText()).not.toBe('');
     });
-    expect(document.querySelector('.sc-fld__error')).toBeNull();
+    expect(fieldErrorText()).toBeNull();
   });
 
   it('is stopped after the time limit, and the page says why', async () => {

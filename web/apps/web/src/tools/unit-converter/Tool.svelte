@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { Button } from '@mozra-the-great/kern';
+  import { Input, Select, Button } from '@mozra-the-great/kern';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Input from '../../ui/Input.svelte';
-  import Select from '../../ui/Select.svelte';
   import {
     categoryName,
     categoryOrFirst,
@@ -206,6 +204,7 @@
           spellcheck={false}
           bind:value={valueText}
           error={problem}
+          announce={false}
           onchange={announceResult}
         />
         <Select label={t('units.from')} options={unitOptions} value={from.id} onchange={onFrom} />

@@ -11,6 +11,7 @@ import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
 import { defined } from './defined.ts';
 import { readPng } from './qr-helpers.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 const state = vi.hoisted(() => ({
   /** `real` runs the scan test; `styled` fails it for the stuffcloud style; `all` fails it always. */
@@ -382,9 +383,7 @@ describe('a Wi-Fi code', () => {
       target: { value: 'x'.repeat(33) },
     });
     await waitFor(() => {
-      expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-        'A network name has at most 32 bytes.',
-      );
+      expect(fieldErrorText()).toBe('A network name has at most 32 bytes.');
     });
     expect(picture()).toBeNull();
   });

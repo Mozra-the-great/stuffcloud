@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
 import { createRawSnippet, type Snippet } from 'svelte';
 
 export const appRoot: string = resolve(import.meta.dirname, '..');
@@ -14,6 +15,12 @@ export function readRepoFiles(dir: string, extension: string): string[] {
   return readdirSync(resolve(repoRoot, dir))
     .filter((name) => name.endsWith(extension))
     .map((name) => readRepoFile(`${dir}/${name}`));
+}
+
+/** A file of the installed design kit kern (ADR 0014), relative to its package root. */
+export function readKernFile(path: string): string {
+  const pkg = createRequire(import.meta.url).resolve('@mozra-the-great/kern/package.json');
+  return readFileSync(resolve(dirname(pkg), path), 'utf8');
 }
 
 export function readAppFile(path: string): string {
@@ -62,4 +69,12 @@ export function dragEvent(type: string, properties: Readonly<Record<string, unkn
     Object.defineProperty(event, name, { value });
   }
   return event;
+}
+
+/** Field errors: kern's `Field` (Input, Select) and the app's own `TextArea`. */
+export const FIELD_ERROR = '.k-field .error, .sc-fld__error';
+
+/** Text of the first field error on the page, trimmed, or `null` when no field shows one. */
+export function fieldErrorText(): string | null {
+  return document.querySelector(FIELD_ERROR)?.textContent.trim() ?? null;
 }

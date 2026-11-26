@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { Button } from '@mozra-the-great/kern';
+  import { Input, Select, Button } from '@mozra-the-great/kern';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Input from '../../ui/Input.svelte';
-  import Select from '../../ui/Select.svelte';
   import { listTimeZones } from '../cron/time-zone.ts';
   import { relativeTime } from './relative.ts';
   import {
@@ -115,10 +113,12 @@
   <div class="tool">
     <section class="block">
       <Input
+        keepHint
         label={t('timestamp.input')}
         hint={t('timestamp.inputHint')}
         bind:value={input}
         error={problem}
+        announce={false}
         autocomplete="off"
         autocapitalize="off"
         spellcheck={false}

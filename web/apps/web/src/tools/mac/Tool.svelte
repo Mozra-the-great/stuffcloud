@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TextArea from '../../app/TextArea.svelte';
   import { Button, FileDrop } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { tick } from 'svelte';
@@ -8,7 +9,6 @@
     IEEE_REGISTRATION_AUTHORITY_URL,
   } from '../../app/external-links.ts';
   import CopyButton from '../../app/CopyButton.svelte';
-  import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import {

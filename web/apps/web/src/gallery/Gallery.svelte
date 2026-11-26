@@ -4,25 +4,25 @@
     Card,
     CodeBlock,
     FileDrop,
+    Input,
     Mascot,
     MASCOT_NAMES,
     Modal,
     Progress,
+    Select,
     TabLinks,
     Tabs,
     Tile,
     TileGrid,
     toast,
     Toaster,
+    type SelectOption,
     type TabItem,
     type TabLinkItem,
     type ToastTone,
   } from '@mozra-the-great/kern';
   import '../styles/index.css';
   import Checkbox from '../ui/Checkbox.svelte';
-  import Input from '../ui/Input.svelte';
-  import Select from '../ui/Select.svelte';
-  import type { SelectOption } from '../ui/types.ts';
   import { GALLERY_COLOURS, GALLERY_FONTS } from './swatches.ts';
   import { MASCOT_URLS } from '../app/mascots.ts';
 

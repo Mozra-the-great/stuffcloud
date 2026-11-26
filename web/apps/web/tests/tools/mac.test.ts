@@ -117,7 +117,7 @@ function fieldError(): string {
   return (box.getAttribute('aria-describedby') ?? '')
     .split(' ')
     .filter((id) => id.endsWith('-error'))
-    .map((id) => document.getElementById(id)?.textContent ?? '')
+    .map((id) => document.getElementById(id)?.textContent.trim() ?? '')
     .join(' ');
 }
 

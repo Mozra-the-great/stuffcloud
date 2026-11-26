@@ -5,6 +5,7 @@ import { i18n } from '../../src/i18n/index.ts';
 import manifest from '../../src/tools/password/manifest.ts';
 import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
+import { fieldErrorText } from '../helpers.ts';
 
 type User = ReturnType<typeof userEvent.setup>;
 
@@ -79,9 +80,7 @@ describe('generating', () => {
     expect(password()).toHaveLength(128);
     await setLength(user, '129');
     expect(password()).toBe('');
-    expect(document.querySelector('.sc-fld__error')?.textContent).toBe(
-      'Enter a whole number from 4 to 128.',
-    );
+    expect(fieldErrorText()).toBe('Enter a whole number from 4 to 128.');
     expect(length().getAttribute('aria-invalid')).toBe('true');
     const button = screen.getByRole<HTMLButtonElement>('button', {
       name: 'Generate a new password',
@@ -93,7 +92,7 @@ describe('generating', () => {
     expect(password()).toBe('');
     await setLength(user, '12');
     expect(password()).toHaveLength(12);
-    expect(document.querySelector('.sc-fld__error')).toBeNull();
+    expect(fieldErrorText()).toBeNull();
   });
 
   it('uses only the chosen kinds and says when none is chosen', async () => {

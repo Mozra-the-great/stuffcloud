@@ -1,15 +1,13 @@
 <script lang="ts">
-  import { Button } from '@mozra-the-great/kern';
+  import { Input, Select, Button } from '@mozra-the-great/kern';
+  import Checkbox from '../../ui/Checkbox.svelte';
+  import TextArea from '../../app/TextArea.svelte';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import { saveText } from '../../app/download.ts';
   import CopyButton from '../../app/CopyButton.svelte';
-  import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Checkbox from '../../ui/Checkbox.svelte';
-  import Input from '../../ui/Input.svelte';
-  import Select from '../../ui/Select.svelte';
   import {
     FORMATS,
     MAX_INPUT_CHARS,
@@ -227,6 +225,7 @@
       </div>
       {#if to === 'xml'}
         <Input
+          keepHint
           label={t('convert.rootName')}
           hint={t('convert.rootNameHint')}
           bind:value={rootName}

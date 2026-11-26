@@ -379,6 +379,7 @@
           hint={t('subnet.networkHint')}
           bind:value={networkText}
           error={networkError}
+          announce={false}
           autocomplete="off"
           autocapitalize="off"
           spellcheck={false}
@@ -403,6 +404,7 @@
             })}
             bind:value={splitText}
             error={splitError}
+            announce={false}
             inputmode="numeric"
             autocomplete="off"
             spellcheck={false}
@@ -416,6 +418,7 @@
           hint={t('subnet.otherHint')}
           bind:value={otherText}
           error={otherError}
+          announce={false}
           autocomplete="off"
           autocapitalize="off"
           spellcheck={false}

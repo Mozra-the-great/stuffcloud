@@ -160,6 +160,7 @@
         hint={t('url.addressHint')}
         bind:value={address}
         error={addressProblem}
+        announce={false}
         autocomplete="off"
         autocapitalize="off"
         spellcheck={false}

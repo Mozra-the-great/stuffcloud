@@ -8,7 +8,6 @@
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import FileDropzone from '../../ui/FileDropzone.svelte';
   import {
     MAX_DECODE_FILE_BYTES,
     MAX_FILE_BYTES,

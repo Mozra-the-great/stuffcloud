@@ -13,8 +13,6 @@
   import { SingleDocument } from '../../pdf/session.svelte.ts';
   import { planSplit, type SplitMode } from '../../pdf/split-plan.ts';
   import { buildZip, ZipLimitError } from '../../pdf/zip.ts';
-  import FileDropzone from '../../ui/FileDropzone.svelte';
-  import LinkButton from '../../ui/LinkButton.svelte';
 
   const doc = new SingleDocument();
 

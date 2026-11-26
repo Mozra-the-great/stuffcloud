@@ -4,7 +4,6 @@
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import FileDropzone from '../../ui/FileDropzone.svelte';
   import { ColorEntry } from './color-entry.svelte.ts';
   import ColorField from './ColorField.svelte';
   import {

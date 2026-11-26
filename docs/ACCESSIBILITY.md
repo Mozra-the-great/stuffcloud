@@ -115,12 +115,13 @@ key (WCAG 2.1.4); the one global shortcut uses a modifier.
 Both regions exist, empty, from the first render; text is put into them afterwards (a region that
 arrives together with its text is not announced by every screen reader).
 
-| Region                                 | Role                                               | Used for                                                                                                               |
-| -------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Navigation announcer (`LiveAnnouncer`) | `status`, polite, atomic                           | "Navigated to ..." after each page change                                                                              |
-| Toasts                                 | `status` (info, success, warn) and `alert` (error) | Short messages that need no action                                                                                     |
-| Search result count                    | `status`                                           | "3 tools found" / "No tools found" while typing                                                                        |
-| Tool results                           | `status` or `alert` (the tool's own)               | Done, failed, counts; the PDF tools announce every page action ("Moved 1 page to position 3.") and every undo and redo |
+| Region                                 | Role                                               | Used for                                                                                                                                                                                                                                          |
+| -------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Navigation announcer (`LiveAnnouncer`) | `status`, polite, atomic                           | "Navigated to ..." after each page change                                                                                                                                                                                                         |
+| Toasts                                 | `status` (info, success, warn) and `alert` (error) | Short messages that need no action                                                                                                                                                                                                                |
+| Search result count                    | `status`                                           | "3 tools found" / "No tools found" while typing                                                                                                                                                                                                   |
+| Tool results                           | `status` or `alert` (the tool's own)               | Done, failed, counts; the PDF tools announce every page action ("Moved 1 page to position 3.") and every undo and redo                                                                                                                            |
+| Field errors                           | `alert` (kern's `Field`)                           | Announced once when the error appears. A tool that already says the same message in its own status region (when the visitor leaves the field) passes `announce={false}` to the field, so it is never heard twice (`tests/field-announce.test.ts`) |
 
 ## Motion
 

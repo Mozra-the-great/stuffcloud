@@ -111,6 +111,7 @@
         hint={t('ua.inputHint')}
         bind:value={text}
         error={problem}
+        announce={false}
         autocomplete="off"
         autocapitalize="off"
         spellcheck={false}

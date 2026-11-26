@@ -103,6 +103,7 @@
         hint={t('cron.expressionHint')}
         bind:value={expression}
         error={problem}
+        announce={false}
         autocomplete="off"
         autocapitalize="off"
         spellcheck={false}

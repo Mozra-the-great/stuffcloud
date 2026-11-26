@@ -34,6 +34,7 @@
       bind:value={entry.text}
       hint={hint ?? ''}
       error={error ?? ''}
+      announce={false}
       spellcheck={false}
       autocomplete="off"
       autocapitalize="off"

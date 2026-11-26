@@ -36,8 +36,6 @@
   } from '../../pdf/page-edit.ts';
   import PageGrid from '../../pdf/PageGrid.svelte';
   import { SingleDocument } from '../../pdf/session.svelte.ts';
-  import FileDropzone from '../../ui/FileDropzone.svelte';
-  import LinkButton from '../../ui/LinkButton.svelte';
 
   const doc = new SingleDocument();
   const START: ActionLabel = { key: 'pdf.pages.did.start', count: 0 };

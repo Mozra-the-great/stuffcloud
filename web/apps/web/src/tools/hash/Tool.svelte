@@ -6,7 +6,6 @@
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import FileDropzone from '../../ui/FileDropzone.svelte';
   import {
     ALGORITHMS,
     digestText,
@@ -259,6 +258,7 @@
           hint={t('hash.compare.hint')}
           bind:value={expected}
           error={expectedError}
+          announce={false}
           autocomplete="off"
           autocapitalize="off"
           spellcheck={false}

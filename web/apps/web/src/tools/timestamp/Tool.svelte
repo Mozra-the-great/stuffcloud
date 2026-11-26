@@ -118,6 +118,7 @@
         hint={t('timestamp.inputHint')}
         bind:value={input}
         error={problem}
+        announce={false}
         autocomplete="off"
         autocapitalize="off"
         spellcheck={false}

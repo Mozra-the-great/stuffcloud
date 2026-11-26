@@ -204,6 +204,7 @@
           spellcheck={false}
           bind:value={valueText}
           error={problem}
+          announce={false}
           onchange={announceResult}
         />
         <Select label={t('units.from')} options={unitOptions} value={from.id} onchange={onFrom} />

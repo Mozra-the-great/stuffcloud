@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import pathlib
 import sys
+import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
@@ -289,6 +291,161 @@ class TestRepositoryPolicy(unittest.TestCase):
         ):
             with self.subTest(license_text):
                 self.assertNotIn(license_text, accepted)
+
+
+class TestExactMessages(unittest.TestCase):
+    """The text of every policy error, character for character: the gate prints it."""
+
+    def error(self, text: str) -> str:
+        with self.assertRaises(lp.PolicyError) as caught:
+            lp.parse_policy(text)
+        return str(caught.exception)
+
+    def test_allow_errors(self):
+        self.assertEqual(self.error("allow = []"), "`allow` must be a non-empty list")
+        self.assertEqual(self.error("allow = [1]"), "allow: license must be a string, got 1")
+        self.assertEqual(
+            self.error('allow = ["MIT OR ISC"]'),
+            "allow: 'MIT OR ISC' must be a single license, not an expression",
+        )
+        self.assertEqual(
+            self.error('allow = ["MIT/ISC"]'),
+            "allow: 'MIT/ISC' is not an SPDX license: invalid license identifier 'MIT/ISC'",
+        )
+        self.assertEqual(self.error('allow = ["MIT", "mit"]'), "`allow` contains a license twice")
+
+    def test_dev_only_errors(self):
+        head = 'allow = ["MIT"]\n'
+        self.assertEqual(
+            self.error(head + "dev_only = 5"), "`dev_only` must be a table of license = reason"
+        )
+        self.assertEqual(
+            self.error(head + '[dev_only]\n"BlueOak-1.0.0" = ""'),
+            "dev_only.BlueOak-1.0.0: a non-empty reason is required",
+        )
+        self.assertEqual(
+            self.error(head + '[dev_only]\n"MIT/ISC" = "x"'),
+            "dev_only: 'MIT/ISC' is not an SPDX license: invalid license identifier 'MIT/ISC'",
+        )
+        self.assertEqual(
+            self.error(head + '[dev_only]\nBlueOak = "x"\nblueoak = "y"'),
+            "`dev_only` contains a license twice (differing only in case)",
+        )
+        self.assertEqual(
+            self.error(head + '[dev_only]\nMIT = "x"'),
+            "licenses in both `allow` and `dev_only`: ['mit']",
+        )
+
+    def test_exception_errors(self):
+        head = 'allow = ["MIT"]\n'
+        entry = '[[exception]]\nname = "a"\nlicense = "x"\nreason = "r"\n'
+        self.assertEqual(self.error(head + "exception = 5"), "`exception` must be an array of tables")
+        self.assertEqual(
+            self.error(head + '[[exception]]\nname = "a"'),
+            "exception[0]: exactly the keys name, license and reason are required",
+        )
+        self.assertEqual(
+            self.error(head + entry + '[[exception]]\nname = ""\nlicense = "x"\nreason = "r"'),
+            "exception[1]: `name` must be a non-empty string",
+        )
+        self.assertEqual(
+            self.error(head + '[[exception]]\nname = "a"\nlicense = " "\nreason = "r"'),
+            "exception[0]: `license` must be a non-empty string",
+        )
+        self.assertEqual(
+            self.error(head + entry + '[[exception]]\nname = "b"\nlicense = "x"\nreason = " "'),
+            "exception[1]: a non-empty reason is required",
+        )
+        self.assertEqual(
+            self.error(head + entry + entry), "`exception` lists the same package and license twice"
+        )
+
+    def test_toml_and_key_errors(self):
+        self.assertEqual(self.error("allow = ["), "invalid TOML: Invalid value (at end of document)")
+        self.assertEqual(self.error('allow = ["MIT"]\nbad = 1'), "unknown keys: ['bad']")
+
+    def test_reasons_are_stripped(self):
+        pol = lp.parse_policy('allow = ["MIT"]\n[dev_only]\nBlueOak = "  because  "\n')
+        self.assertEqual(pol.dev_only, {"blueoak": "because"})
+        pol = lp.parse_policy(
+            'allow = ["MIT"]\n[[exception]]\nname = "a"\nlicense = "x"\nreason = " why "\n'
+        )
+        self.assertEqual(pol.exceptions, (lp.PackageException("a", "x", "why"),))
+
+
+class TestCheckDetails(unittest.TestCase):
+    POLICY = lp.parse_policy(
+        'allow = ["MIT"]\n[dev_only]\nBlueOak = "a"\n"Python-2.0" = "b"\n'
+        '[[exception]]\nname = "aaa"\nlicense = "SEE LICENSE IN X"\nreason = "r"\n'
+    )
+
+    def test_an_exception_does_not_stop_the_checks_of_the_next_packages(self):
+        # "aaa" sorts first and is excused; "bbb" after it must still be checked.
+        result = lp.check([pkg("bbb", "GPL-2.0-only"), pkg("aaa", "SEE LICENSE IN X")], set(), self.POLICY)
+        self.assertEqual([v.package.name for v in result.violations], ["bbb"])
+
+    def test_a_missing_license_does_not_stop_the_checks_of_the_next_packages(self):
+        result = lp.check([pkg("aaa", "Unknown"), pkg("bbb", "GPL-2.0-only")], set(), self.POLICY)
+        self.assertEqual([v.package.name for v in result.violations], ["aaa", "bbb"])
+
+    def test_a_malformed_license_does_not_stop_the_checks_of_the_next_packages(self):
+        result = lp.check([pkg("aaa", "MIT/ISC"), pkg("bbb", "GPL-2.0-only")], set(), self.POLICY)
+        self.assertEqual([v.package.name for v in result.violations], ["aaa", "bbb"])
+
+    def test_an_allowed_license_does_not_stop_the_checks_of_the_next_packages(self):
+        result = lp.check([pkg("aaa", "MIT"), pkg("bbb", "GPL-2.0-only")], set(), self.POLICY)
+        self.assertEqual([v.package.name for v in result.violations], ["bbb"])
+
+    def test_a_violation_keeps_package_and_scope_for_every_reason(self):
+        packages = [pkg("a", "Unknown"), pkg("b", "MIT/ISC"), pkg("c", "GPL-2.0-only")]
+        for runtime in (True, False):
+            with self.subTest(runtime=runtime):
+                keys = {(p.name, p.version) for p in packages} if runtime else set()
+                result = lp.check(packages, keys, self.POLICY)
+                self.assertEqual(
+                    [(v.package, v.runtime) for v in result.violations],
+                    [(p, runtime) for p in packages],
+                )
+
+    def test_the_reason_of_a_malformed_license_carries_the_parser_message(self):
+        (violation,) = lp.check([pkg("b", "MIT/ISC")], set(), self.POLICY).violations
+        self.assertEqual(
+            violation.reason,
+            "not a valid SPDX expression (invalid license identifier 'MIT/ISC')",
+        )
+
+    def test_several_dev_only_licenses_are_listed_with_a_comma(self):
+        runtime = {("x", "1.0.0")}
+        (violation,) = lp.check([pkg("x", "BlueOak AND Python-2.0")], runtime, self.POLICY).violations
+        self.assertEqual(
+            violation.reason,
+            "BlueOak, Python-2.0 is accepted for dev/build-only packages only, "
+            "but this one is a runtime dependency",
+        )
+
+    def test_several_rejected_licenses_are_listed_with_a_comma(self):
+        (violation,) = lp.check([pkg("x", "GPL-2.0-only AND AGPL-3.0-only")], set(), self.POLICY).violations
+        self.assertEqual(violation.reason, "not on the allowlist: GPL-2.0-only, AGPL-3.0-only")
+
+
+class TestFileEncoding(unittest.TestCase):
+    def test_the_policy_and_deny_files_are_read_as_utf8(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            policy_file = pathlib.Path(tmp) / "policy.toml"
+            deny_file = pathlib.Path(tmp) / "deny.toml"
+            policy_file.write_text(POLICY_TEXT, encoding="utf-8")
+            deny_file.write_text('[licenses]\nallow = ["MIT", "ISC"]\n', encoding="utf-8")
+            real = pathlib.Path.read_text
+            seen: list[object] = []
+
+            def spy(path, *args, **kwargs):
+                seen.append(kwargs.get("encoding"))
+                return real(path, *args, **kwargs)
+
+            with mock.patch.object(pathlib.Path, "read_text", autospec=True, side_effect=spy):
+                self.assertEqual(lp.load_policy(policy_file), policy())
+                self.assertEqual(lp.deny_allow_list(deny_file), frozenset({"mit", "isc"}))
+        self.assertEqual(seen, ["utf-8", "utf-8"])
 
 
 if __name__ == "__main__":

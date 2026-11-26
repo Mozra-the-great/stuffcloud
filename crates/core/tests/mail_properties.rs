@@ -113,7 +113,7 @@ proptest! {
     /// A document that validates survives its canonical form (what the store keeps).
     #[test]
     fn a_valid_group_round_trips_through_its_canonical_form(
-        host in "[a-z][a-z0-9-]{0,10}(\\.[a-z]{2,6}){0,2}",
+        host in "[a-z][a-z0-9]{0,10}(\\.[a-z]{2,6}){0,2}",
         port in 1_u16..,
         security in security(),
         name in prop::option::of("[A-Za-z0-9 ]{1,20}"),

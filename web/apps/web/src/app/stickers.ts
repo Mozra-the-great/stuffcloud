@@ -1,4 +1,4 @@
-import { isCodeArt, type CodeArt } from '@mozra-the-great/kern';
+import type { CodeArt } from '@mozra-the-great/kern';
 import type { StickerName } from '@stuffcloud/tools';
 
 const SOURCE_DIR = '../../../../../docs/design/prototypes';
@@ -21,13 +21,9 @@ export function stickerUrl(
   return url;
 }
 
-/** kern's code art of a design sticker (`tool-stickers/sticker-<name>`: its pixel grid); throws when kern has none. */
+/** kern's code art of a design sticker (`tool-stickers/sticker-<name>`: its pixel grid); a test checks that kern has it for every sticker. */
 export function stickerArt(name: StickerName): CodeArt {
-  const art = `tool-stickers/sticker-${name}`;
-  if (!isCodeArt(art)) {
-    throw new Error(`kern has no code art for the sticker ${name}`);
-  }
-  return art;
+  return `tool-stickers/sticker-${name}` as CodeArt;
 }
 
 /**

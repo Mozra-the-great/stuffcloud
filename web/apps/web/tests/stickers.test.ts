@@ -1,4 +1,4 @@
-import { CODE_ART } from '@mozra-the-great/kern';
+import { CODE_ART, isCodeArt } from '@mozra-the-great/kern';
 import { STICKER_NAMES } from '@stuffcloud/tools';
 import { render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
@@ -42,6 +42,7 @@ describe('stickerArt', () => {
     for (const name of STICKER_NAMES) {
       const art = stickerArt(name);
       expect(art, name).toBe(`tool-stickers/sticker-${name}`);
+      expect(isCodeArt(art), `kern has code art for ${name}`).toBe(true);
       const grid = CODE_ART[art];
       expect(readRepoFile(`docs/design/prototypes/sticker-${name}.svg`), name).toContain(
         `viewBox="0 0 ${String(grid.cols)} ${String(grid.rows)}"`,

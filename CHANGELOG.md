@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   form and the first and last instant with a clock, the switch of the relative time at the average month and year, number formatting on both
   sides of 1e15 and 1e-6 (and a property test of the digit count), absolute zero, and the unit search against a plain-loop reference for
   every two-letter query; guards no input could reach were removed. (#184)
+- No surviving mutant in the URL and lorem ipsum tools (#162): the start of every malformed percent escape, checked against a plain
+  character-by-character reader on 4000 random texts in all three modes, the whole lorem vocabulary, the dedupe of repeated words and the
+  position of the comma. (#186)
 - Mutation testing of the Python CI helpers (#161, ADR 0007 addendum): job `mutation-python` in `ci.yml` (part of
   `build`; it never skips itself) and the nightly `deep-tests.yml` run [mutmut](https://github.com/boxed/mutmut) 3
   over every `scripts/ci/*.py`, and `scripts/ci/mutation_gate.py` fails on any mutant no test noticed (`mutmut run`

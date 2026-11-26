@@ -78,9 +78,11 @@ function drawWords(count: number, below: Below, previous: string | undefined): s
   let last = previous;
   for (let index = 0; index < count; index += 1) {
     const at = below(WORDS.length);
+    // Stryker disable next-line StringLiteral: `below(limit)` is below `limit`, so the word exists and the fallback is never used
     let word = WORDS[at] ?? '';
     if (word === last) {
       // The next word of the list: no second draw, so the result is the same for the same numbers.
+      // Stryker disable next-line StringLiteral: as above
       word = WORDS[(at + 1) % WORDS.length] ?? '';
     }
     words.push(word);
@@ -103,6 +105,7 @@ export function drawSentence(length: number, below: Below): string {
   // A comma after a word that leaves at least two words on each side.
   if (length >= 8 && below(2) === 0) {
     const at = 2 + below(length - 4);
+    // Stryker disable next-line StringLiteral: `at` is between 2 and `length` - 3, so the word exists
     words[at] = `${words[at] ?? ''},`;
   }
   return `${words.join(' ')}.`;

@@ -1,7 +1,7 @@
 <script lang="ts">
+  import { Progress } from '@mozra-the-great/kern';
   import { tick, untrack } from 'svelte';
   import { i18n, t } from '../i18n/index.ts';
-  import Progress from '../ui/Progress.svelte';
   import type { Announcer } from './announcer.svelte.ts';
   import ErrorState from './ErrorState.svelte';
   import { documentTitle, focusHeading, headingText } from './focus.ts';
@@ -117,7 +117,7 @@
 <main id="main" tabindex="-1" aria-busy={loading} bind:this={main}>
   {#if showProgress}
     <div class="loading">
-      <Progress label={t('status.loading')} />
+      <Progress hideLabel label={t('status.loading')} />
     </div>
   {/if}
   {#if loadFailed}

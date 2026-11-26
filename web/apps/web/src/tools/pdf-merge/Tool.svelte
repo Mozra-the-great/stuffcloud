@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Progress } from '@mozra-the-great/kern';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ReorderList from '../../app/ReorderList.svelte';
   import { i18n, t } from '../../i18n/index.ts';
@@ -13,7 +14,6 @@
   import Button from '../../ui/Button.svelte';
   import FileDropzone from '../../ui/FileDropzone.svelte';
   import LinkButton from '../../ui/LinkButton.svelte';
-  import Progress from '../../ui/Progress.svelte';
 
   interface Entry {
     /** Stays with the file while it moves in the list. */
@@ -269,6 +269,7 @@
 
   {#if working}
     <Progress
+      hideLabel
       label={t('pdf.progress')}
       value={completed}
       max={total}

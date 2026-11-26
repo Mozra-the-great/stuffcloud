@@ -7,13 +7,13 @@ every new tool and every new page**; a PR that adds one without its spec does no
 
 ## The gate
 
-| What | Where | Fails the build when |
-|---|---|---|
-| axe in the real browser (Chromium and Firefox) | `web/apps/web/e2e/support/axe.ts`, called by `a11y.check(page, '<state>')` | any rule of the sets `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa` or `best-practice` is violated, whatever its impact |
-| axe on rendered components in jsdom | `web/apps/web/tests/a11y-components.test.ts` | the same sets, without the rules that need layout (contrast, target size) |
-| keyboard walk | `e2e/support/keyboard.ts` (`expectKeyboardOnly`), `e2e/specs/keyboard.spec.ts` | a control is not reached by Tab in document order, focus is trapped, a focused control shows no ring or is covered |
-| reflow | `e2e/specs/a11y.spec.ts` | a page needs a horizontal scroll bar at 320 CSS pixels (WCAG 1.4.10) |
-| reduced motion | `e2e/specs/motion.spec.ts` | anything animates, transitions with a duration or scrolls smoothly while `prefers-reduced-motion: reduce` is set |
+| What                                           | Where                                                                          | Fails the build when                                                                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| axe in the real browser (Chromium and Firefox) | `web/apps/web/e2e/support/axe.ts`, called by `a11y.check(page, '<state>')`     | any rule of the sets `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa` or `best-practice` is violated, whatever its impact |
+| axe on rendered components in jsdom            | `web/apps/web/tests/a11y-components.test.ts`                                   | the same sets, without the rules that need layout (contrast, target size)                                                       |
+| keyboard walk                                  | `e2e/support/keyboard.ts` (`expectKeyboardOnly`), `e2e/specs/keyboard.spec.ts` | a control is not reached by Tab in document order, focus is trapped, a focused control shows no ring or is covered              |
+| reflow                                         | `e2e/specs/a11y.spec.ts`                                                       | a page needs a horizontal scroll bar at 320 CSS pixels (WCAG 1.4.10)                                                            |
+| reduced motion                                 | `e2e/specs/motion.spec.ts`                                                     | anything animates, transitions with a duration or scrolls smoothly while `prefers-reduced-motion: reduce` is set                |
 
 Zero violations is the bar. Nothing is waved through as "minor", and a rule is never switched
 off to get green; a real false positive is excluded for that one element with a comment that says
@@ -36,7 +36,7 @@ one `h1` and passes axe, and `expectKeyboardOnly` walks it with Tab alone. Exten
   without a mouse (`expectKeyboardOnly`, plus `page.keyboard.press` for the tool's own keys).
 - A result that appears after work (done, failed, a digest, a count) goes into a live region
   (`role="status"`, or `role="alert"` for an error) that exists in the page **before** it has text.
-- Progress uses `Progress` (`role="progressbar"` with a name); an indeterminate bar has no value.
+- Progress uses kern's `Progress` with `hideLabel` (`role="progressbar"` named by its label, which is not painted); an indeterminate bar has no value.
 - Every control has an accessible name from the message catalogue in both languages; icon-only
   buttons have an `aria-label`; colour is never the only carrier of meaning.
 - A decorative picture is `aria-hidden` / `alt=""`; a meaningful one has a text alternative
@@ -57,13 +57,13 @@ key (WCAG 2.1.4); the one global shortcut uses a modifier.
 
 ### Everywhere
 
-| Keys | Effect |
-|---|---|
-| `Tab` / `Shift+Tab` | Next / previous control, in document order. The first stop on every page is the skip link. |
-| `Enter` | Follows a link, presses a button. |
-| `Space` | Presses a button, toggles a checkbox. |
-| `Ctrl+K` / `Cmd+K` | Opens the tool search (focus goes into the search field). |
-| `Esc` | Closes the open dialog and returns focus to the control that opened it; closes the phone menu and returns focus to its button. |
+| Keys                | Effect                                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `Tab` / `Shift+Tab` | Next / previous control, in document order. The first stop on every page is the skip link.                                     |
+| `Enter`             | Follows a link, presses a button.                                                                                              |
+| `Space`             | Presses a button, toggles a checkbox.                                                                                          |
+| `Ctrl+K` / `Cmd+K`  | Opens the tool search (focus goes into the search field).                                                                      |
+| `Esc`               | Closes the open dialog and returns focus to the control that opened it; closes the phone menu and returns focus to its button. |
 
 ### Page structure
 
@@ -76,19 +76,19 @@ key (WCAG 2.1.4); the one global shortcut uses a modifier.
 
 ### Components
 
-| Component | Keys |
-|---|---|
-| Tabs (`role="tablist"`) | One Tab stop (the selected tab). `ArrowRight` / `ArrowLeft` select and focus the next / previous tab and wrap around; `Home` / `End` the first / last. `Tab` leaves the list for the panel. |
-| Tab links (category navigation) | Ordinary links: `Tab` between them, `Enter` to follow; the current one has `aria-current="page"`. |
-| Dialog (native `<dialog>`, modal) | The page behind is inert. `Tab` and `Shift+Tab` cycle through the dialog; `Esc` or the close button closes it; focus returns to the opener. |
-| Search dialog | Opens with `Ctrl+K`; the search field has focus. Typing filters; `Enter` opens the first hit; `Tab` reaches the hits (links). |
-| Language switch | Two toggle buttons (`aria-pressed`); `Enter` / `Space` switch at once, focus stays on the button. |
-| File drop zone | The "Choose files" button is the keyboard route (`Enter` / `Space` open the file picker); drag and drop is an extra, never the only way. |
-| Toast | A dismiss button per toast; the toast pauses its timer while it is hovered or focused. |
+| Component                               | Keys                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tabs (`role="tablist"`)                 | One Tab stop (the selected tab). `ArrowRight` / `ArrowLeft` select and focus the next / previous tab and wrap around; `Home` / `End` the first / last. `Tab` leaves the list for the panel.                                                                                                                                                                               |
+| Tab links (category navigation)         | Ordinary links: `Tab` between them, `Enter` to follow; the current one has `aria-current="page"`.                                                                                                                                                                                                                                                                         |
+| Dialog (native `<dialog>`, modal)       | The page behind is inert. `Tab` and `Shift+Tab` cycle through the dialog; `Esc` or the close button closes it; focus returns to the opener.                                                                                                                                                                                                                               |
+| Search dialog                           | Opens with `Ctrl+K`; the search field has focus. Typing filters; `Enter` opens the first hit; `Tab` reaches the hits (links).                                                                                                                                                                                                                                             |
+| Language switch                         | Two toggle buttons (`aria-pressed`); `Enter` / `Space` switch at once, focus stays on the button.                                                                                                                                                                                                                                                                         |
+| File drop zone                          | The "Choose files" button is the keyboard route (`Enter` / `Space` open the file picker); drag and drop is an extra, never the only way.                                                                                                                                                                                                                                  |
+| Toast                                   | A dismiss button per toast; the toast pauses its timer while it is hovered or focused.                                                                                                                                                                                                                                                                                    |
 | Page grid (`role="listbox"`, PDF tools) | One Tab stop (the current page). Arrow keys move between pages (Up/Down by a row, `Home`/`End`, `PageUp`/`PageDown`); `Space` or `Enter` selects, `Shift`+arrow or `Shift`+`Space` extends the selection, `Ctrl+A` selects all, `Esc` clears. Where pages can be reordered, `Alt`+arrow moves the focused page; the buttons of the toolbar do the same for the selection. |
-| Reorderable list (`ReorderList`, merge) | Each item has "up", "down" and "remove" buttons with the item's name; the focus stays on the pressed button (or its partner when it is disabled at the end of the list). Drag and drop is an extra. |
-| Code block | The copy button; its result is announced. |
-| Progress bar | Not a control; read through its role, name and value. |
+| Reorderable list (`ReorderList`, merge) | Each item has "up", "down" and "remove" buttons with the item's name; the focus stays on the pressed button (or its partner when it is disabled at the end of the list). Drag and drop is an extra.                                                                                                                                                                       |
+| Code block                              | The copy button; its result is announced.                                                                                                                                                                                                                                                                                                                                 |
+| Progress bar                            | Not a control; read through its role, name and value.                                                                                                                                                                                                                                                                                                                     |
 
 ## Focus management
 
@@ -115,12 +115,12 @@ key (WCAG 2.1.4); the one global shortcut uses a modifier.
 Both regions exist, empty, from the first render; text is put into them afterwards (a region that
 arrives together with its text is not announced by every screen reader).
 
-| Region | Role | Used for |
-|---|---|---|
-| Navigation announcer (`LiveAnnouncer`) | `status`, polite, atomic | "Navigated to ..." after each page change |
-| Toasts | `status` (info, success, warn) and `alert` (error) | Short messages that need no action |
-| Search result count | `status` | "3 tools found" / "No tools found" while typing |
-| Tool results | `status` or `alert` (the tool's own) | Done, failed, counts; the PDF tools announce every page action ("Moved 1 page to position 3.") and every undo and redo |
+| Region                                 | Role                                               | Used for                                                                                                               |
+| -------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Navigation announcer (`LiveAnnouncer`) | `status`, polite, atomic                           | "Navigated to ..." after each page change                                                                              |
+| Toasts                                 | `status` (info, success, warn) and `alert` (error) | Short messages that need no action                                                                                     |
+| Search result count                    | `status`                                           | "3 tools found" / "No tools found" while typing                                                                        |
+| Tool results                           | `status` or `alert` (the tool's own)               | Done, failed, counts; the PDF tools announce every page action ("Moved 1 page to position 3.") and every undo and redo |
 
 ## Motion
 

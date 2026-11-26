@@ -1,9 +1,9 @@
 <script lang="ts">
+  import { Progress } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import ToolFrame from '../../../../src/app/ToolFrame.svelte';
   import Button from '../../../../src/ui/Button.svelte';
   import FileDropzone from '../../../../src/ui/FileDropzone.svelte';
-  import Progress from '../../../../src/ui/Progress.svelte';
   import { createPool } from './pool.ts';
   import type { Digest, Input } from './task.ts';
 
@@ -123,7 +123,7 @@
       >Download report</Button
     >
   </div>
-  <Progress label="Progress" value={completed} max={Math.max(total, 1)} />
+  <Progress hideLabel label="Progress" value={completed} max={Math.max(total, 1)} />
   <p data-testid="lab-status" data-status={status}>
     {status} · {completed} of {total} · workers: {workers}
   </p>

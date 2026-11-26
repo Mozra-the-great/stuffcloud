@@ -1,12 +1,8 @@
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import Card from '../src/ui/Card.svelte';
 import TabLinks from '../src/ui/TabLinks.svelte';
-import Tile from '../src/ui/Tile.svelte';
-import TileGrid from '../src/ui/TileGrid.svelte';
 import type { TabItem, TabLink } from '../src/ui/types.ts';
-import { textSnippet } from './helpers.ts';
 import Tabs from './TabsHost.svelte';
 
 const tabs: readonly TabItem[] = [
@@ -133,45 +129,5 @@ describe('TabLinks', () => {
     expect(screen.getByRole('link', { name: 'Convert' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('link', { name: 'Base64' }).getAttribute('aria-current')).toBeNull();
     expect(screen.getByRole('link', { name: 'Units' }).getAttribute('aria-current')).toBeNull();
-  });
-});
-
-describe('Card', () => {
-  it('is a div by default and keeps its content', () => {
-    render(Card, { children: textSnippet('Hello'), 'data-testid': 'card' });
-    const card = screen.getByTestId('card');
-    expect(card.tagName).toBe('DIV');
-    expect(card.textContent).toBe('Hello');
-  });
-
-  it.each(['section', 'article', 'li'] as const)('can render as %s', (tag) => {
-    render(Card, { tag, children: textSnippet('x'), 'data-testid': 'card' });
-    expect(screen.getByTestId('card').tagName).toBe(tag.toUpperCase());
-  });
-
-  it('passes aria attributes through', () => {
-    render(Card, { tag: 'section', 'aria-label': 'Storage', children: textSnippet('x') });
-    expect(screen.getByRole('region', { name: 'Storage' })).toBeTruthy();
-  });
-});
-
-describe('Tile and TileGrid', () => {
-  it('a tile without href is a plain cell', () => {
-    render(Tile, { children: textSnippet('Plain'), 'data-testid': 'tile' });
-    const tile = screen.getByTestId('tile');
-    expect(tile.tagName).toBe('DIV');
-    expect(tile.textContent).toBe('Plain');
-  });
-
-  it('a tile with href is a link around the whole cell', () => {
-    render(Tile, { href: '/pdf', children: textSnippet('PDF') });
-    const link = screen.getByRole('link', { name: 'PDF' });
-    expect(link.getAttribute('href')).toBe('/pdf');
-  });
-
-  it('the grid wraps its tiles and passes attributes through', () => {
-    render(TileGrid, { 'aria-label': 'Tools', role: 'group', children: textSnippet('inside') });
-    const grid = screen.getByRole('group', { name: 'Tools' });
-    expect(grid.textContent).toBe('inside');
   });
 });

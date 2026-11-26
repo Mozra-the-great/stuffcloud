@@ -508,6 +508,29 @@ class TestCollectDetails(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.web = make_web(pathlib.Path(self._tmp.name))
 
+    def test_the_tarballs_of_the_lockfile_are_part_of_the_inventory(self):
+        url = "https://example.com/releases/kit-1.0.0.tgz"
+        lock = self.web / "pnpm-lock.yaml"
+        text = lock.read_text(encoding="utf-8")
+        entry = "  eslint@10.15.0:\n"
+        self.assertIn(entry, text)
+        lock.write_text(
+            text.replace(entry, f"  'kit@{url}':\n    resolution: {{tarball: {url}}}\n    version: 1.0.0\n\n{entry}", 1),
+            encoding="utf-8",
+        )
+        everything = {**ALL_LOCKED, "MIT": [*ALL_LOCKED["MIT"], ("kit", ["1.0.0"])]}
+        inventory = nl.collect(self.web, run=FakePnpm(everything, {}))
+        self.assertEqual(inventory.tarballs, {("kit", "1.0.0"): url})
+
+    def test_a_tarball_entry_without_a_version_names_itself(self):
+        text = "packages:\n  'kit@https://example.com/kit-1.0.0.tgz':\n    resolution: {}\n"
+        with self.assertRaises(nl.InventoryError) as caught:
+            nl.lockfile_entries(text)
+        self.assertEqual(
+            str(caught.exception),
+            "pnpm-lock.yaml: tarball entry kit@https://example.com/kit-1.0.0.tgz has no version",
+        )
+
     def test_every_pnpm_call_runs_in_the_scratch_directory(self):
         fake = FakePnpm(ALL_LOCKED, {})
         nl.collect(self.web, run=fake)

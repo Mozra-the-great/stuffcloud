@@ -31,11 +31,11 @@
   .live {
     display: flex;
     flex-direction: column;
-    gap: var(--space-8);
+    gap: var(--k-space-2);
   }
 
   .live :global(.live-error.has-error) {
-    padding: var(--space-12) var(--space-16);
+    padding: var(--k-space-3) var(--k-space-4);
     border: 1px solid var(--k-danger);
   }
 </style>

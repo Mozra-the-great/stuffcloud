@@ -87,13 +87,13 @@
   .tool {
     display: flex;
     flex-direction: column;
-    gap: var(--space-40);
+    gap: var(--k-space-8);
   }
 
   .block {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     max-width: 760px;
   }
 
@@ -107,6 +107,6 @@
   .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
   }
 </style>

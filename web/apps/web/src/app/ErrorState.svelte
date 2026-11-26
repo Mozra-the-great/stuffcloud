@@ -38,7 +38,7 @@
 <style>
   .hint {
     margin: 0;
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 </style>

@@ -296,19 +296,19 @@
 
   .meta {
     display: block;
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .actions,
   .result {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
   }
 
   .hint {
     margin: 0;
-    color: var(--mut);
+    color: var(--k-fg-muted);
   }
 </style>

@@ -362,13 +362,13 @@
   .tool {
     display: flex;
     flex-direction: column;
-    gap: var(--space-40);
+    gap: var(--k-space-8);
   }
 
   .block {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     max-width: 1100px;
   }
 
@@ -380,10 +380,10 @@
   }
 
   .subheading {
-    margin: 0 0 var(--space-8);
-    font: 12px var(--mono);
+    margin: 0 0 var(--k-space-2);
+    font: 12px var(--k-font-mono);
     letter-spacing: 1px;
-    color: var(--mut);
+    color: var(--k-fg-muted);
     text-transform: uppercase;
     font-weight: 400;
   }
@@ -391,34 +391,34 @@
   .pair {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-    gap: var(--space-16);
+    gap: var(--k-space-4);
   }
 
   .note {
     margin: 0;
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .diff {
     width: 100%;
     table-layout: fixed;
     border-collapse: collapse;
-    font: 13px/1.5 var(--mono);
+    font: 13px/1.5 var(--k-font-mono);
   }
 
   .diff th {
-    padding: var(--space-8);
+    padding: var(--k-space-2);
     text-align: left;
     font-weight: 400;
-    color: var(--mut);
-    border-bottom: 1px solid var(--line2);
+    color: var(--k-fg-muted);
+    border-bottom: 1px solid var(--k-line-strong);
   }
 
   .diff td {
-    padding: 0 var(--space-8);
+    padding: 0 var(--k-space-2);
     vertical-align: top;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--k-line);
   }
 
   col.num {
@@ -430,7 +430,7 @@
   }
 
   .num {
-    color: var(--mut);
+    color: var(--k-fg-muted);
     text-align: right;
   }
 
@@ -452,10 +452,10 @@
   }
 
   .skipped td {
-    padding: var(--space-8);
-    color: var(--mut);
+    padding: var(--k-space-2);
+    color: var(--k-fg-muted);
     text-align: center;
-    background: var(--line);
+    background: var(--k-line);
   }
 
   ins,
@@ -476,9 +476,9 @@
 
   .flow {
     margin: 0;
-    padding: var(--space-12) var(--space-14);
-    border: 1px solid var(--line);
-    font: 14px/1.6 var(--mono);
+    padding: var(--k-space-3) var(--k-space-3-5);
+    border: 1px solid var(--k-line);
+    font: 14px/1.6 var(--k-font-mono);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }

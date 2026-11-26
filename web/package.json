@@ -16,7 +16,6 @@
     "test": "vitest run --config tests/vitest.config.ts && pnpm -r --workspace-concurrency=1 test",
     "test:mutation": "pnpm -r --workspace-concurrency=1 test:mutation",
     "build": "pnpm -r build",
-    "tokens": "pnpm --filter @stuffcloud/web tokens",
     "check-tools": "pnpm --filter @stuffcloud/web check-tools",
     "new-tool": "pnpm --filter @stuffcloud/web new-tool",
     "e2e": "pnpm --filter @stuffcloud/web e2e:build && pnpm --filter @stuffcloud/web e2e"

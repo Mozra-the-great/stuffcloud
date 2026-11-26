@@ -449,40 +449,40 @@
   .editor {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
   }
 
   .file {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
     align-items: baseline;
     margin: 0;
     overflow-wrap: anywhere;
   }
 
   .meta {
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .hint {
     margin: 0;
-    color: var(--mut);
+    color: var(--k-fg-muted);
   }
 
   .toolbar {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
-    gap: var(--space-16) var(--space-24);
+    gap: var(--k-space-4) var(--k-space-6);
   }
 
   .cluster {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
-    gap: var(--space-8);
+    gap: var(--k-space-2);
   }
 
   .position {
@@ -492,6 +492,6 @@
   .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
   }
 </style>

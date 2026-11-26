@@ -52,13 +52,13 @@
 
 <style>
   .tool {
-    gap: var(--space-20);
+    gap: var(--k-space-5);
   }
 
   .head {
     display: flex;
     align-items: center;
-    gap: var(--space-20);
+    gap: var(--k-space-5);
   }
 
   .description {
@@ -68,13 +68,13 @@
 
   .note {
     margin: 0;
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .unsupported {
     margin: 0;
-    padding: var(--space-16);
-    border: 1px solid var(--line);
+    padding: var(--k-space-4);
+    border: 1px solid var(--k-line);
   }
 </style>

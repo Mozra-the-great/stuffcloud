@@ -65,7 +65,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-8);
+    gap: var(--k-space-2);
     width: 100%;
     height: 100%;
   }
@@ -80,8 +80,8 @@
   }
 
   .number {
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   /* The pages are portrait: a frame of 150 x 215 px at the smallest column width, as before. */

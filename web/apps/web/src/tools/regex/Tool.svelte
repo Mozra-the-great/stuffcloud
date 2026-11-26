@@ -268,13 +268,13 @@
   .tool {
     display: flex;
     flex-direction: column;
-    gap: var(--space-40);
+    gap: var(--k-space-8);
   }
 
   .block {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     max-width: 760px;
   }
 
@@ -294,23 +294,23 @@
   }
 
   .legend {
-    padding: 0 0 var(--space-8);
-    font: 12px var(--mono);
+    padding: 0 0 var(--k-space-2);
+    font: 12px var(--k-font-mono);
     letter-spacing: 1px;
-    color: var(--mut);
+    color: var(--k-fg-muted);
     text-transform: uppercase;
   }
 
   .marked {
     margin: 0;
-    font: 15px/1.6 var(--mono);
+    font: 15px/1.6 var(--k-font-mono);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
 
   mark {
-    background: var(--pink);
-    color: var(--bg);
+    background: var(--k-accent);
+    color: var(--k-bg);
     font-weight: 700;
     text-decoration: underline;
     text-underline-offset: 3px;
@@ -319,13 +319,13 @@
   table {
     border-collapse: collapse;
     width: 100%;
-    font: 14px var(--mono);
+    font: 14px var(--k-font-mono);
   }
 
   th,
   td {
-    padding: var(--space-8) var(--space-12);
-    border-bottom: 1px solid var(--line);
+    padding: var(--k-space-2) var(--k-space-3);
+    border-bottom: 1px solid var(--k-line);
     text-align: left;
     font-weight: 400;
     vertical-align: top;
@@ -333,7 +333,7 @@
   }
 
   thead th {
-    color: var(--mut);
+    color: var(--k-fg-muted);
   }
 
   .code {
@@ -343,62 +343,62 @@
   .groups {
     display: flex;
     flex-direction: column;
-    gap: var(--space-8);
+    gap: var(--k-space-2);
     margin: 0;
     padding: 0;
     list-style: none;
   }
 
   .group-name {
-    margin-right: var(--space-8);
-    color: var(--mut);
+    margin-right: var(--k-space-2);
+    color: var(--k-fg-muted);
   }
 
   .explain {
     display: flex;
     flex-direction: column;
-    gap: var(--space-8);
+    gap: var(--k-space-2);
     margin: 0;
     padding: 0;
     list-style: none;
-    font: 14px/1.5 var(--mono);
+    font: 14px/1.5 var(--k-font-mono);
   }
 
   .source {
-    margin-right: var(--space-12);
-    padding: 2px var(--space-8);
-    border: 1px solid var(--line);
+    margin-right: var(--k-space-3);
+    padding: 2px var(--k-space-2);
+    border: 1px solid var(--k-line);
     border-radius: 4px;
     white-space: pre-wrap;
   }
 
   .d1 {
-    padding-left: var(--space-20);
+    padding-left: var(--k-space-5);
   }
 
   .d2 {
-    padding-left: var(--space-40);
+    padding-left: var(--k-space-8);
   }
 
   .d3 {
-    padding-left: calc(var(--space-20) * 3);
+    padding-left: calc(var(--k-space-5) * 3);
   }
 
   .d4 {
-    padding-left: calc(var(--space-20) * 4);
+    padding-left: calc(var(--k-space-5) * 4);
   }
 
   .d5 {
-    padding-left: calc(var(--space-20) * 5);
+    padding-left: calc(var(--k-space-5) * 5);
   }
 
   .d6 {
-    padding-left: calc(var(--space-20) * 6);
+    padding-left: calc(var(--k-space-5) * 6);
   }
 
   .note {
     margin: 0;
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 </style>

@@ -44,7 +44,7 @@
   .blank {
     width: 70%;
     aspect-ratio: 210 / 297;
-    background: var(--line);
+    background: var(--k-line);
   }
 
   @media (forced-colors: active) {

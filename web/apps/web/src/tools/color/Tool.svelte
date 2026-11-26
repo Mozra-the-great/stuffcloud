@@ -324,13 +324,13 @@
   .tool {
     display: flex;
     flex-direction: column;
-    gap: var(--space-40);
+    gap: var(--k-space-8);
   }
 
   .block {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     max-width: 760px;
   }
 
@@ -343,20 +343,20 @@
 
   .note {
     margin: 0;
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .formats-layout {
     display: flex;
-    gap: var(--space-20);
+    gap: var(--k-space-5);
     align-items: stretch;
   }
 
   .preview {
     flex: none;
     width: 96px;
-    border: 1px solid var(--line2);
+    border: 1px solid var(--k-line-strong);
   }
 
   .formats,
@@ -366,7 +366,7 @@
     margin: 0;
     padding: 0;
     list-style: none;
-    border: 1px solid var(--line);
+    border: 1px solid var(--k-line);
   }
 
   .formats li,
@@ -374,9 +374,9 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-12);
-    padding: var(--space-8) var(--space-12);
-    border-bottom: 1px solid var(--line);
+    gap: var(--k-space-3);
+    padding: var(--k-space-2) var(--k-space-3);
+    border-bottom: 1px solid var(--k-line);
   }
 
   .formats li:last-child,
@@ -386,34 +386,34 @@
 
   .format-name {
     width: 6ch;
-    font: 12px var(--mono);
+    font: 12px var(--k-font-mono);
     letter-spacing: 1px;
-    color: var(--mut);
+    color: var(--k-fg-muted);
   }
 
   .format-value {
     flex: 1;
     min-width: 12ch;
-    font: 15px var(--mono);
+    font: 15px var(--k-font-mono);
     overflow-wrap: anywhere;
   }
 
   .pair {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: var(--space-20);
+    gap: var(--k-space-5);
   }
 
   .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
   }
 
   .sample {
-    padding: var(--space-24);
-    border: 1px solid var(--line2);
-    font: 500 18px var(--sans);
+    padding: var(--k-space-6);
+    border: 1px solid var(--k-line-strong);
+    font: 500 18px var(--k-font-sans);
   }
 
   .sample::before {
@@ -422,42 +422,42 @@
 
   .ratio {
     margin: 0;
-    font: 500 28px var(--mono);
+    font: 500 28px var(--k-font-mono);
   }
 
   table {
     border-collapse: collapse;
     width: 100%;
-    font: 14px var(--mono);
+    font: 14px var(--k-font-mono);
   }
 
   caption {
-    padding-bottom: var(--space-8);
+    padding-bottom: var(--k-space-2);
     text-align: left;
-    font: 12px var(--mono);
+    font: 12px var(--k-font-mono);
     letter-spacing: 1px;
-    color: var(--mut);
+    color: var(--k-fg-muted);
     text-transform: uppercase;
   }
 
   th,
   td {
-    padding: var(--space-8) var(--space-12);
-    border-bottom: 1px solid var(--line);
+    padding: var(--k-space-2) var(--k-space-3);
+    border-bottom: 1px solid var(--k-line);
     text-align: left;
     font-weight: 400;
   }
 
   thead th {
-    color: var(--mut);
+    color: var(--k-fg-muted);
   }
 
   td.pass {
-    color: var(--green);
+    color: var(--k-ok);
   }
 
   td:not(.pass) {
-    color: var(--pink2);
+    color: var(--k-danger);
   }
 
   .count {
@@ -468,12 +468,12 @@
     flex: none;
     width: 28px;
     height: 28px;
-    border: 1px solid var(--line2);
+    border: 1px solid var(--k-line-strong);
   }
 
   .share {
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   @media (max-width: 760px) {

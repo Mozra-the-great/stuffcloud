@@ -256,13 +256,13 @@
   .tool {
     display: flex;
     flex-direction: column;
-    gap: var(--space-40);
+    gap: var(--k-space-8);
   }
 
   .block {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     max-width: 760px;
   }
 
@@ -275,46 +275,46 @@
 
   .warning {
     margin: 0;
-    padding: var(--space-12) var(--space-16);
-    border: 1px solid var(--pink2);
-    border-radius: var(--radius);
-    font: 15px/1.5 var(--mono);
+    padding: var(--k-space-3) var(--k-space-4);
+    border: 1px solid var(--k-danger);
+    border-radius: var(--k-radius-control);
+    font: 15px/1.5 var(--k-font-mono);
   }
 
   .json {
     margin: 0;
-    font: 14px/1.5 var(--mono);
+    font: 14px/1.5 var(--k-font-mono);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
 
   .note {
     margin: 0;
-    font: 13px/1.5 var(--mono);
-    color: var(--mut);
+    font: 13px/1.5 var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .signature {
     margin: 0;
-    font: 14px/1.5 var(--mono);
+    font: 14px/1.5 var(--k-font-mono);
     overflow-wrap: anywhere;
   }
 
   .local {
     display: block;
-    color: var(--mut);
+    color: var(--k-fg-muted);
   }
 
   table {
     border-collapse: collapse;
     width: 100%;
-    font: 14px var(--mono);
+    font: 14px var(--k-font-mono);
   }
 
   th,
   td {
-    padding: var(--space-8) var(--space-12);
-    border-bottom: 1px solid var(--line);
+    padding: var(--k-space-2) var(--k-space-3);
+    border-bottom: 1px solid var(--k-line);
     text-align: left;
     font-weight: 400;
     vertical-align: top;
@@ -323,6 +323,6 @@
 
   thead th,
   tbody th {
-    color: var(--mut);
+    color: var(--k-fg-muted);
   }
 </style>

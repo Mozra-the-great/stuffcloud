@@ -28,9 +28,9 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: var(--space-28);
-    padding: 72px var(--space-40);
-    border-right: 1px solid var(--line);
+    gap: var(--k-space-6-5);
+    padding: 72px var(--k-space-8);
+    border-right: 1px solid var(--k-line);
   }
 
   .title {
@@ -52,14 +52,14 @@
     align-items: center;
     justify-content: center;
     min-height: 320px;
-    background: var(--violet);
+    background: var(--sc-stage);
   }
 
   @media (max-width: 760px) {
     .copy {
-      padding: var(--space-40) var(--space-16);
+      padding: var(--k-space-8) var(--k-space-4);
       border-right: 0;
-      border-bottom: 1px solid var(--line);
+      border-bottom: 1px solid var(--k-line);
     }
 
     .title {

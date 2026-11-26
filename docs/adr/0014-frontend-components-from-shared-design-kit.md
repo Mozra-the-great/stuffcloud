@@ -1,6 +1,6 @@
 # ADR 0014: Frontend components from the shared design kit kern
 
-- Status: Accepted
+- Status: Partly superseded by ADR 0016 (decision 4, the design source, and the generated `tokens.css` of decision 3; the rest stays accepted)
 - Date: 2026-11-26
 - Decided in: issue [#121](https://github.com/Mozra-the-great/stuffcloud/issues/121) (readiness
   re-check of 2026-11-26), kern's readiness programme
@@ -254,6 +254,13 @@ the result tables of eleven tools are plain `<table>` elements with row headers 
 work, are tested and accessible as they are; each swap changes the markup of a tool and its tests and needs its own
 look at the size budgets, so they are follow-up work (issue [#202](https://github.com/Mozra-the-great/stuffcloud/issues/202)), not part of this
 decision.
+
+## Addendum: kern is the design source (2026-11-26, #199)
+
+[ADR 0016](0016-kern-is-the-design-source.md) replaces decision 4: `docs/design` is no longer the design
+source but a frozen reference, kern's `code` theme is binding, and the app takes its tokens from kern's
+`--k-*` directly (no generated `tokens.css`, no `pnpm tokens`). The text above stays as the record of
+the decision at the time.
 
 ## Links
 

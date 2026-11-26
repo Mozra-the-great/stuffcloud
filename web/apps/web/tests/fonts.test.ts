@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { appRoot, readAppFile, readRepoFile } from './helpers.ts';
+import { appRoot, readAppFile, readKernCodeTokens, readRepoFile } from './helpers.ts';
 
 const fontDir = resolve(appRoot, 'src/assets/fonts');
 const fontFiles = readdirSync(fontDir).filter((name) => name.endsWith('.woff2'));
@@ -57,8 +57,11 @@ describe('self-hosted fonts', () => {
     expect(urls.map((url) => url.split('/').pop()).sort()).toEqual([...fontFiles].sort());
   });
 
-  it('declares the family names the font tokens use', () => {
-    const tokens = readAppFile('src/styles/tokens.css');
+  it("declares the family names kern's font tokens use (Code theme)", () => {
+    const tokens = [...readKernCodeTokens().entries()]
+      .filter(([name]) => name.startsWith('--k-font-'))
+      .map(([, value]) => value)
+      .join(' ');
     for (const family of ['Silkscreen', 'Inter', 'JetBrains Mono']) {
       expect(fontsCss).toContain(`font-family: '${family}'`);
       expect(tokens).toContain(`'${family}'`);

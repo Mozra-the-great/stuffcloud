@@ -104,7 +104,7 @@
 
 <style>
   .hdr {
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--k-line);
   }
 
   .bar {
@@ -122,14 +122,14 @@
   .brand {
     display: flex;
     align-items: center;
-    gap: var(--space-12);
-    padding: 0 var(--space-24);
+    gap: var(--k-space-3);
+    padding: 0 var(--k-space-6);
     min-height: 64px;
-    border-right: 1px solid var(--line);
+    border-right: 1px solid var(--k-line);
   }
 
   .brand span {
-    font-family: var(--pix);
+    font-family: var(--k-font-display);
     font-size: 18px;
   }
 
@@ -137,27 +137,27 @@
     display: flex;
     align-items: center;
     min-height: 64px;
-    padding: 0 var(--space-24);
-    border-right: 1px solid var(--line);
+    padding: 0 var(--k-space-6);
+    border-right: 1px solid var(--k-line);
     font-size: 15px;
     font-weight: 500;
   }
 
   .nav a:hover,
   .nav a[aria-current='page'] {
-    color: var(--pink);
+    color: var(--k-accent);
   }
 
   .right {
     display: flex;
     align-items: center;
-    gap: var(--space-16);
-    padding: 0 var(--space-16);
+    gap: var(--k-space-4);
+    padding: 0 var(--k-space-4);
   }
 
   kbd {
-    font: 12px var(--mono);
-    color: var(--mut);
+    font: 12px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .menu-btn {
@@ -167,8 +167,8 @@
     width: 56px;
     background: transparent;
     border: 0;
-    border-left: 1px solid var(--line);
-    color: var(--fg);
+    border-left: 1px solid var(--k-line);
+    color: var(--k-fg);
     cursor: pointer;
   }
 
@@ -188,7 +188,7 @@
     .menu:not([hidden]) {
       display: flex;
       flex-direction: column;
-      border-top: 1px solid var(--line);
+      border-top: 1px solid var(--k-line);
     }
 
     .menu .nav {
@@ -197,17 +197,17 @@
 
     .menu .nav a {
       border-right: 0;
-      border-bottom: 1px solid var(--line);
-      padding: 0 var(--space-16);
+      border-bottom: 1px solid var(--k-line);
+      padding: 0 var(--k-space-4);
     }
 
     .menu .right {
       flex-wrap: wrap;
-      padding: var(--space-16);
+      padding: var(--k-space-4);
     }
 
     .brand {
-      padding: 0 var(--space-16);
+      padding: 0 var(--k-space-4);
       min-height: 56px;
     }
 

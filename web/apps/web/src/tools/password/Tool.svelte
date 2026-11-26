@@ -127,13 +127,13 @@
   .tool {
     display: flex;
     flex-direction: column;
-    gap: var(--space-40);
+    gap: var(--k-space-8);
   }
 
   .block {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     max-width: 760px;
   }
 
@@ -147,47 +147,47 @@
   .kinds {
     display: flex;
     flex-direction: column;
-    gap: var(--space-8);
+    gap: var(--k-space-2);
     margin: 0;
     padding: 0;
     border: 0;
   }
 
   .legend {
-    padding: 0 0 var(--space-8);
-    font: 12px var(--mono);
+    padding: 0 0 var(--k-space-2);
+    font: 12px var(--k-font-mono);
     letter-spacing: 1px;
-    color: var(--mut);
+    color: var(--k-fg-muted);
     text-transform: uppercase;
   }
 
   .problem {
     margin: 0;
-    font: 13px var(--mono);
-    color: var(--pink2);
+    font: 13px var(--k-font-mono);
+    color: var(--k-danger);
   }
 
   .result {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
   }
 
   .password {
-    font: 500 22px/1.4 var(--mono);
+    font: 500 22px/1.4 var(--k-font-mono);
     overflow-wrap: anywhere;
     word-break: break-all;
   }
 
   .meter {
     margin: 0;
-    font: 500 16px/1.4 var(--mono);
+    font: 500 16px/1.4 var(--k-font-mono);
   }
 
   .note {
     margin: 0;
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 </style>

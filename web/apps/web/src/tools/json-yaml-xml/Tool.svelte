@@ -268,13 +268,13 @@
   .tool {
     display: flex;
     flex-direction: column;
-    gap: var(--space-40);
+    gap: var(--k-space-8);
   }
 
   .block {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     max-width: 760px;
   }
 
@@ -289,7 +289,7 @@
   .options {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     align-items: start;
   }
 
@@ -301,20 +301,20 @@
   .row {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
   }
 
   .notes {
     margin: 0;
-    padding-left: var(--space-20);
-    font: 14px/1.5 var(--mono);
-    color: var(--mut);
+    padding-left: var(--k-space-5);
+    font: 14px/1.5 var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .note {
     margin: 0;
     max-width: 760px;
-    font: 13px/1.5 var(--mono);
-    color: var(--mut);
+    font: 13px/1.5 var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 </style>

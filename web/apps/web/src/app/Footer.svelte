@@ -13,35 +13,35 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    gap: var(--space-16);
-    padding: var(--space-28) var(--space-40) 36px;
-    border-top: 1px solid var(--line);
+    gap: var(--k-space-4);
+    padding: var(--k-space-6-5) var(--k-space-8) 36px;
+    border-top: 1px solid var(--k-line);
     font-size: 13px;
-    color: var(--mut);
+    color: var(--k-fg-muted);
   }
 
   .foot a {
     display: inline-flex;
     align-items: center;
-    min-height: var(--target-min);
-    color: var(--mut);
+    min-height: var(--k-tap-min);
+    color: var(--k-fg-muted);
     text-decoration: underline;
   }
 
   .foot a:hover {
-    color: var(--fg);
+    color: var(--k-fg);
   }
 
   span {
     display: flex;
-    gap: var(--space-24);
+    gap: var(--k-space-6);
     flex-wrap: wrap;
   }
 
   @media (max-width: 760px) {
     .foot {
       flex-direction: column;
-      padding: var(--space-24) var(--space-16) var(--space-32);
+      padding: var(--k-space-6) var(--k-space-4) var(--k-space-7);
     }
   }
 </style>

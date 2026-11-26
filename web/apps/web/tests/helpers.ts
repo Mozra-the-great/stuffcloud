@@ -44,12 +44,8 @@ export function textSnippet(text: string): Snippet {
 export function readCustomProperties(...paths: readonly string[]): Map<string, string> {
   const properties = new Map<string, string>();
   for (const path of paths) {
-    const css = readAppFile(path).replace(/\/\*[\s\S]*?\*\//g, '');
-    for (const match of css.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
-      const [, name, value] = match;
-      if (name !== undefined && value !== undefined) {
-        properties.set(name, value.trim());
-      }
+    for (const [name, value] of customPropertiesOf(readAppFile(path))) {
+      properties.set(name, value);
     }
   }
   return properties;
@@ -77,4 +73,42 @@ export const FIELD_ERROR = '.k-field .error';
 /** Text of the first field error on the page, trimmed, or `null` when no field shows one. */
 export function fieldErrorText(): string | null {
   return document.querySelector(FIELD_ERROR)?.textContent.trim() ?? null;
+}
+
+/** Custom properties (`--name: value;`) declared in a piece of CSS, comments removed. */
+export function customPropertiesOf(css: string): Map<string, string> {
+  const properties = new Map<string, string>();
+  const clean = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  for (const match of clean.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) {
+    const [, name, value] = match;
+    if (name !== undefined && value !== undefined) {
+      properties.set(name, value.trim());
+    }
+  }
+  return properties;
+}
+
+/** The declaration block of the first rule in `css` whose selector list starts with `selector`. */
+export function ruleBlock(css: string, selector: string): string {
+  const start = css.indexOf(selector);
+  if (start < 0) {
+    throw new Error(`no rule starting with ${selector}`);
+  }
+  const open = css.indexOf('{', start);
+  return css.slice(open + 1, css.indexOf('}', open));
+}
+
+/**
+ * The tokens kern's Code theme gives the app (ADR 0016): kern's base tokens, the Code brand's
+ * shared values and its dark colours (`<html data-theme="code">`, the only theme the app ships).
+ */
+export function readKernCodeTokens(): Map<string, string> {
+  const tokens = customPropertiesOf(readKernFile('dist/themes/base.css'));
+  const brand = readKernFile('dist/themes/brands/code.css');
+  for (const selector of ["[data-theme^='code'],", "[data-theme='code'],"]) {
+    for (const [name, value] of customPropertiesOf(ruleBlock(brand, selector))) {
+      tokens.set(name, value);
+    }
+  }
+  return tokens;
 }

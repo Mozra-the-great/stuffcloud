@@ -257,28 +257,28 @@
   .gallery {
     display: flex;
     flex-direction: column;
-    gap: var(--space-40);
+    gap: var(--k-space-8);
     max-width: 860px;
     margin: 0 auto;
-    padding: var(--space-40) var(--space-16);
+    padding: var(--k-space-8) var(--k-space-4);
   }
 
   .title {
     margin: 0;
-    font: 400 28px var(--pix);
+    font: 400 28px var(--k-font-display);
   }
 
   section {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
   }
 
   .label {
     margin: 0;
-    font: 12px var(--mono);
+    font: 12px var(--k-font-mono);
     letter-spacing: 1px;
-    color: var(--mut);
+    color: var(--k-fg-muted);
     text-transform: uppercase;
     font-weight: 400;
   }
@@ -286,14 +286,14 @@
   .row {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-10);
+    gap: var(--k-space-2-5);
     align-items: center;
   }
 
   .stack {
     display: flex;
     flex-direction: column;
-    gap: var(--space-20);
+    gap: var(--k-space-5);
   }
 
   .wide {
@@ -302,14 +302,14 @@
 
   .panel {
     margin: 0;
-    padding: var(--space-16);
-    font: 14px var(--mono);
+    padding: var(--k-space-4);
+    font: 14px var(--k-font-mono);
   }
 
   .mono {
     margin: 0;
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
     min-height: 1em;
   }
 
@@ -317,7 +317,7 @@
   .fonts {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -326,16 +326,16 @@
   .swatches li {
     display: flex;
     flex-direction: column;
-    gap: var(--space-8);
-    font: 12px var(--mono);
-    color: var(--mut);
+    gap: var(--k-space-2);
+    font: 12px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .swatch {
     display: block;
     width: 96px;
     height: 48px;
-    border: 1px solid var(--line2);
+    border: 1px solid var(--k-line-strong);
   }
 
   .stage {
@@ -343,15 +343,15 @@
     justify-content: center;
     align-items: flex-end;
     min-height: 220px;
-    padding-top: var(--space-16);
+    padding-top: var(--k-space-4);
     overflow: hidden;
-    background: var(--violet);
+    background: var(--sc-stage);
   }
 
   .cast {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-24);
+    gap: var(--k-space-6);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -362,9 +362,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
-    gap: var(--space-8);
-    font: 12px var(--mono);
-    color: var(--mut);
+    gap: var(--k-space-2);
+    font: 12px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .fonts {
@@ -374,12 +374,12 @@
   .fonts li {
     display: flex;
     align-items: baseline;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     font-size: 20px;
   }
 
   .fonts code {
-    font: 12px var(--mono);
-    color: var(--mut);
+    font: 12px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 </style>

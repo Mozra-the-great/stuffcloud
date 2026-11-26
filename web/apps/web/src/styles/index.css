@@ -1,9 +1,9 @@
 /*
- * kern's Code theme (ADR 0014): base tokens plus the Code brand only, selected by
- * <html data-theme="code">. On the root the theme takes the reader's default font size (kern#144,
+ * kern's Code theme (ADR 0014, ADR 0016): base tokens plus the Code brand only, selected by
+ * <html data-theme="code">. kern is the design source: every colour, font, space and size comes
+ * from its `--k-*` tokens. On the root the theme takes the reader's default font size (kern#144,
  * v0.13.0), so every rem still follows the browser setting.
  */
 @import '@mozra-the-great/kern/themes/code.css';
 @import './fonts.css';
-@import './tokens.css';
 @import './theme.css';

@@ -1,8 +1,7 @@
 /*
  * Self-hosted fonts (no external requests; docs/THIRD-PARTY-ASSETS.md lists license, version
- * and SHA-256 of every file). Family names match the font tokens in tokens.css, which come from
- * the design stylesheet. The unicode-range split lets the browser fetch Latin Extended only
- * when a page needs it.
+ * and SHA-256 of every file). Family names match kern's font tokens (`--k-font-*`, Code theme).
+ * The unicode-range split lets the browser fetch Latin Extended only when a page needs it.
  */
 @font-face {
   font-family: 'Silkscreen';

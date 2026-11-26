@@ -213,8 +213,8 @@ importers:
   apps/web:
     dependencies:
       '@mozra-the-great/kern':
-        specifier: https://github.com/Mozra-the-great/kern/releases/download/v0.13.4/mozra-the-great-kern-0.13.4.tgz
-        version: https://github.com/Mozra-the-great/kern/releases/download/v0.13.4/mozra-the-great-kern-0.13.4.tgz(svelte@5.57.3(@typescript-eslint/types@8.72.2))
+        specifier: https://github.com/Mozra-the-great/kern/releases/download/v0.14.0/mozra-the-great-kern-0.14.0.tgz
+        version: https://github.com/Mozra-the-great/kern/releases/download/v0.14.0/mozra-the-great-kern-0.14.0.tgz(svelte@5.57.3(@typescript-eslint/types@8.72.2))
       '@stuffcloud/tools':
         specifier: workspace:*
         version: link:../../packages/tools
@@ -824,9 +824,9 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
-  '@mozra-the-great/kern@https://github.com/Mozra-the-great/kern/releases/download/v0.13.4/mozra-the-great-kern-0.13.4.tgz':
-    resolution: {integrity: sha512-aN3Y4ONXFB8vVrPtrYPVTXiH0Twnxf8FoE3AkJ8PQvz6s4Fro/KhWovGYe7iJWNbobRCSA6gU3iMZY84u+G7QQ==, tarball: https://github.com/Mozra-the-great/kern/releases/download/v0.13.4/mozra-the-great-kern-0.13.4.tgz}
-    version: 0.13.4
+  '@mozra-the-great/kern@https://github.com/Mozra-the-great/kern/releases/download/v0.14.0/mozra-the-great-kern-0.14.0.tgz':
+    resolution: {integrity: sha512-Rz36kBCz56oGKmsCuPK8vjYGeOJ/95Lj9G+mlOxLLWcjMZ6H56VmrzphqdzsynD5STRXhVVslfEqCGrQ+UdV+w==, tarball: https://github.com/Mozra-the-great/kern/releases/download/v0.14.0/mozra-the-great-kern-0.14.0.tgz}
+    version: 0.14.0
     engines: {node: '>=22'}
     peerDependencies:
       svelte: ^5.20.0
@@ -3444,7 +3444,7 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@mozra-the-great/kern@https://github.com/Mozra-the-great/kern/releases/download/v0.13.4/mozra-the-great-kern-0.13.4.tgz(svelte@5.57.3(@typescript-eslint/types@8.72.2))':
+  '@mozra-the-great/kern@https://github.com/Mozra-the-great/kern/releases/download/v0.14.0/mozra-the-great-kern-0.14.0.tgz(svelte@5.57.3(@typescript-eslint/types@8.72.2))':
     dependencies:
       svelte: 5.57.3(@typescript-eslint/types@8.72.2)
 

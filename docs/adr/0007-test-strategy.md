@@ -102,7 +102,7 @@ because the tests execute the line and coverage does not check what it does.
   on a PR that touches neither `scripts/ci/` nor `pyproject.toml` its steps pass with nothing to do;
   every push to `main` and the nightly run (`deep-tests.yml`, with the report as an artifact) run the
   whole directory. The whole directory, not only the changed files, because a changed test or script
-  can let a mutant of another file live and the full run is short (numbers in CONTRIBUTING.md). The
+  can let a mutant of another file live and the full run is affordable (see Cost). The
   same job measures line and branch coverage of the helpers first (`coverage.py`, floor in
   `pyproject.toml`).
 - **Equivalent mutants:** a mutant that provably cannot change behaviour gets `# pragma: no mutate`
@@ -111,12 +111,19 @@ because the tests execute the line and coverage does not check what it does.
   `< 0` for `str.find`), the code is changed instead of the mutant ignored.
 - **Layout:** mutmut runs the tests in a copy (`mutants/`); the helpers find the repository from their
   own location, so `also_copy` in `pyproject.toml` copies the files their tests read. `mutants/` is
-  ignored by git and by the helpers' own file walks.
-- **Alternatives considered:** mutating only the changed files on a PR (rejected: not faster in a
-  meaningful way and it misses what a changed test releases elsewhere); `cosmic-ray` and `mutatest`
-  (no maintained pytest/fork-based incremental runner comparable to mutmut 3); leaving the helpers to
-  coverage alone (rejected: the first mutation run found 1 259 surviving mutants in code that had
-  341 passing tests).
+  ignored by git and by the helpers' own file walks. The helpers and their tests import each other
+  by plain file name while mutmut names mutants after the file path (`scripts.ci.check_cookies`), so
+  a pytest-only `scripts/ci/conftest.py` registers every helper under both names; the `unittest`
+  run does not use it.
+- **Cost:** 4 188 mutants, 16 minutes on a hosted runner with four cores (the job `e2e` runs 12 minutes
+  in parallel). Measured first, as the issue asked: too long to run on every PR, short enough to run in
+  full whenever the helpers change.
+- **Alternatives considered:** mutating only the changed files on a PR (not chosen: a changed test or
+  helper can let a mutant of another file live, and the helpers change rarely; mutmut accepts
+  `mutmut run "scripts.ci.<module>.*"`, so it remains an optimisation if the run ever hurts);
+  skipping the job on PRs that do not touch the helpers (not allowed, decision 1: the aggregate counts
+  a skipped job as a failure, so the steps no-op instead); leaving the helpers to coverage alone
+  (rejected: the first mutation run found 1 259 surviving mutants against 341 passing tests).
 
 ## Links
 

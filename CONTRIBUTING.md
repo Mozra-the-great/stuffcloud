@@ -59,7 +59,10 @@ and fails on a survivor, on a mutant without any test, and on an empty run.
   touches `scripts/ci/` or `pyproject.toml`, and on every push to `main`; the job never skips
   itself, on any other PR its steps pass with nothing to do. `deep-tests.yml` runs it
   every night and keeps the report (`mutmut-report`: summary, list of survivors with their diffs,
-  the per-file results) as an artifact.
+  the per-file results) as an artifact. The full run is 4 188 mutants and takes about 16 minutes on
+  the four cores of a hosted runner (about 4.5 mutants per second; 46 mutants are endless loops
+  that end at mutmut's time limit and count as caught), plus about a minute of set-up and
+  coverage. That is why the PR job runs only when the helpers changed, and always the whole directory.
 - **Locally** (mutmut needs `fork`: Linux, macOS or WSL, not native Windows):
   `python -m pip install --require-hashes --no-deps -r scripts/ci/requirements-mutmut.txt`, then
   `mutmut run && mutmut export-cicd-stats && python scripts/ci/mutation_gate.py` from the repository

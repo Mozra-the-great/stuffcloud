@@ -90,6 +90,7 @@ cargo +nightly-2026-11-01 fuzz run safe_rel_path fuzz/corpus/safe_rel_path \
     fuzz/seeds/safe_rel_path -- -dict=fuzz/dicts/stuffcloud.dict -max_total_time=60
 python -m unittest discover -s scripts/ci -p "test_*.py"   # CI helper tests (Python 3.11+)
 python -m pip install --require-hashes --no-deps -r scripts/ci/requirements-mutmut.txt   # once (Linux/macOS/WSL; mutmut needs fork)
+python -m coverage run -m unittest discover -s scripts/ci -p "test_*.py" && python -m coverage report   # line + branch coverage of the helpers (pyproject.toml, floor 99 %)
 mutmut run && mutmut export-cicd-stats && python scripts/ci/mutation_gate.py   # every mutant of scripts/ci/*.py must be caught (mutmut: pyproject.toml); `mutmut results`, `mutmut show <name>`
 python scripts/ci/check_cookies.py            # no cookie with a Domain attribute, Set-Cookie only in app/src/auth.rs, no document.cookie
 python scripts/ci/check_crypto.py             # crypto in product code only at the reviewed call sites (ALLOWLIST with reasons)

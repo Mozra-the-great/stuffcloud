@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Progress } from '@mozra-the-great/kern';
+  import { FileDrop, Progress } from '@mozra-the-great/kern';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ReorderList from '../../app/ReorderList.svelte';
   import { i18n, t } from '../../i18n/index.ts';
@@ -12,7 +12,6 @@
   import { createOpsRunner } from '../../pdf/runners.ts';
   import type { PdfInput, PdfIssue, PdfOutput, PdfRunner } from '../../pdf/types.ts';
   import Button from '../../ui/Button.svelte';
-  import FileDropzone from '../../ui/FileDropzone.svelte';
   import LinkButton from '../../ui/LinkButton.svelte';
 
   interface Entry {
@@ -216,8 +215,12 @@
 </script>
 
 <ToolFrame id="pdf-merge">
-  <FileDropzone
-    hint={t('pdf.drop.many')}
+  <FileDrop
+    mode="dispatch"
+    multiple
+    rejectMessages={false}
+    statusLabel=""
+    dropLabel={t('pdf.drop.many')}
     buttonLabel={t('pdf.drop.manyButton')}
     accept=".pdf,application/pdf"
     disabled={working}

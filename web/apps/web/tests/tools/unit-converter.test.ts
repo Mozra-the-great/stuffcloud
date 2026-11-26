@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { i18n } from '../../src/i18n/index.ts';
 import manifest from '../../src/tools/unit-converter/manifest.ts';
-import { toaster } from '../../src/ui/toast.svelte.ts';
+import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
 
 type User = ReturnType<typeof userEvent.setup>;
 
 afterEach(() => {
-  toaster.clear();
+  toast.clear();
   vi.restoreAllMocks();
   i18n.setLocale('en');
 });

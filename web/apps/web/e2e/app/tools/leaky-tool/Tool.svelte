@@ -1,7 +1,7 @@
 <script lang="ts">
+  import { FileDrop } from '@mozra-the-great/kern';
   import ToolFrame from '../../../../src/app/ToolFrame.svelte';
   import Button from '../../../../src/ui/Button.svelte';
-  import FileDropzone from '../../../../src/ui/FileDropzone.svelte';
 
   /** Where the same-origin leaks go; the privacy test aborts these requests. */
   const POST_PATH = '/__leak';
@@ -65,7 +65,15 @@
 </script>
 
 <ToolFrame id="leaky-tool">
-  <FileDropzone hint="Drop a file here" buttonLabel="Choose a file" multiple={false} {onfiles} />
+  <FileDrop
+    mode="dispatch"
+    rejectMessages={false}
+    statusLabel=""
+    dropLabel="Drop a file here"
+    buttonLabel="Choose a file"
+    multiple={false}
+    {onfiles}
+  />
   <div class="row">
     <Button variant="ghost" size="compact" onclick={() => void leak(viaPost, 'post')}
       >Leak by POST</Button

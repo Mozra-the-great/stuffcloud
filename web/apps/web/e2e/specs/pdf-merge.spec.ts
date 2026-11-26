@@ -172,12 +172,11 @@ test.describe('pdf-merge', () => {
   test('skips files that are not PDFs and says so', async ({ page, a11y }) => {
     await open(page);
     // A dropped file is not filtered by the browser: the tool reports what it skipped.
-    await page.evaluate(() => {
-      const zone = document.querySelector('.dz');
+    await page.getByRole('group', { name: 'Drop PDFs here' }).evaluate((zone) => {
       const data = new DataTransfer();
       data.items.add(new File(['x'], 'a.txt', { type: 'text/plain' }));
       data.items.add(new File(['y'], 'b.txt', { type: 'text/plain' }));
-      zone?.dispatchEvent(
+      zone.dispatchEvent(
         new DragEvent('drop', { dataTransfer: data, bubbles: true, cancelable: true }),
       );
     });

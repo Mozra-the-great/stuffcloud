@@ -1,10 +1,19 @@
 <script lang="ts">
-  import { Card, CodeBlock, Progress, Tile, TileGrid } from '@mozra-the-great/kern';
+  import {
+    Card,
+    CodeBlock,
+    FileDrop,
+    Progress,
+    Tile,
+    TileGrid,
+    toast,
+    Toaster,
+    type ToastTone,
+  } from '@mozra-the-great/kern';
   import '../styles/index.css';
   import Button from '../ui/Button.svelte';
   import Checkbox from '../ui/Checkbox.svelte';
   import Dialog from '../ui/Dialog.svelte';
-  import FileDropzone from '../ui/FileDropzone.svelte';
   import Input from '../ui/Input.svelte';
   import LinkButton from '../ui/LinkButton.svelte';
   import Mascot from '../ui/Mascot.svelte';
@@ -12,8 +21,6 @@
   import Select from '../ui/Select.svelte';
   import TabLinks from '../ui/TabLinks.svelte';
   import Tabs from '../ui/Tabs.svelte';
-  import ToastRegion from '../ui/ToastRegion.svelte';
-  import { toaster, type ToastKind } from '../ui/toast.svelte.ts';
   import type { SelectOption, TabItem, TabLink } from '../ui/types.ts';
   import { GALLERY_COLOURS, GALLERY_FONTS } from './swatches.ts';
 
@@ -32,7 +39,13 @@
     { href: '#base64', label: 'Base64' },
     { href: '#colours', label: 'Colours' },
   ];
-  const toastKinds: readonly ToastKind[] = ['info', 'success', 'warn', 'error'];
+  // Named by what the app calls them; kern's tones behind them.
+  const toastKinds: readonly { readonly name: string; readonly tone: ToastTone }[] = [
+    { name: 'info', tone: 'info' },
+    { name: 'success', tone: 'ok' },
+    { name: 'warn', tone: 'warn' },
+    { name: 'error', tone: 'danger' },
+  ];
 
   let text = $state('stuffcloud');
   let duration = $state('seven');
@@ -184,15 +197,15 @@
   <section aria-labelledby="g-toast">
     <h2 class="label" id="g-toast">Toast</h2>
     <div class="row">
-      {#each toastKinds as kind (kind)}
+      {#each toastKinds as kind (kind.name)}
         <Button
           variant="ghost"
           size="compact"
           onclick={() => {
-            toaster.push(`A ${kind} message`, { kind });
+            toast({ message: `A ${kind.name} message`, tone: kind.tone });
           }}
         >
-          {kind}
+          {kind.name}
         </Button>
       {/each}
     </div>
@@ -219,8 +232,12 @@
 
   <section aria-labelledby="g-drop">
     <h2 class="label" id="g-drop">File dropzone</h2>
-    <FileDropzone
-      hint="drop PDFs here"
+    <FileDrop
+      mode="dispatch"
+      multiple
+      rejectMessages={false}
+      statusLabel=""
+      dropLabel="drop PDFs here"
       buttonLabel="Choose files"
       accept=".pdf,application/pdf"
       onfiles={(files: File[]) => {
@@ -231,7 +248,7 @@
   </section>
 </main>
 
-<ToastRegion label="Notifications" dismissLabel="Dismiss" />
+<Toaster position="bottom-left" label="Notifications" dismissLabel="Dismiss" />
 
 <style>
   .gallery {

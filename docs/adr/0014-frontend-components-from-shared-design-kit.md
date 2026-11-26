@@ -174,7 +174,7 @@ instead of green and 75 selectors depend on `.tool-status`), `ReorderList` and `
 (`SortableList`, `SelectGrid`) and `Sticker` (`Mascot` with code art). `src/pdf/LiveStatus.svelte` keeps its
 two regions with `ToolStatus`.
 
-## Addendum: kern 0.13.4, short visible labels (2026-11-26, #121, PR #PR)
+## Addendum: kern 0.13.4, short visible labels (2026-11-26, #121, PR #193)
 
 kern 0.13.2 to 0.13.4 are additions and fixes only (pill-tab overflow kern#159; `accessibleLabel` on
 `CopyButton` and `DownloadButton` kern#166; `copyAccessibleLabel` on `Code` and `CodeBlock` kern#168).

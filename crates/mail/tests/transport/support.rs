@@ -75,11 +75,7 @@ where
     S: AsyncRead + AsyncWrite + Unpin,
 {
     let mut stream = BufReader::new(stream);
-    if greet
-        && send(&mut stream, script.greeting)
-            .await
-            .is_err()
-    {
+    if greet && send(&mut stream, script.greeting).await.is_err() {
         return Next::Done;
     }
     loop {

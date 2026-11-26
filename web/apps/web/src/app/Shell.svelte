@@ -1,18 +1,13 @@
 <script lang="ts">
-  import { Toaster } from '@mozra-the-great/kern';
+  import { LiveAnnouncer, OnlineStatus, SkipLink, Toaster } from '@mozra-the-great/kern';
   import { t } from '../i18n/index.ts';
-  import { Announcer } from './announcer.svelte.ts';
   import { provideTools } from './context.ts';
   import Footer from './Footer.svelte';
   import Header from './Header.svelte';
-  import LiveAnnouncer from './LiveAnnouncer.svelte';
-  import OfflineNotice from './OfflineNotice.svelte';
-  import { OnlineStatus } from './online.svelte.ts';
   import Outlet from './Outlet.svelte';
   import type { Router } from './router/router.svelte.ts';
   import SearchDialog from './SearchDialog.svelte';
   import { isSearchShortcut, searchShortcutLabel } from './shortcut.ts';
-  import SkipLink from './SkipLink.svelte';
   import type { ToolEntry } from './tools.ts';
 
   interface Props {
@@ -24,20 +19,13 @@
 
   provideTools(() => tools);
 
-  const announcer = new Announcer();
-  const status = new OnlineStatus();
+  // Set after mount by kern's `OnlineStatus` (`bind:online`); the page is assumed online until then.
+  let online = $state(true);
   const shortcut = searchShortcutLabel(navigator.userAgent);
   let searchOpen = $state(false);
 
-  // Listeners live as long as the shell: link clicks, back/forward, connection changes.
-  $effect(() => {
-    const stopRouter = router.start();
-    const stopStatus = status.start();
-    return (): void => {
-      stopRouter();
-      stopStatus();
-    };
-  });
+  // The router's listeners live as long as the shell: link clicks, back/forward.
+  $effect(() => router.start());
 
   function onKeydown(event: KeyboardEvent): void {
     if (isSearchShortcut(event)) {
@@ -50,6 +38,8 @@
 <svelte:window onkeydown={onKeydown} />
 
 <SkipLink target="main" label={t('skip.toContent')} />
+<!-- Before OnlineStatus: that component announces through the first live region that is mounted. -->
+<LiveAnnouncer />
 <div class="frame">
   <Header
     currentPath={router.current.path}
@@ -58,8 +48,13 @@
       searchOpen = true;
     }}
   />
-  <OfflineNotice online={status.online} />
-  <Outlet {router} offline={!status.online} {announcer} />
+  <OnlineStatus
+    bind:online
+    offlineTitle={t('offline.title')}
+    offlineText={t('offline.hint')}
+    onlineText={t('offline.back')}
+  />
+  <Outlet {router} offline={!online} />
   <Footer />
 </div>
 <SearchDialog
@@ -70,7 +65,6 @@
   }}
 />
 <Toaster position="bottom-left" label={t('toast.region')} dismissLabel={t('toast.dismiss')} />
-<LiveAnnouncer {announcer} />
 
 <style>
   .frame {

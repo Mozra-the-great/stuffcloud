@@ -1,8 +1,5 @@
-import { flushSync } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import { Announcer } from '../src/app/announcer.svelte.ts';
 import { documentTitle, focusHeading, headingText, pageHeading } from '../src/app/focus.ts';
-import { OnlineStatus } from '../src/app/online.svelte.ts';
 import { isSearchShortcut, searchShortcutLabel } from '../src/app/shortcut.ts';
 import {
   CATEGORY_LABELS,
@@ -174,64 +171,6 @@ describe('search shortcut', () => {
     expect(searchShortcutLabel('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)')).toBe('⌘K');
     expect(searchShortcutLabel('Mozilla/5.0 (Windows NT 10.0; Win64; x64)')).toBe('Ctrl K');
     expect(searchShortcutLabel('Mozilla/5.0 (X11; Linux x86_64)')).toBe('Ctrl K');
-  });
-});
-
-describe('Announcer', () => {
-  it('starts empty and keeps the last message', () => {
-    const announcer = new Announcer();
-    expect(announcer.message).toBe('');
-    announcer.announce('one');
-    announcer.announce('two');
-    expect(announcer.message).toBe('two');
-  });
-});
-
-describe('OnlineStatus', () => {
-  function fakeWindow(online: boolean): { win: Window; set: (value: boolean) => void } {
-    const target = new EventTarget();
-    const navigator = { onLine: online };
-    const win = Object.assign(target, { navigator }) as unknown as Window;
-    return {
-      win,
-      set: (value) => {
-        navigator.onLine = value;
-        target.dispatchEvent(new Event(value ? 'online' : 'offline'));
-      },
-    };
-  }
-
-  it('reads the state at construction', () => {
-    expect(new OnlineStatus(fakeWindow(false).win).online).toBe(false);
-    expect(new OnlineStatus(fakeWindow(true).win).online).toBe(true);
-  });
-
-  it('defaults to the global window', () => {
-    expect(new OnlineStatus().online).toBe(window.navigator.onLine);
-  });
-
-  it('follows online and offline events until stopped', () => {
-    const { win, set } = fakeWindow(true);
-    const status = new OnlineStatus(win);
-    const stop = status.start();
-
-    set(false);
-    flushSync();
-    expect(status.online).toBe(false);
-    set(true);
-    expect(status.online).toBe(true);
-
-    stop();
-    set(false);
-    expect(status.online).toBe(true);
-  });
-
-  it('re-reads the state when it starts', () => {
-    const { win } = fakeWindow(true);
-    const status = new OnlineStatus(win);
-    (win.navigator as { onLine: boolean }).onLine = false;
-    status.start();
-    expect(status.online).toBe(false);
   });
 });
 

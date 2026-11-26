@@ -2,7 +2,7 @@
   import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
-  import { saveText } from '../../app/download.ts';
+  import DownloadButton from '../../app/DownloadButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import {
@@ -64,10 +64,6 @@
   function onCount(event: Event & { currentTarget: HTMLInputElement }): void {
     countText = event.currentTarget.value;
   }
-
-  function download(): void {
-    saveText(`uuid-${version}.txt`, `${text}\n`);
-  }
 </script>
 
 <ToolFrame id="uuid">
@@ -111,9 +107,12 @@
       />
       <div class="actions">
         <CopyButton {text} label={t('uuid.copy')} value={t('uuid.copiedValue')} />
-        <Button variant="secondary" size="sm" disabled={text === ''} onclick={download}>
-          {t('uuid.download')}
-        </Button>
+        <DownloadButton
+          label={t('uuid.download')}
+          name={`uuid-${version}.txt`}
+          text={`${text}\n`}
+          disabled={text === ''}
+        />
       </div>
       <p class="note">{t(version === 'v7' ? 'uuid.noteV7' : 'uuid.noteV4')}</p>
     </section>

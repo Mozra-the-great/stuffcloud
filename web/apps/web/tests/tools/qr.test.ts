@@ -11,25 +11,15 @@ import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
 import { defined } from './defined.ts';
 import { readPng } from './qr-helpers.ts';
+import { captureDownloads, type DownloadCapture } from '../download-capture.ts';
 import { fieldErrorText } from '../helpers.ts';
 
 const state = vi.hoisted(() => ({
   /** `real` runs the scan test; `styled` fails it for the stuffcloud style; `all` fails it always. */
   scan: 'real',
-  blobs: [] as { name: string; blob: Blob }[],
-  texts: [] as { name: string; text: string; type: string | undefined }[],
   /** The pictures the page made object URLs for, and the URLs it gave back. */
   made: new Map<string, Blob>(),
   revoked: [] as string[],
-}));
-
-vi.mock('../../src/app/download.ts', () => ({
-  saveBlob: (name: string, blob: Blob) => {
-    state.blobs.push({ name, blob });
-  },
-  saveText: (name: string, text: string, type?: string) => {
-    state.texts.push({ name, text, type });
-  },
 }));
 
 vi.mock('../../src/tools/qr/check.ts', async (importOriginal) => {
@@ -52,12 +42,13 @@ vi.mock('../../src/tools/qr/check.ts', async (importOriginal) => {
 
 type User = ReturnType<typeof userEvent.setup>;
 
+let downloads: DownloadCapture;
+
 beforeEach(() => {
   state.scan = 'real';
-  state.blobs = [];
-  state.texts = [];
   state.made = new Map();
   state.revoked = [];
+  downloads = captureDownloads((url) => state.made.get(url));
   Object.defineProperty(URL, 'createObjectURL', {
     configurable: true,
     value: (blob: Blob): string => {
@@ -286,10 +277,10 @@ describe('downloads', () => {
     await typeText(user, 'svg please');
     const image = await picked();
     await user.click(screen.getByRole('button', { name: 'Download SVG' }));
-    expect(state.texts).toHaveLength(1);
-    expect(state.texts[0]?.name).toBe('qr-code.svg');
-    expect(state.texts[0]?.type).toBe('image/svg+xml');
-    expect(state.texts[0]?.text).toBe(await shownSvg(image));
+    expect(downloads.files).toHaveLength(1);
+    expect(downloads.files[0]?.name).toBe('qr-code.svg');
+    expect(downloads.files[0]?.blob.type).toBe('image/svg+xml;charset=utf-8');
+    expect((await downloads.texts())[0]?.text).toBe(await shownSvg(image));
     expect(statusText()).toBe('Saved qr-code.svg.');
   });
 
@@ -311,9 +302,9 @@ describe('downloads', () => {
       });
       await user.click(screen.getByRole('button', { name: 'Download PNG' }));
       await waitFor(() => {
-        expect(state.blobs).toHaveLength(1);
+        expect(downloads.files).toHaveLength(1);
       });
-      const saved = state.blobs[0];
+      const saved = downloads.files[0];
       expect(saved?.name).toBe('qr-code.png');
       expect(saved?.blob.type).toBe('image/png');
       const bytes = new Uint8Array(await defined(saved?.blob).arrayBuffer());
@@ -336,9 +327,9 @@ describe('downloads', () => {
     await user.selectOptions(screen.getByRole('combobox', { name: 'Size of the PNG' }), size);
     await user.click(screen.getByRole('button', { name: 'Download PNG' }));
     await waitFor(() => {
-      expect(state.blobs).toHaveLength(1);
+      expect(downloads.files).toHaveLength(1);
     });
-    const raster = readPng(new Uint8Array(await defined(state.blobs[0]?.blob).arrayBuffer()));
+    const raster = readPng(new Uint8Array(await defined(downloads.files[0]?.blob).arrayBuffer()));
     expect(raster.width).toBe(Number(size));
   });
 });

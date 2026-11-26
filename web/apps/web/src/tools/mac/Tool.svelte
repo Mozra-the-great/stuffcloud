@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, FileDrop, Textarea } from '@mozra-the-great/kern';
+  import { Button, FileDrop, Textarea, VisuallyHidden } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { tick } from 'svelte';
   import { t, type MessageKey } from '../../i18n/index.ts';
@@ -311,7 +311,7 @@
             <tr>
               <th scope="col">{t('mac.col.property')}</th>
               <th scope="col">{t('mac.col.value')}</th>
-              <th scope="col"><span class="visually-hidden">{t('mac.col.copy')}</span></th>
+              <th scope="col"><VisuallyHidden>{t('mac.col.copy')}</VisuallyHidden></th>
             </tr>
           </thead>
           <tbody>
@@ -487,14 +487,5 @@
 
   .problem {
     color: var(--pink2);
-  }
-
-  .visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
 </style>

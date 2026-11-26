@@ -139,9 +139,40 @@ exists. One more difference is accepted under decision 5: a text area with `rows
 kern against the 52 px of the old `.sc-field` (no tool uses one row; from two rows on the heights agree).
 Field errors are `role="alert"` in kern; a tool that already says the same message in its own status
 region passes `announce={false}` (kern#148), and `tests/field-announce.test.ts` proves a screen reader
-hears each error once. The app-local pieces that kern also has (SkipLink, LiveAnnouncer, OnlineStatus,
-CopyButton, StatusMessage, `download`, VisuallyHidden, SortableList/SelectGrid) are not `src/ui`
-components; they move in a later package and are tracked in #121.
+hears each error once. The app-local pieces that kern also has are not `src/ui` components; they move in later packages (see the next
+addendum) and are tracked in #121.
+
+## Addendum: app-local building blocks (2026-11-26, #121, PR #187)
+
+Six of the app-local candidates moved to kern 0.13.1; the copies and the tests kern's own suite covers
+(`tests/dom/skiplink.test.ts`, `tests/dom/online-status.test.ts`, `tests/unit/announcer*.test.ts`,
+`tests/unit/download.test.ts`, `tests/dom/downloadbutton.test.ts`, `tests/components/visually-hidden.test.ts`;
+kern `docs/testing.md` has no row for them yet) are gone. App-level checks stay: the shell test walks the
+skip link and the offline notice, the e2e specs run axe and the keyboard gates, and a helper
+(`tests/download-capture.ts`) reads the file behind the clicked download link.
+
+| App-local | kern | Notes |
+| --------- | ---- | ----- |
+| `SkipLink` | `SkipLink` | `label` from the catalogue. kern moves focus to the target and gives it a temporary `tabindex="-1"`. |
+| `LiveAnnouncer`, `announcer.svelte.ts` | `LiveAnnouncer`, `announce()` | `Outlet` calls `announce()` (page-wide announcer); the component renders a polite and an assertive region, both always present. |
+| `OnlineStatus`, `OfflineNotice` | `OnlineStatus` (`bind:online`) | Title, text and the "back online" announcement come from the catalogue (`offline.title`, `offline.hint`, new `offline.back`). The live region is mounted before it, so a page that opens offline is announced too. |
+| `CopyButton` | `CopyButton` | `src/app/CopyButton.svelte` stays as a thin wrapper: it passes the label and shows the confirming toast. kern's own spoken messages are set to `''` so a copy is announced once (by the toast region). |
+| `download.ts` | `saveBlob`, `saveText`, `DownloadButton` | `src/app/DownloadButton.svelte` is the same kind of wrapper (secondary, small, visible label, texts from the catalogue). QR keeps calling `saveBlob`/`saveText` because it reports through its own status line. |
+| `.visually-hidden` | `VisuallyHidden` | diff, MAC, subnet, timestamp. |
+
+Accepted differences (decision 5): the copy button is an icon button whose accessible name stays the
+tool's label ("Copy HEX"); the visible word "Copy" is gone, the icon turns into a check mark for two
+seconds, and kern falls back to a hidden text area when the Clipboard API is refused. A download button
+now carries an icon and says "Download started" or "Could not save the file." in a live region (new keys
+`tool.downloadStarted`, `tool.downloadFailed`); kern cleans the file name (no path, no reserved Windows
+names) and keeps the object URL for one second instead of one tick. The offline notice uses kern's
+look (tokens, forced colours). Nothing leaves the browser: `saveBlob` is an object URL and a clicked link
+as before, and the tools' source scan still covers every tool.
+
+Still local, waiting for the operator's decision (SF18): `ToolStatus` (kern's `StatusMessage` is neutral
+instead of green and 75 selectors depend on `.tool-status`), `ReorderList` and `PageGrid`
+(`SortableList`, `SelectGrid`) and `Sticker` (`Mascot` with code art). `src/pdf/LiveStatus.svelte` keeps its
+two regions with `ToolStatus`.
 
 ## Links
 

@@ -6,18 +6,10 @@ import manifest from '../../src/tools/uuid/manifest.ts';
 import { v7Milliseconds } from '../../src/tools/uuid/uuid.ts';
 import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
+import { captureDownloads, type DownloadCapture } from '../download-capture.ts';
 import { fieldErrorText } from '../helpers.ts';
 
-const downloads = vi.hoisted(() => ({
-  saved: [] as { name: string; text: string }[],
-}));
-
-vi.mock('../../src/app/download.ts', () => ({
-  saveText: (name: string, text: string) => {
-    downloads.saved.push({ name, text });
-  },
-  saveBlob: () => undefined,
-}));
+let downloads: DownloadCapture;
 
 type User = ReturnType<typeof userEvent.setup>;
 
@@ -25,7 +17,7 @@ const V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}
 const V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 beforeEach(() => {
-  downloads.saved = [];
+  downloads = captureDownloads();
 });
 
 afterEach(() => {
@@ -174,10 +166,10 @@ describe('uuid', () => {
       expect(writeText).toHaveBeenCalledWith(text);
     });
     await user.click(screen.getByRole('button', { name: 'Download as .txt' }));
-    expect(downloads.saved).toEqual([{ name: 'uuid-v4.txt', text: `${text}\n` }]);
+    expect(await downloads.texts()).toEqual([{ name: 'uuid-v4.txt', text: `${text}\n` }]);
     await user.selectOptions(screen.getByRole('combobox', { name: 'Version' }), 'v7');
     await user.click(screen.getByRole('button', { name: 'Download as .txt' }));
-    expect(downloads.saved[1]?.name).toBe('uuid-v7.txt');
+    expect(downloads.files[1]?.name).toBe('uuid-v7.txt');
   });
 
   it('uses only the secure random number generator, never Math.random', async () => {

@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { Input, Select, Button, Textarea } from '@mozra-the-great/kern';
+  import { Input, Select, Textarea, VisuallyHidden } from '@mozra-the-great/kern';
   import { tick } from 'svelte';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
-  import { saveText } from '../../app/download.ts';
+  import DownloadButton from '../../app/DownloadButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import { BITS, expandV6, formatAddress, type AddressErrorCode } from './ip.ts';
@@ -349,10 +349,6 @@
     status = '';
     void announce();
   }
-
-  function download(name: string, text: string): void {
-    saveText(name, `${text}\n`);
-  }
 </script>
 
 <ToolFrame id="subnet">
@@ -437,7 +433,7 @@
             <tr>
               <th scope="col">{t('subnet.col.property')}</th>
               <th scope="col">{t('subnet.col.value')}</th>
-              <th scope="col"><span class="visually-hidden">{t('subnet.col.copy')}</span></th>
+              <th scope="col"><VisuallyHidden>{t('subnet.col.copy')}</VisuallyHidden></th>
             </tr>
           </thead>
           <tbody>
@@ -492,13 +488,11 @@
             label={t('subnet.split.copy')}
             value={t('subnet.split.copiedValue')}
           />
-          <Button
-            variant="secondary"
-            size="sm"
-            onclick={() => {
-              download('subnets.txt', splitList);
-            }}>{t('subnet.split.download')}</Button
-          >
+          <DownloadButton
+            label={t('subnet.split.download')}
+            name="subnets.txt"
+            text={`${splitList}\n`}
+          />
         </div>
       </section>
     {:else if list?.ok === true}
@@ -511,7 +505,7 @@
               <tr>
                 <th scope="col">{t('subnet.col.property')}</th>
                 <th scope="col">{t('subnet.col.value')}</th>
-                <th scope="col"><span class="visually-hidden">{t('subnet.col.copy')}</span></th>
+                <th scope="col"><VisuallyHidden>{t('subnet.col.copy')}</VisuallyHidden></th>
               </tr>
             </thead>
             <tbody>
@@ -560,13 +554,11 @@
               label={t('subnet.sum.copy', { version: summary.name })}
               value={t('subnet.sum.copiedValue', { version: summary.name })}
             />
-            <Button
-              variant="secondary"
-              size="sm"
-              onclick={() => {
-                download(`networks-ipv${String(summary.version)}.txt`, summary.networks.join('\n'));
-              }}>{t('subnet.sum.download', { version: summary.name })}</Button
-            >
+            <DownloadButton
+              label={t('subnet.sum.download', { version: summary.name })}
+              name={`networks-ipv${String(summary.version)}.txt`}
+              text={`${summary.networks.join('\n')}\n`}
+            />
           </div>
         {/each}
       </section>
@@ -659,14 +651,5 @@
     padding: 0;
     list-style: none;
     font: 14px var(--mono);
-  }
-
-  .visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
 </style>

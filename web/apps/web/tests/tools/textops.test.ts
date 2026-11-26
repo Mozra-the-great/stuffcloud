@@ -7,6 +7,7 @@ import type * as TextopsTask from '../../src/tools/textops/task.ts';
 import { runTask, type Input } from '../../src/tools/textops/task.ts';
 import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
+import { captureDownloads, type DownloadCapture } from '../download-capture.ts';
 import { fieldErrorText } from '../helpers.ts';
 
 const pool = vi.hoisted(() => ({
@@ -18,16 +19,7 @@ const pool = vi.hoisted(() => ({
   run: undefined as unknown as (input: unknown, options: unknown) => Promise<unknown>,
 }));
 
-const downloads = vi.hoisted(() => ({
-  saved: [] as { name: string; text: string }[],
-}));
-
-vi.mock('../../src/app/download.ts', () => ({
-  saveText: (name: string, text: string) => {
-    downloads.saved.push({ name, text });
-  },
-  saveBlob: () => undefined,
-}));
+let downloads: DownloadCapture;
 
 vi.mock('../../src/tools/textops/pool.ts', () => ({
   createPool: () => {
@@ -55,7 +47,7 @@ beforeEach(() => {
       readonly terminate = vi.fn();
     },
   );
-  downloads.saved = [];
+  downloads = captureDownloads();
   pool.behaviour = 'real';
   pool.release = undefined;
   pool.created = 0;
@@ -391,7 +383,7 @@ describe('the result', () => {
       expect(writeText).toHaveBeenCalledWith('ABC');
     });
     await user.click(screen.getByRole('button', { name: 'Download as .txt' }));
-    expect(downloads.saved).toEqual([{ name: 'text.txt', text: 'ABC' }]);
+    expect(await downloads.texts()).toEqual([{ name: 'text.txt', text: 'ABC' }]);
     await user.click(screen.getByRole('button', { name: 'Use result as text' }));
     expect(input().value).toBe('ABC');
     expect(statusText()).toBe('The result is now the text.');

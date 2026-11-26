@@ -1,3 +1,4 @@
+import { sharedAnnouncer } from '@mozra-the-great/kern';
 import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -59,17 +60,6 @@ describe('layout', () => {
 
     expect(document.activeElement).toBe(screen.getByRole('main'));
     expect(window.location.hash).toBe('');
-  });
-
-  it('leaves the skip link alone when its target is missing', async () => {
-    const { default: SkipLink } = await import('../src/app/SkipLink.svelte');
-    render(SkipLink, { props: { target: 'nowhere', label: 'Skip' } });
-    const link = screen.getByRole('link', { name: 'Skip' });
-    link.addEventListener('click', (event) => {
-      expect(event.defaultPrevented).toBe(false);
-      event.preventDefault();
-    });
-    link.click();
   });
 
   it('shows the shell on a deep link without moving focus on first load', async () => {
@@ -463,19 +453,32 @@ describe('phone menu', () => {
 
 describe('offline', () => {
   it('tells the visitor when the connection is lost and when it is back', async () => {
+    sharedAnnouncer().clear();
     renderShell('/');
     await heading('Your stuff, in your cloud.');
-    expect(screen.queryByText('No connection')).toBeNull();
+    const notice = (): HTMLElement | null => document.querySelector('.k-online-status .notice');
+    expect(notice()).toBeNull();
 
     vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
     window.dispatchEvent(new Event('offline'));
     await settle();
-    expect(screen.getByText('No connection')).toBeTruthy();
-    expect(screen.getByText('Tools you already opened keep working.')).toBeTruthy();
+    expect(within(must(notice())).getByText('No connection')).toBeTruthy();
+    expect(within(must(notice())).getByText('Tools you already opened keep working.')).toBeTruthy();
+    // The shell has a live-region announcer, so that is what says it (once), not the notice itself.
+    expect(sharedAnnouncer().polite).toBe('No connection');
+    expect(document.querySelector('.k-online-status')?.getAttribute('role')).toBeNull();
 
     vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(true);
     window.dispatchEvent(new Event('online'));
     await settle();
-    expect(screen.queryByText('No connection')).toBeNull();
+    expect(notice()).toBeNull();
+    expect(sharedAnnouncer().polite).toBe('Connection is back');
+  });
+
+  it('shows the notice at once when the page opens without a connection', async () => {
+    vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
+    renderShell('/');
+    await heading('Your stuff, in your cloud.');
+    expect(document.querySelector('.k-online-status .notice')).not.toBeNull();
   });
 });

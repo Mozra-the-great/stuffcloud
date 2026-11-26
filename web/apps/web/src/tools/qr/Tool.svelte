@@ -1,7 +1,14 @@
 <script lang="ts">
-  import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
+  import {
+    Input,
+    Select,
+    Button,
+    Checkbox,
+    Textarea,
+    saveBlob,
+    saveText,
+  } from '@mozra-the-great/kern';
   import { t, type MessageKey } from '../../i18n/index.ts';
-  import { saveBlob, saveText } from '../../app/download.ts';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import { ECC_LEVELS, buildQr, type QrResult } from './check.ts';
@@ -156,16 +163,16 @@
     const bytes = await encodePng(
       rasterise(code.scene, scale, Math.max(side, code.scene.side * scale)),
     );
-    saveBlob('qr-code.png', new Blob([bytes], { type: 'image/png' }));
-    status = t('qr.savedPng', { size: side });
+    const saved = saveBlob('qr-code.png', new Blob([bytes], { type: 'image/png' }));
+    status = saved.ok ? t('qr.savedPng', { size: side }) : t('tool.downloadFailed');
   }
 
   function downloadSvg(): void {
     if (code === undefined) {
       return;
     }
-    saveText('qr-code.svg', code.svg, 'image/svg+xml');
-    status = t('qr.savedSvg');
+    const saved = saveText('qr-code.svg', code.svg, 'image/svg+xml');
+    status = saved.ok ? t('qr.savedSvg') : t('tool.downloadFailed');
   }
 </script>
 

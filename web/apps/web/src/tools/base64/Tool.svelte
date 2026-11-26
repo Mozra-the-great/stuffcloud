@@ -10,7 +10,7 @@
   } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
-  import { saveBlob, saveText } from '../../app/download.ts';
+  import DownloadButton from '../../app/DownloadButton.svelte';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
@@ -287,12 +287,17 @@
   );
   const shownTotal = $derived((encoded ?? decodedAsText ?? '').length);
 
-  function downloadDecoded(): void {
-    if (decoded !== undefined) {
-      const name = decodedFileName(decoded.mediaType, decodedAsText !== undefined);
-      const type = downloadType(decoded.mediaType, decodedAsText !== undefined);
-      saveBlob(name, new Blob([decoded.bytes as Uint8Array<ArrayBuffer>], { type }));
-    }
+  const decodedName = $derived(
+    decoded === undefined ? '' : decodedFileName(decoded.mediaType, decodedAsText !== undefined),
+  );
+  const decodedType = $derived(
+    decoded === undefined ? '' : downloadType(decoded.mediaType, decodedAsText !== undefined),
+  );
+
+  function decodedFile(): Blob {
+    return new Blob([(decoded?.bytes ?? new Uint8Array()) as Uint8Array<ArrayBuffer>], {
+      type: decodedType,
+    });
   }
 </script>
 
@@ -400,13 +405,11 @@
         {/if}
         <div class="row">
           <CopyButton text={encoded ?? ''} label={t('base64.copy')} value={t('base64.copied')} />
-          <Button
-            variant="secondary"
-            size="sm"
-            onclick={() => {
-              saveText('encoded.txt', encoded ?? '');
-            }}>{t('base64.downloadText')}</Button
-          >
+          <DownloadButton
+            label={t('base64.downloadText')}
+            name="encoded.txt"
+            text={encoded ?? ''}
+          />
         </div>
       </section>
     {/if}
@@ -437,9 +440,11 @@
           {#if decodedAsText !== undefined}
             <CopyButton text={decodedAsText} label={t('base64.copy')} value={t('base64.copied')} />
           {/if}
-          <Button variant="secondary" size="sm" onclick={downloadDecoded}
-            >{t('base64.downloadFile')}</Button
-          >
+          <DownloadButton
+            label={t('base64.downloadFile')}
+            name={decodedName}
+            getContent={decodedFile}
+          />
         </div>
       </section>
     {/if}

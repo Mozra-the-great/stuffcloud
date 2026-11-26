@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Select, Checkbox, Textarea } from '@mozra-the-great/kern';
+  import { Select, Checkbox, Textarea, VisuallyHidden } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import ToolFrame from '../../app/ToolFrame.svelte';
@@ -229,8 +229,8 @@
                   <tr>
                     <td class="num">{row.before}</td>
                     <td class="mark removed"
-                      ><span aria-hidden="true">−</span><span class="visually-hidden"
-                        >{t('diff.removedLine')}</span
+                      ><span aria-hidden="true">−</span><VisuallyHidden
+                        >{t('diff.removedLine')}</VisuallyHidden
                       ></td
                     >
                     <td class="text removed">{@render marked(row.left)}</td>
@@ -245,8 +245,8 @@
                     <td class="text"></td>
                     <td class="num">{row.after}</td>
                     <td class="mark added"
-                      ><span aria-hidden="true">+</span><span class="visually-hidden"
-                        >{t('diff.addedLine')}</span
+                      ><span aria-hidden="true">+</span><VisuallyHidden
+                        >{t('diff.addedLine')}</VisuallyHidden
                       ></td
                     >
                     <td class="text added">{@render marked(row.right)}</td>
@@ -255,15 +255,15 @@
                   <tr>
                     <td class="num">{row.before}</td>
                     <td class="mark removed"
-                      ><span aria-hidden="true">−</span><span class="visually-hidden"
-                        >{t('diff.removedLine')}</span
+                      ><span aria-hidden="true">−</span><VisuallyHidden
+                        >{t('diff.removedLine')}</VisuallyHidden
                       ></td
                     >
                     <td class="text removed">{@render marked(row.left)}</td>
                     <td class="num">{row.after}</td>
                     <td class="mark added"
-                      ><span aria-hidden="true">+</span><span class="visually-hidden"
-                        >{t('diff.addedLine')}</span
+                      ><span aria-hidden="true">+</span><VisuallyHidden
+                        >{t('diff.addedLine')}</VisuallyHidden
                       ></td
                     >
                     <td class="text added">{@render marked(row.right)}</td>
@@ -284,7 +284,7 @@
               <tr>
                 <th scope="col">{t('diff.before')}</th>
                 <th scope="col">{t('diff.after')}</th>
-                <th scope="col"><span class="visually-hidden">{t('diff.change')}</span></th>
+                <th scope="col"><VisuallyHidden>{t('diff.change')}</VisuallyHidden></th>
                 <th scope="col">{t('diff.line')}</th>
               </tr>
             </thead>
@@ -307,8 +307,8 @@
                       <td class="num">{row.before}</td>
                       <td class="num"></td>
                       <td class="mark removed"
-                        ><span aria-hidden="true">−</span><span class="visually-hidden"
-                          >{t('diff.removedLine')}</span
+                        ><span aria-hidden="true">−</span><VisuallyHidden
+                          >{t('diff.removedLine')}</VisuallyHidden
                         ></td
                       >
                       <td class="text removed">{@render marked(row.left)}</td>
@@ -319,8 +319,8 @@
                       <td class="num"></td>
                       <td class="num">{row.after}</td>
                       <td class="mark added"
-                        ><span aria-hidden="true">+</span><span class="visually-hidden"
-                          >{t('diff.addedLine')}</span
+                        ><span aria-hidden="true">+</span><VisuallyHidden
+                          >{t('diff.addedLine')}</VisuallyHidden
                         ></td
                       >
                       <td class="text added">{@render marked(row.right)}</td>
@@ -486,15 +486,5 @@
 
   .flow-box {
     min-width: 0;
-  }
-
-  /* Candidate for kern (#121, kern issue #100): text for assistive technology only. */
-  .visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
 </style>

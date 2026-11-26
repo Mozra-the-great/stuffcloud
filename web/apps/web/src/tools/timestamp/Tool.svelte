@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Input, Select, Button } from '@mozra-the-great/kern';
+  import { Input, Select, Button, VisuallyHidden } from '@mozra-the-great/kern';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
@@ -156,7 +156,7 @@
             <tr>
               <th scope="col">{t('timestamp.col.format')}</th>
               <th scope="col">{t('timestamp.col.value')}</th>
-              <th scope="col"><span class="visually-hidden">{t('timestamp.col.copy')}</span></th>
+              <th scope="col"><VisuallyHidden>{t('timestamp.col.copy')}</VisuallyHidden></th>
             </tr>
           </thead>
           <tbody>
@@ -231,14 +231,5 @@
   thead th,
   tbody th {
     color: var(--mut);
-  }
-
-  .visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
   }
 </style>

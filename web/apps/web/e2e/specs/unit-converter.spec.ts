@@ -20,7 +20,7 @@ function result(page: Page): ReturnType<Page['locator']> {
 
 /** The polite status line that announces what was converted (the first one on the page is the search count). */
 function status(page: Page): ReturnType<Page['locator']> {
-  return page.locator('.tool-status:not(.alert)').nth(1);
+  return page.locator('[data-tool-status][role="status"]').nth(1);
 }
 
 test.describe('unit-converter', () => {
@@ -119,7 +119,9 @@ test.describe('unit-converter', () => {
     await expect(
       page.getByRole('list', { name: 'Matching units' }).getByRole('listitem'),
     ).toHaveCount(2);
-    await expect(page.locator('.tool-status:not(.alert)').first()).toHaveText('2 units found');
+    await expect(page.locator('[data-tool-status][role="status"]').first()).toHaveText(
+      '2 units found',
+    );
     await a11y.check(page, 'unit-converter: search results');
 
     const asTarget = page.getByRole('button', {
@@ -132,7 +134,9 @@ test.describe('unit-converter', () => {
     await expect(page.getByRole('combobox', { name: 'From' })).toHaveValue('l');
 
     await search.fill('zzzz');
-    await expect(page.locator('.tool-status:not(.alert)').first()).toHaveText('No unit found');
+    await expect(page.locator('[data-tool-status][role="status"]').first()).toHaveText(
+      'No unit found',
+    );
     await a11y.check(page, 'unit-converter: nothing found');
   });
 

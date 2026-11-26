@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
+  import { Input, Select, Button, Checkbox, Textarea, StatusMessage } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
   import DownloadButton from '../../app/DownloadButton.svelte';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import {
     formatJson,
     formatPath,
@@ -143,8 +142,8 @@
           <Checkbox label={t('json.strict')} bind:checked={strict} />
         </div>
       </div>
-      <ToolStatus message={status} />
-      <ToolStatus kind="alert" message={failure} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
+      <StatusMessage data-tool-status kind="alert" message={failure} />
       {#if parsed?.ok === false}
         <div>
           <Button variant="secondary" size="sm" onclick={goToError}>{t('json.goToError')}</Button>

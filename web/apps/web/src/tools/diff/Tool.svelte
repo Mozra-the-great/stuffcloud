@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { Select, Checkbox, Textarea, VisuallyHidden } from '@mozra-the-great/kern';
+  import { Select, Checkbox, Textarea, VisuallyHidden, StatusMessage } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import { createPool } from './pool.ts';
   import {
     DEFAULT_CONTEXT,
@@ -183,8 +182,8 @@
 
     <section class="block wide" aria-busy={working}>
       <h2 class="heading">{t('diff.result')}</h2>
-      <ToolStatus message={status} />
-      <ToolStatus kind="alert" message={failure} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
+      <StatusMessage data-tool-status kind="alert" message={failure} />
       {#if working && output === undefined}
         <p class="note">{t('diff.working')}</p>
       {/if}

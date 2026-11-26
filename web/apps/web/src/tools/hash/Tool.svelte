@@ -1,10 +1,17 @@
 <script lang="ts">
-  import { Input, Progress, Select, Button, FileDrop, Textarea } from '@mozra-the-great/kern';
+  import {
+    Input,
+    Progress,
+    Select,
+    Button,
+    FileDrop,
+    Textarea,
+    StatusMessage,
+  } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { i18n, t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import {
     ALGORITHMS,
     digestText,
@@ -226,8 +233,8 @@
           </div>
         {/if}
       {/if}
-      <ToolStatus message={status} />
-      <ToolStatus kind="alert" message={failure} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
+      <StatusMessage data-tool-status kind="alert" message={failure} />
     </section>
 
     {#if digests !== undefined}

@@ -19,11 +19,11 @@ async function open(page: Page): Promise<void> {
 
 /** The tool's own polite status line (the first one on the page is the search count). */
 function status(page: Page): ReturnType<Page['locator']> {
-  return page.locator('main .tool-status:not(.alert)');
+  return page.locator('main [data-tool-status][role="status"]');
 }
 
 function alert(page: Page): ReturnType<Page['locator']> {
-  return page.locator('main .tool-status.alert');
+  return page.locator('main [data-tool-status][role="alert"]');
 }
 
 test.describe('url', () => {
@@ -64,6 +64,7 @@ test.describe('url', () => {
     await page.getByRole('textbox', { name: 'Text', exact: true }).fill('ok%C3 x');
     await page.getByRole('button', { name: 'Decode' }).click();
     await expect(alert(page).first()).toContainText('the percent sequence at character 3');
+    await expect(alert(page).first()).toHaveCSS('color', 'rgb(255, 79, 139)');
     await expect(page.getByRole('textbox', { name: 'Result' })).toHaveCount(0);
     await a11y.check(page, 'url: malformed');
   });

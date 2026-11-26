@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Button, FileDrop, Textarea, VisuallyHidden } from '@mozra-the-great/kern';
+  import { Button, FileDrop, Textarea, VisuallyHidden, StatusMessage } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { tick } from 'svelte';
   import { t, type MessageKey } from '../../i18n/index.ts';
@@ -9,7 +9,6 @@
   } from '../../app/external-links.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import {
     MAX_ADDRESSES,
     MAX_INPUT_LENGTH,
@@ -299,8 +298,8 @@
         spellcheck={false}
         onchange={changed}
       />
-      <ToolStatus message={status} />
-      <ToolStatus kind="alert" message={failure} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
+      <StatusMessage data-tool-status kind="alert" message={failure} />
     </section>
 
     {#if singleMac !== undefined}

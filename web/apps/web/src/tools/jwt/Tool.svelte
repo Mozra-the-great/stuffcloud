@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { Button, Checkbox, Textarea } from '@mozra-the-great/kern';
+  import { Button, Checkbox, Textarea, StatusMessage } from '@mozra-the-great/kern';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import { relativeTime } from '../timestamp/relative.ts';
   import {
     MAX_KEY_LENGTH,
@@ -243,8 +242,8 @@
             >{t('jwt.verify.button')}</Button
           >
         </div>
-        <ToolStatus message={verifiedText} />
-        <ToolStatus kind="alert" message={failedText} />
+        <StatusMessage data-tool-status tone="ok" message={verifiedText} />
+        <StatusMessage data-tool-status kind="alert" message={failedText} />
         {#if verifiedText !== ''}
           <p class="note">{t('jwt.verify.validNote')}</p>
         {/if}

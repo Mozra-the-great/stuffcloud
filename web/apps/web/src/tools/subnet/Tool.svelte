@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { Input, Select, Textarea, VisuallyHidden } from '@mozra-the-great/kern';
+  import { Input, Select, Textarea, VisuallyHidden, StatusMessage } from '@mozra-the-great/kern';
   import { tick } from 'svelte';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import DownloadButton from '../../app/DownloadButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import { BITS, expandV6, formatAddress, type AddressErrorCode } from './ip.ts';
   import {
     MAX_ENTRIES,
@@ -422,7 +421,7 @@
           onchange={changed}
         />
       {/if}
-      <ToolStatus message={status} />
+      <StatusMessage data-tool-status tone="ok" message={status} />
     </section>
 
     {#if details !== undefined}

@@ -228,6 +228,7 @@
       label="Deploy command"
       code="stuffcloud deploy ./dist --expires 7d"
       copyLabel="Copy"
+      copyAccessibleLabel="Copy deploy command"
       copiedLabel="Copied"
     />
   </section>

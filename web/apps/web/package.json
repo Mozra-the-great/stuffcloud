@@ -24,7 +24,7 @@
     "e2e": "playwright test --config e2e/playwright.config.ts"
   },
   "dependencies": {
-    "@mozra-the-great/kern": "https://github.com/Mozra-the-great/kern/releases/download/v0.13.1/mozra-the-great-kern-0.13.1.tgz",
+    "@mozra-the-great/kern": "https://github.com/Mozra-the-great/kern/releases/download/v0.13.4/mozra-the-great-kern-0.13.4.tgz",
     "@stuffcloud/tools": "workspace:*",
     "diff": "^9.0.0",
     "dompurify": "^3.4.18",

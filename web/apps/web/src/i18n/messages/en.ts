@@ -233,6 +233,8 @@ export const en = {
   'tool.unit-converter.keywords':
     'convert conversion unit length mass weight temperature data bytes time speed area volume metric imperial',
   'tool.copied': 'Copied {value}',
+  'tool.copy': 'Copy',
+  'tool.download': 'Download',
   'tool.downloadStarted': 'Download started',
   'tool.downloadFailed': 'Could not save the file.',
   'tool.copyFailed': 'Could not copy. Select the text and copy it by hand.',

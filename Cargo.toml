@@ -28,7 +28,7 @@ proptest = "1.12.0"
 # The operating system's random source, for session and CSRF tokens.
 getrandom = { version = "0.4.3", default-features = false }
 # SMTP client and message builder (A-10); TLS is rustls with ring, the roots come from the system.
-lettre = { version = "0.11.24", default-features = false, features = ["builder", "smtp-transport", "tokio1"] }
+lettre = { version = "0.11.24", default-features = false, features = ["builder", "smtp-transport", "tokio1", "tokio1-rustls", "rustls-native-certs", "ring"] }
 # Test-only: a self-signed certificate and a TLS acceptor for the fake SMTP servers of the mail tests.
 rcgen = { version = "0.14.7", default-features = false, features = ["crypto", "pem", "ring"] }
 rustls = { version = "0.23.27", default-features = false, features = ["ring", "std", "tls12"] }

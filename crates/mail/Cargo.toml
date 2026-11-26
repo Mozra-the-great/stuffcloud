@@ -8,12 +8,6 @@ license.workspace = true
 repository.workspace = true
 publish.workspace = true
 
-[features]
-# TLS for the SMTP connection (STARTTLS and SMTPS) with rustls, the ring crypto provider and the
-# system's root certificates. On by default; `none` as the security mode works without it.
-default = ["tls"]
-tls = ["lettre/tokio1-rustls", "lettre/rustls-native-certs", "lettre/ring"]
-
 [dependencies]
 lettre.workspace = true
 stuffcloud-core.workspace = true

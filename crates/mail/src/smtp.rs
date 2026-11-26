@@ -62,7 +62,6 @@ impl SmtpTransport {
 
     /// Sets how the connection is secured. A builder starts with no TLS, which is what the
     /// mode `none` wants.
-    #[cfg(feature = "tls")]
     fn secure(
         &self,
         builder: AsyncSmtpTransportBuilder,
@@ -86,20 +85,6 @@ impl SmtpTransport {
             SmtpSecurity::Tls => Tls::Wrapper(parameters),
             SmtpSecurity::Starttls | SmtpSecurity::None => Tls::Required(parameters),
         }))
-    }
-
-    /// Without the `tls` feature only the mode `none` can be served.
-    #[cfg(not(feature = "tls"))]
-    fn secure(
-        &self,
-        builder: AsyncSmtpTransportBuilder,
-        server: &Server,
-    ) -> Result<AsyncSmtpTransportBuilder, SendError> {
-        if server.security == SmtpSecurity::None {
-            Ok(builder)
-        } else {
-            Err(SendError::new(FailureKind::Tls))
-        }
     }
 
     fn client(
@@ -138,10 +123,8 @@ impl Transport for SmtpTransport {
     }
 }
 
-/// What the error and its causes say, in lower case, for the few cases `lettre` does not tell by
-/// its kind (a failed TLS handshake is reported as a connection error, a read timeout as an
-/// i/o error). Only used to choose a [`FailureKind`]; the text itself is never kept or logged,
-/// because it may repeat what the server said.
+/// What the error and its causes say, in lower case. Only used to choose a [`FailureKind`]; the
+/// text itself is never kept or logged, because it may repeat what the server said.
 fn describe(error: &Error) -> String {
     let mut text = error.to_string();
     let mut source = std::error::Error::source(error);
@@ -153,7 +136,9 @@ fn describe(error: &Error) -> String {
     text.to_ascii_lowercase()
 }
 
-/// The kind and the status code of a `lettre` error.
+/// The kind and the status code of a `lettre` error. `lettre` reports a failed TLS handshake as a
+/// connection error, so the causes are asked too (a certificate the system does not trust, a
+/// name that does not match, a server without `STARTTLS` all say so in words).
 fn classify(error: &Error) -> SendError {
     let code = error.status().map(u16::from);
     let text = describe(error);
@@ -161,12 +146,11 @@ fn classify(error: &Error) -> SendError {
         FailureKind::Rejected
     } else if error.is_transient() {
         FailureKind::Deferred
-    } else if error.is_timeout() || text.contains("timed out") {
+    } else if error.is_timeout() {
         FailureKind::Timeout
-    } else if tls_error(error)
-        || ["certificate", "tls", "handshake", "starttls"]
-            .iter()
-            .any(|word| text.contains(word))
+    } else if ["certificate", "tls", "handshake"]
+        .iter()
+        .any(|word| text.contains(word))
     {
         FailureKind::Tls
     } else if error.is_response() || error.is_client() {
@@ -175,14 +159,4 @@ fn classify(error: &Error) -> SendError {
         FailureKind::Connection
     };
     SendError { kind, code }
-}
-
-#[cfg(feature = "tls")]
-fn tls_error(error: &Error) -> bool {
-    error.is_tls()
-}
-
-#[cfg(not(feature = "tls"))]
-fn tls_error(_error: &Error) -> bool {
-    false
 }

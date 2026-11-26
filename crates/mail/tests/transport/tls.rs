@@ -180,6 +180,24 @@ async fn starttls_is_required_a_server_without_it_gets_nothing() {
 }
 
 #[tokio::test]
+async fn a_root_certificate_that_is_not_one_fails_before_anything_is_sent() {
+    let fake = Fake::start(Script::default()).await;
+    let error = SmtpTransport::new(Duration::from_secs(10))
+        .with_root_certificate(
+            b"-----BEGIN CERTIFICATE-----
+!!! not base64 !!!
+-----END CERTIFICATE-----
+"
+            .to_vec(),
+        )
+        .send(&server(fake.port, SmtpSecurity::Tls, PASSWORD), &mail())
+        .await
+        .unwrap_err();
+    assert_eq!(error.kind, FailureKind::Tls);
+    assert_eq!(fake.seen().connections, 0);
+}
+
+#[tokio::test]
 async fn a_wrong_password_delivers_nothing() {
     let (acceptor, root) = pki("localhost");
     let fake = implicit_tls(acceptor, Script::default()).await;

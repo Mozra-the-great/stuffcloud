@@ -33,7 +33,7 @@ crates/db/      SQLite (rusqlite, WAL): migrations/ + runner, resource store, au
                 accounts.rs (passwords, registration, invitations, reset tokens, reset tokens for mail)
 crates/mail/    optional mailer, delivery side (lettre): message.rs (the message, injection-proof), transport.rs
                 (`Transport` seam, errors without server text, `Recording` for tests), smtp.rs (STARTTLS/TLS with
-                rustls + ring, system roots; feature `tls`, on by default); tests/transport (fake SMTP servers)
+                rustls + ring, system roots); tests/transport (fake SMTP servers)
 crates/app/     LAN API (axum): config (env + _FILE), resource conventions (resource.rs), problem
                 details, access.rs (every route is registered with its requirement; guard, startup
                 check against OpenAPI, permissions document), auth.rs (session cookie + CSRF middleware, the only place that sets

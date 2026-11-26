@@ -9,5 +9,4 @@
 
 mod smtp;
 mod support;
-#[cfg(feature = "tls")]
 mod tls;

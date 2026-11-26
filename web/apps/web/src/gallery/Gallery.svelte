@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Card, CodeBlock, Progress, Tile, TileGrid } from '@mozra-the-great/kern';
+  import { Card, CodeBlock, Progress, TabLinks, Tabs, Tile, TileGrid } from '@mozra-the-great/kern';
+  import type { TabItem, TabLinkItem } from '@mozra-the-great/kern';
   import '../styles/index.css';
   import Button from '../ui/Button.svelte';
   import Checkbox from '../ui/Checkbox.svelte';
@@ -10,11 +11,9 @@
   import Mascot from '../ui/Mascot.svelte';
   import { MASCOT_NAMES } from '../ui/mascots.ts';
   import Select from '../ui/Select.svelte';
-  import TabLinks from '../ui/TabLinks.svelte';
-  import Tabs from '../ui/Tabs.svelte';
   import ToastRegion from '../ui/ToastRegion.svelte';
   import { toaster, type ToastKind } from '../ui/toast.svelte.ts';
-  import type { SelectOption, TabItem, TabLink } from '../ui/types.ts';
+  import type { SelectOption } from '../ui/types.ts';
   import { GALLERY_COLOURS, GALLERY_FONTS } from './swatches.ts';
 
   const selectOptions: readonly SelectOption[] = [
@@ -22,12 +21,13 @@
     { value: 'seven', label: 'Seven days' },
     { value: 'never', label: 'Never', disabled: true },
   ];
-  const tabs: readonly TabItem[] = [
+  // Mutable until kern takes readonly lists (kern issue 142).
+  const tabs: TabItem[] = [
     { id: 'json', label: 'JSON' },
     { id: 'yaml', label: 'YAML' },
     { id: 'xml', label: 'XML' },
   ];
-  const tabLinks: readonly TabLink[] = [
+  const tabLinks: TabLinkItem[] = [
     { href: '#convert', label: 'Convert', current: true },
     { href: '#base64', label: 'Base64' },
     { href: '#colours', label: 'Colours' },
@@ -133,9 +133,9 @@
 
   <section aria-labelledby="g-tabs">
     <h2 class="label" id="g-tabs">Tabs</h2>
-    <Tabs {tabs} label="Formats" bind:selected={tab}>
-      {#snippet panel(item: TabItem)}
-        <p class="panel">{item.label}</p>
+    <Tabs {tabs} label="Formats" bind:value={tab}>
+      {#snippet panel(id: string)}
+        <p class="panel">{tabs.find((item) => item.id === id)?.label}</p>
       {/snippet}
     </Tabs>
     <TabLinks links={tabLinks} label="Convert tools" />

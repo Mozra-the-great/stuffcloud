@@ -1,3 +1,4 @@
+import { timeBudget } from '../time-budget.ts';
 import { describe, expect, it } from 'vitest';
 import { formatSql } from '../../src/tools/sql-formatter/layout.ts';
 import {
@@ -684,7 +685,7 @@ describe('large and deep input', () => {
     const out = format(sql, { minify: true });
     expect(out.startsWith('SELECT a0 + a1')).toBe(true);
     expect(format(sql).split(String.fromCharCode(10)).length).toBeGreaterThan(3);
-    expect(performance.now() - started).toBeLessThan(5000);
+    expect(performance.now() - started).toBeLessThan(timeBudget(5000));
   });
 
   it('does not indent nested queries without end', () => {

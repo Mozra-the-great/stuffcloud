@@ -1,3 +1,4 @@
+import { timeBudget } from '../time-budget.ts';
 import { parse as parseYaml } from 'yaml';
 import { describe, expect, it } from 'vitest';
 import {
@@ -450,7 +451,7 @@ describe('hostile documents', () => {
       format: 'xml',
       code: 'dtd',
     });
-    expect(performance.now() - started).toBeLessThan(500);
+    expect(performance.now() - started).toBeLessThan(timeBudget(500));
   });
 
   it('refuses a billion laughs document in YAML (aliases), quickly', () => {
@@ -469,7 +470,7 @@ describe('hostile documents', () => {
       code: 'aliasLimit',
       max: ALIAS_LIMIT,
     });
-    expect(performance.now() - started).toBeLessThan(1000);
+    expect(performance.now() - started).toBeLessThan(timeBudget(1000));
   });
 
   it('refuses an alias that is not defined', () => {

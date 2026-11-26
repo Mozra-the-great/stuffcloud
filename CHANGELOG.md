@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Mutation testing of the TypeScript logic of `web/` (#162, ADR 0007 addendum): [StrykerJS](https://stryker-mutator.io/) 10
+  (Apache-2.0) mutates `apps/web/src/tools`, `apps/web/src/pdf` and `packages/tools/src` (`pnpm test:mutation`; tests, manifests and
+  declaration files excluded, the generated code, catalogues and Svelte components not yet) and reruns only the Vitest tests that cover
+  the mutated line (`coverageAnalysis: "perTest"`); `thresholds.break: 100` fails on any survivor. Job `web-mutants` in `ci.yml`
+  (part of `build`; it never skips itself) mutates the scoped files a PR changes, with `--incremental`; `web-mutants-full` in
+  `deep-tests.yml` (sharded, report artifacts) runs the whole scope on demand until the survivors listed in #162 are closed. Equivalent
+  mutants carry `// Stryker disable next-line <mutator>: <reason>`. The tests that bound their run time scale their limit under
+  Stryker (`timeBudget`). (#180)
 - Mutation testing of the Python CI helpers (#161, ADR 0007 addendum): job `mutation-python` in `ci.yml` (part of
   `build`; it never skips itself) and the nightly `deep-tests.yml` run [mutmut](https://github.com/boxed/mutmut) 3
   over every `scripts/ci/*.py`, and `scripts/ci/mutation_gate.py` fails on any mutant no test noticed (`mutmut run`

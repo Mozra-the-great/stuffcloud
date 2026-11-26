@@ -1,6 +1,6 @@
 # ADR 0007: Test strategy: err on the side of too many tests
 
-- Status: Accepted (Python CI helpers under the mutation rule: see "Addendum: Python CI helpers")
+- Status: Accepted (Python CI helpers and the TypeScript logic of web/ under the mutation rule: see the addenda "Python CI helpers" and "TypeScript logic of web/")
 - Date: 2026-11-14 (SPEC draft 0.3, section 14 rewritten)
 - Decided in: [SPEC 14](../SPEC.md#14-quality-ci-and-testing), [PR #101](https://github.com/Mozra-the-great/stuffcloud/pull/101), `CLAUDE.md` ("Tests (non-negotiable)")
 
@@ -125,8 +125,64 @@ because the tests execute the line and coverage does not check what it does.
   a skipped job as a failure, so the steps no-op instead); leaving the helpers to coverage alone
   (rejected: the first mutation run found 1 259 surviving mutants against 341 passing tests).
 
+## Addendum: TypeScript logic of web/ (2026-11-26, #162)
+
+The only gate of the frontend besides Playwright and axe is Vitest with a 95 % coverage floor, which shows
+that a line ran and not that a wrong line would be noticed. `web/` has about 21 000 lines of non-test
+TypeScript, and the logic that matters is in it: the Markdown sanitiser (`render.ts`: DOMPurify, the inert
+re-parse, blocking remote pictures), the own parsers and encoders (JSON, JSON5, XML without DTD or
+entities, Base64, the PNG writer, the SQL tokenizer), the arithmetic with many boundaries (subnet, UUID v7
+ordering, units, timestamps, cron), the time limits of the workers, `src/pdf/` and `packages/tools`. The
+rule of decisions 2 and 5 holds for it: a surviving mutant is a missing test.
+
+- **Tool:** [StrykerJS](https://stryker-mutator.io/) 10 (`@stryker-mutator/core` and `vitest-runner`,
+  Apache-2.0, already on the allow list), a `devDependency` of `apps/web` and `packages/tools`, in the
+  pnpm lockfile and so in the npm license gate. `caniuse-lite` (CC-BY-4.0) comes with it through
+  browserslist; it is data, in no production tree, and sits in `[dev_only]` of the policy with that
+  reason.
+- **What is mutated:** `apps/web/src/tools/*/**/*.ts`, `apps/web/src/pdf/**/*.ts` and
+  `packages/tools/src/**/*.ts` without tests, the `manifest.ts` of each tool (static data checked by the manifest schema,
+  which is mutated, and by `pnpm check-tools`) and `.d.ts` files. Not yet: `packages/api-client`
+  (generated), `src/i18n/messages` (catalogues), `src/styles` (generated tokens) and the `.svelte`
+  components (they render, the e2e specs with axe cover them); the components are to be revisited when the
+  logic is clean. Every exclusion has its reason in the config, and a file is never excluded to get green.
+- **Gate:** `thresholds.break: 100` with `coverageAnalysis: "perTest"`. A survivor, a mutant that no test
+  covers and a run that mutated nothing fail it (a scope that matches no file throws); a mutant that makes
+  the tests hang is a timeout and counts as caught, as with `cargo mutants`. String-literal mutants are not
+  switched off. An equivalent mutant gets `// Stryker disable next-line <mutator>: <reason>` with the proof as
+  the reason, nothing else; where a small change of the code removes it, the code changes.
+- **CI:** job `web-mutants` in `ci.yml`, part of `build`, one leg per package. It never skips itself
+  (decision 1): it mutates the scoped files the PR changes, with `--incremental` and the report cached from
+  the last push to `main`, and a PR without such a file passes with nothing to do. Changed files, not the
+  whole scope, because the full run takes much longer than a PR can wait (see Cost), and because the scope
+  has survivors that other PRs do not own; every file a PR touches must therefore be clean. What that
+  leaves out (a changed test or a shared helper that lets a mutant of an untouched file live) is what the
+  full run in `deep-tests.yml` (`web-mutants-full`, sharded by file size, HTML and JSON reports as
+  artifacts) finds. It runs on demand until the progress list in #162 is empty: a scheduled job that is red
+  every night, or one that is allowed to fail, would weaken the check. The commit that kills the last
+  survivor removes its `if:` line.
+- **Layout:** the tests read files outside their package (`docs/design`, `packages/tools/src`), so Stryker
+  instruments in place instead of in a sandbox copy. `vitest.stryker.config.ts` is the normal config with
+  longer test timeouts, no coverage run and `STRYKER_SLOWDOWN`, which the tests that bound their run time
+  (`timeBudget` in `tests/time-budget.ts`) multiply their limit by: the instrumented code is several times
+  slower, and no other run changes. `STRYKER_TESTS` runs only the named test files while a survivor is being
+  killed (never in CI).
+- **Cost:** measured first, as the issue asked (figures per run in #162). The scope is 16 768 mutants in
+  `apps/web` and 939 in `packages/tools`. The initial run (every test once, instrumented, with the coverage of
+  every mutant) takes 11 minutes for `apps/web`, against two minutes for the plain Vitest run; the mutants then
+  run at about 1.5 per second on six local workers, an endless-loop mutant costing its time limit. One run of
+  the whole scope is therefore hours, which is why the PR job takes the changed files and the full run is
+  sharded. The tests that hash megabytes in pure JavaScript had to learn to work in small pieces (the
+  instrumented loops are far slower), see `hash-task.test.ts`.
+- **Alternatives considered:** the whole scope on every PR (not chosen: hours); `ignoreStatic` and
+  disabling string-literal mutants (rejected by the issue and by decision 5: they hide exactly the missing
+  assertions); a sandbox copy instead of in-place instrumentation (does not work: the tests read files
+  outside their package); the TypeScript checker plugin, which drops mutants that do not compile (not
+  needed so far; `pnpm typecheck` is its own gate, and it can be added if type-invalid survivors turn out
+  to dominate).
+
 ## Links
 
 - [SPEC 4](../SPEC.md#4-architecture-overview), [14](../SPEC.md#14-quality-ci-and-testing), [15](../SPEC.md#15-phases)
-- PR [#101](https://github.com/Mozra-the-great/stuffcloud/pull/101) (pipeline), [#107](https://github.com/Mozra-the-great/stuffcloud/pull/107) (frontend jobs in `build`), [#109](https://github.com/Mozra-the-great/stuffcloud/pull/109) (npm license gate), PR [#171](https://github.com/Mozra-the-great/stuffcloud/pull/171) (Python CI helpers, addendum)
+- PR [#101](https://github.com/Mozra-the-great/stuffcloud/pull/101) (pipeline), [#107](https://github.com/Mozra-the-great/stuffcloud/pull/107) (frontend jobs in `build`), [#109](https://github.com/Mozra-the-great/stuffcloud/pull/109) (npm license gate), PR [#171](https://github.com/Mozra-the-great/stuffcloud/pull/171) (Python CI helpers, addendum), PR [#180](https://github.com/Mozra-the-great/stuffcloud/pull/180) (TypeScript logic of web/, addendum)
 - [ADR 0001](0001-stack.md), [ADR 0006](0006-edge-and-core.md)

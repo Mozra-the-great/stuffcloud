@@ -32,6 +32,7 @@ allow = [
 [dev_only]
 "BlueOak-1.0.0" = "Permissive license (Blue Oak Council, rated gold) with MIT-like terms and no copyleft, so GPLv3 compatible, but not on the FSF list and not in deny.toml; used by lru-cache and minimatch inside ESLint. Dev tooling only."
 "Python-2.0" = "PSF license of the `argparse` 2.0.1 port (a dependency of ESLint); permissive, the PSF 2.0.1 terms are GPL-compatible per the FSF. Dev tooling only."
+"CC-BY-4.0" = "Creative Commons Attribution 4.0 (a free licence, one-way compatible with GPLv3 per the FSF) of the browser-support data package `caniuse-lite`, which StrykerJS (mutation testing, dev tooling) pulls in through browserslist and Babel. It is data, in no production dependency tree and not part of the build output."
 
 # Packages whose declared license is not a valid SPDX expression, one entry per
 # package and exact license text (it stops matching when the package changes the

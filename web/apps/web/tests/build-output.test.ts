@@ -45,6 +45,22 @@ describe('production build output', () => {
     expect(files.has('gallery.html')).toBe(true);
   });
 
+  it('ships kern’s Code theme only, and both pages select it (ADR 0014)', () => {
+    for (const page of ['index.html', 'gallery.html']) {
+      const html = readFileSync(files.get(page) ?? '', 'utf8');
+      expect(html).toMatch(/<body data-theme="code">/);
+      expect(html).not.toMatch(/<html[^>]*data-theme/);
+    }
+    const css = text(/\.css$/).join('\n');
+    expect(css).toMatch(/\[data-theme\^=['"]?code['"]?\]/);
+    expect(css).toContain('--k-bg:#101012');
+    // The design has no body line height; kern's theme rule sets 1.5 (kern#145).
+    expect(css).toContain('body[data-theme]{line-height:normal}');
+    for (const other of ['flower', 'pop', 'line']) {
+      expect(css).not.toMatch(new RegExp(`\\[data-theme\\^=['"]?${other}['"]?\\]`));
+    }
+  });
+
   it('emits all six font files as separate assets (never inlined)', () => {
     const fonts = [...files.keys()].filter((name) => name.endsWith('.woff2'));
     expect(fonts).toHaveLength(6);

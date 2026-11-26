@@ -79,6 +79,9 @@ Components
 - **Frontend**: Svelte + Vite single-page app, static build, tools lazy-loaded.
   TypeScript strict, no `any`. The API client is generated from the OpenAPI
   document of `app` (see section 10); CI fails when the generated client is stale.
+  Base components and the dark Code theme come from the shared design kit kern
+  (`@mozra-the-great/kern`, GPL-3.0-or-later), pinned as a release tarball with its
+  sha512 ([ADR 0014](adr/0014-frontend-components-from-shared-design-kit.md)).
 - **app** (LAN only): Rust, `axum` on `tokio`. Login, accounts, uploads, site
   management, moderation, admin, jobs. SQLite (WAL) for metadata. Storage behind a
   trait; default backend is the local filesystem, an S3-compatible backend can be
@@ -880,5 +883,10 @@ Hosting ships after auth and quotas on purpose: it is the security-critical part
     and OpenTofu provider later, location decided when built (section 10,
     [ADR 0010](adr/0010-api-first-and-configuration-as-code.md)).
 
-Architecture decision records for decisions 9, 10, 11, 12 and 13 and for the choices in sections 4 to 8
+14. **Frontend components (2026-11-26, #121):** the base components come from the shared design
+    kit kern with its `code` theme (drawn from `docs/design`, which stays the design source),
+    consumed as a pinned release tarball and bumped by hand; app shell, pages, tools, fonts and
+    mascot art stay here ([ADR 0014](adr/0014-frontend-components-from-shared-design-kit.md)).
+
+Architecture decision records for decisions 9, 10, 11, 12, 13 and 14 and for the choices in sections 4 to 8
 and 14 are in [`docs/adr/`](adr/README.md).

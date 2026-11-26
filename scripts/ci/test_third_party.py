@@ -182,6 +182,17 @@ class TestRender(unittest.TestCase):
         text = tp.render(self.CRATES, [])
         self.assertIn("| odd | 0.1.0 | MIT \\| ISC | git+https://example.invalid/odd |", text)
 
+    def test_a_package_pinned_to_a_tarball_links_the_release_not_the_registry(self):
+        url = "https://example.com/releases/download/v1.2.3/pkg-1.2.3.tgz"
+        text = tp.render([], self.NPM, {("@scope/pkg", "1.2.3"): url})
+        self.assertIn(f"| @scope/pkg | 1.2.3 | MIT | [release]({url}) |", text)
+        self.assertIn("| plain | 4.5.6 | (MIT OR CC0-1.0) | [npm](https://www.npmjs.com/package/plain/v/4.5.6) |", text)
+
+    def test_a_tarball_of_another_version_does_not_apply(self):
+        url = "https://example.com/pkg-9.9.9.tgz"
+        source = tp.npm_source(Package("@scope/pkg", "1.2.3", "MIT"), {("@scope/pkg", "9.9.9"): url})
+        self.assertEqual(source, "[npm](https://www.npmjs.com/package/@scope/pkg/v/1.2.3)")
+
     def test_unknown_source_is_marked(self):
         self.assertEqual(tp.crate_source(tp.CratePackage("x", "1.0.0", "MIT", "")), "unknown")
 
@@ -219,6 +230,14 @@ class TestGenerate(unittest.TestCase):
         self.assertIn("## npm (2)", text)
         self.assertNotIn("dev-tool", text)
         self.assertLess(text.index("alpha"), text.index("zeta"))
+
+    def test_tarball_sources_of_the_inventory_reach_the_report(self):
+        meta = metadata([crate("me", source=None)], [node("me", [])], ["me"])
+        url = "https://example.com/kit-1.0.0.tgz"
+        inventory = nl.Inventory(
+            (Package("kit", "1.0.0", "GPL-3.0-or-later"),), frozenset({("kit", "1.0.0")}), {("kit", "1.0.0"): url}
+        )
+        self.assertIn(f"| kit | 1.0.0 | GPL-3.0-or-later | [release]({url}) |", tp.generate(meta, inventory))
 
 
 class TestCheckMode(unittest.TestCase):

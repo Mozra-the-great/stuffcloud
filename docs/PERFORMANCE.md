@@ -60,13 +60,17 @@ rounded up to a whole KiB (a budget of 0 stays 0: a tool without a worker that g
 | textops        | 18.94        | 22     | 2.67         | 4      |
 | timestamp      | 11.62        | 14     | 0.00         | 0      |
 | unit-converter | 12.18        | 15     | 0.00         | 0      |
-| url            | 11.05        | 13     | 0.00         | 0      |
+| url            | 11.05        | 14     | 0.00         | 0      |
 | user-agent     | 10.87        | 13     | 0.00         | 0      |
 | uuid           | 16.07        | 19     | 0.00         | 0      |
 
 Before T-25 the manifests carried budgets in minified, uncompressed KiB that nobody checked (for example
 `qr` 160, `json-yaml-xml` 150, 50 for most tools); the gzip numbers above replace them. Most tools were
 far below their old budget, so the new ones are tight on purpose.
+
+Raised since (reviewed, operator-approved 2026-11-26, stuffcloud SF20): `url` to 14 KiB (kern 0.14.0, #194). The
+unit test builds with `NODE_ENV=test` and is a few hundred bytes to 2 KiB larger than `pnpm perf:build`; the budget
+has to hold for both, so a new budget is decided from the larger of the two.
 
 ## Changing a budget
 

@@ -819,6 +819,8 @@ mod tests {
         assert_eq!(mail.from_name.as_deref(), Some("stuffcloud"));
         assert_eq!(mail.subject, "stuffcloud: Passwort zur\u{fc}cksetzen");
         assert!(mail.text.starts_with("Hallo alice,"), "{}", mail.text);
+        // The link works for as long as the reset token does: 60 minutes.
+        assert!(mail.text.contains("60 Minuten"), "{}", mail.text);
         assert!(mail.text.contains("https://app.example.com"));
         // 64 hex characters of random in the sender's domain, not derived from the token.
         assert!(mail.message_id.starts_with('<') && mail.message_id.ends_with("@example.com>"));

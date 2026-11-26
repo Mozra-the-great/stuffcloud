@@ -231,6 +231,7 @@ async fn a_reset_mail_arrives_with_a_link_that_works_once() {
     assert_eq!(mail.from_name.as_deref(), Some("stuffcloud"));
     assert_eq!(mail.subject, "stuffcloud: reset your password");
     assert!(mail.text.starts_with("Hello alice,"), "{}", mail.text);
+    assert!(mail.text.contains("within 60 minutes"), "{}", mail.text);
     assert!(mail.text.contains(APP_ORIGIN));
     // The server the app talked to, with the password from the deployment configuration.
     let server = app.mail.servers().remove(0);

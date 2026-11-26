@@ -1,7 +1,7 @@
 /*
  * kern's Code theme (ADR 0014): base tokens plus the Code brand only, selected by
- * <body data-theme="code">. Not on <html>: the theme sets a px font size on its element, which on
- * the root would override the reader's default font size for every rem.
+ * <html data-theme="code">. On the root the theme takes the reader's default font size (kern#144,
+ * v0.13.0), so every rem still follows the browser setting.
  */
 @import '@mozra-the-great/kern/themes/code.css';
 @import './fonts.css';

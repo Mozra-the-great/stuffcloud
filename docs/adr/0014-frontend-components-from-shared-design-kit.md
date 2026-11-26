@@ -48,8 +48,9 @@ release attaches a tarball plus its sha256 and sha512.
    pins a commit, not content, and builds with kern's dev dependencies), no registry, no token.
 3. **One theme, dark only.** The app imports `@mozra-the-great/kern/themes/code.css` (base tokens
    plus the Code brand only; kern's tests prove no other brand lands in it) and sets
-   `data-theme="code"` on `<body>` (not `<html>`: the theme gives its element a px font size, which
-   on the root would override the reader's default size for `rem`). kern's light, paper and contrast
+   `data-theme="code"` on `<html>`. Since kern 0.13.0 the themed root takes the reader's default font
+   size (`calc(var(--k-root-scale) * 1rem)`, kern#144) and the Code theme's line height is `normal`
+   like the design's (`--k-leading-body`, kern#145), so the app carries no override for either. kern's light, paper and contrast
    variants of `code` are not used: the UI is dark only (SPEC 12). The app's own `src/styles`
    (fonts, generated `tokens.css`, `theme.css`) stays for the app's layout, pages and tools;
    components read only kern's `--k-*` tokens.

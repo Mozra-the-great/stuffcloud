@@ -8,8 +8,16 @@ peerDependencyRules:
   allowedVersions:
     openapi-typescript>typescript: '6'
 
+# Two packages are removed from the dependency graph (`'-'`), each for a reason of its own.
+#
 # pdf.js lists a native canvas binding (Node.js only) as an optional dependency. The PDF tools run in
 # browsers and the tests give pdf.js their own canvas, so it is removed from the dependency graph:
 # no 12 platform packages in the lockfile, nothing native to install, nothing more to license-check.
+# Lighthouse (the performance gate, #29) pulls in `@sentry/node`, which pulls in `@sentry/bundler-plugins`,
+# which depends on the `sentry` CLI package. That package is licensed FSL-1.1-Apache-2.0, a source-available
+# licence the policy does not allow. Nothing here uses it: Lighthouse reports errors to Sentry only when run
+# with `--enable-error-reporting` (the gate never does), and a bundler plugin is not part of a Lighthouse run.
+# Removed, nothing is installed and no licence exception is needed.
 overrides:
   '@napi-rs/canvas': '-'
+  sentry: '-'

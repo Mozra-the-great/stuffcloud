@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Performance budgets and a Lighthouse gate (T-25, #29, `docs/PERFORMANCE.md`): job `perf-budgets` in `ci.yml` (part of `build`)
+  checks the gzip size of the shell (first-load JavaScript, CSS, fonts; `apps/web/perf-budgets.json`) and of every tool (its lazy
+  code and what its workers can download; the `budget` of its manifest) against a production build made with the Vite manifest
+  (`pnpm perf:build && pnpm check-budgets`), prints the exact bytes and fails with the files and the overshoot. Job `lighthouse`
+  runs Lighthouse 13.6.0 on the shell of the production build, served like Caddy serves it, in the pinned Chromium: the median of
+  five runs must reach 95 in performance, accessibility and best practices (`pnpm lighthouse`). The tool budgets are now measured
+  gzip sizes plus 15 % instead of unchecked minified numbers. Lighthouse's `sentry` dependency (FSL-1.1-Apache-2.0) is removed
+  from the graph with a pnpm override, so the license policy is unchanged. (#189)
 - Mutation testing of the TypeScript logic of `web/` (#162, ADR 0007 addendum): [StrykerJS](https://stryker-mutator.io/) 10
   (Apache-2.0) mutates `apps/web/src/tools`, `apps/web/src/pdf` and `packages/tools/src` (`pnpm test:mutation`; tests, manifests and
   declaration files excluded, the generated code, catalogues and Svelte components not yet) and reruns only the Vitest tests that cover

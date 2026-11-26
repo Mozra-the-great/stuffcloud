@@ -10,6 +10,6 @@ export default defineTool({
   runsIn: 'client',
   fileContent: 'stays-in-browser',
   requires: ['worker'],
-  budget: { scriptKb: 50, assetsKb: 0 },
+  budget: { scriptKb: 21, assetsKb: 2 },
   load: () => import('./Tool.svelte'),
 });

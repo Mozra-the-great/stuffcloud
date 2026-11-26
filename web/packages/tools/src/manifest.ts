@@ -7,9 +7,11 @@ import type { ToolId } from './tool-id.ts';
 export type RunsIn = 'client' | 'server';
 
 /**
- * Size budget in KiB (1024 bytes), documented per tool (SPEC 7). `scriptKb` is the tool's own
- * lazily loaded JavaScript, `assetsKb` what it fetches when it opens (WASM, models). The
- * numbers are checked against the build output by the performance budgets of T-25 (#29).
+ * Size budget in KiB (1024 bytes) of gzip-compressed files, documented per tool (SPEC 7).
+ * `scriptKb` is the tool's own lazily loaded JavaScript and CSS (its page chunk and the chunks it
+ * imports that the first page load does not fetch), `assetsKb` everything else it can download:
+ * worker scripts and what they load (the pdf.js engine), WASM, models. The CI job `perf-budgets`
+ * checks both against the production build (`pnpm check-budgets`, docs/PERFORMANCE.md).
  */
 export interface ToolBudget {
   readonly scriptKb: number;

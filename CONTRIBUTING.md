@@ -215,6 +215,13 @@ A new tool starts with `pnpm new-tool <id>` (manifest, page, test, German and En
 `--worker` adds the worker setup); `pnpm check-tools` validates every manifest and `pnpm build`
 fails on a bad one (ADR 0012).
 
+Size budgets (T-25): `pnpm perf:build && pnpm check-budgets` builds the app with the Vite manifest and checks the
+gzip size of the shell and of every tool against `web/apps/web/perf-budgets.json` and the `budget` of each manifest
+(CI job `perf-budgets`); `pnpm lighthouse` (with `CHROME_PATH` set) runs the Lighthouse gate on that build (CI job
+`lighthouse`, performance, accessibility and best practices at least 95). A new tool sets its `budget` to the measured
+size plus 15 %; a bigger budget is a reviewed change with the reason in the PR. Numbers and rules:
+[`docs/PERFORMANCE.md`](docs/PERFORMANCE.md).
+
 Browser tests: `pnpm e2e` runs Playwright in Chromium and Firefox against the built app (once:
 `pnpm --filter @stuffcloud/web exec playwright install chromium firefox`; details in
 `web/apps/web/e2e/README.md`). Accessibility is checked on every PR: each e2e state calls

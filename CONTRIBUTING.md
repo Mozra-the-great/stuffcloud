@@ -117,7 +117,9 @@ reruns the Vitest tests that cover that line; a mutant that no test notices fail
   one. A single file: `pnpm exec stryker run --mutate src/tools/subnet/net.ts` in the package directory.
   `STRYKER_CHANGED_FILES_FILE=<list>` restricts a run to the listed files (paths relative to `web/`, one per
   line) and `STRYKER_SHARD=<index>/<count>` to one share of the scope, split by file size; the HTML
-  report is `reports/mutation/mutation.html`. Stryker instruments the files in place (the tests read
+  report is `reports/mutation/mutation.html`. While a survivor is being killed,
+  `STRYKER_TESTS="tests/tools/subnet*.test.ts"` runs only those test files (seconds instead of minutes for the
+  initial run); the final check runs them all. Stryker instruments the files in place (the tests read
   files outside their package) and puts them back at the end; do not edit sources while it runs.
 - **CI:** the job `web-mutants` in `ci.yml` (part of `build`, one leg per package) mutates the scoped files
   the PR changes, with `--incremental` and the report that the last push to `main` cached; it never skips

@@ -165,10 +165,24 @@ rule of decisions 2 and 5 holds for it: a surviving mutant is a missing test.
   instruments in place instead of in a sandbox copy. `vitest.stryker.config.ts` is the normal config with
   longer test timeouts, no coverage run and `STRYKER_SLOWDOWN`, which the tests that bound their run time
   (`timeBudget` in `tests/time-budget.ts`) multiply their limit by: the instrumented code is several times
-  slower, and no other run changes.
+  slower, and no other run changes. `STRYKER_TESTS` runs only the named test files while a survivor is being
+  killed (never in CI).
+- **Cost:** measured first, as the issue asked (figures per run in #162). The scope is 16 768 mutants in
+  `apps/web` and 939 in `packages/tools`. The initial run (every test once, instrumented, with the coverage of
+  every mutant) takes 11 minutes for `apps/web`, against two minutes for the plain Vitest run; the mutants then
+  run at about 1.5 per second on six local workers, an endless-loop mutant costing its time limit. One run of
+  the whole scope is therefore hours, which is why the PR job takes the changed files and the full run is
+  sharded. The tests that hash megabytes in pure JavaScript had to learn to work in small pieces (the
+  instrumented loops are far slower), see `hash-task.test.ts`.
+- **Alternatives considered:** the whole scope on every PR (not chosen: hours); `ignoreStatic` and
+  disabling string-literal mutants (rejected by the issue and by decision 5: they hide exactly the missing
+  assertions); a sandbox copy instead of in-place instrumentation (does not work: the tests read files
+  outside their package); the TypeScript checker plugin, which drops mutants that do not compile (not
+  needed so far; `pnpm typecheck` is its own gate, and it can be added if type-invalid survivors turn out
+  to dominate).
 
 ## Links
 
 - [SPEC 4](../SPEC.md#4-architecture-overview), [14](../SPEC.md#14-quality-ci-and-testing), [15](../SPEC.md#15-phases)
-- PR [#101](https://github.com/Mozra-the-great/stuffcloud/pull/101) (pipeline), [#107](https://github.com/Mozra-the-great/stuffcloud/pull/107) (frontend jobs in `build`), [#109](https://github.com/Mozra-the-great/stuffcloud/pull/109) (npm license gate), PR [#171](https://github.com/Mozra-the-great/stuffcloud/pull/171) (Python CI helpers, addendum)
+- PR [#101](https://github.com/Mozra-the-great/stuffcloud/pull/101) (pipeline), [#107](https://github.com/Mozra-the-great/stuffcloud/pull/107) (frontend jobs in `build`), [#109](https://github.com/Mozra-the-great/stuffcloud/pull/109) (npm license gate), PR [#171](https://github.com/Mozra-the-great/stuffcloud/pull/171) (Python CI helpers, addendum), PR [#180](https://github.com/Mozra-the-great/stuffcloud/pull/180) (TypeScript logic of web/, addendum)
 - [ADR 0001](0001-stack.md), [ADR 0006](0006-edge-and-core.md)

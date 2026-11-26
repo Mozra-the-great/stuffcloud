@@ -524,6 +524,14 @@ mod tests {
             only(&smtp).2,
             "the host must have 1 to 253 characters".to_owned()
         );
+        // Exactly 253 bytes is not too long: the sentence about the characters applies.
+        smtp.host = format!("{}_", "a".repeat(252));
+        assert_eq!(smtp.host.len(), 253);
+        assert_eq!(
+            only(&smtp).2,
+            "the host must be a host name (labels of letters, digits and '-', separated by dots) or an IP address"
+                .to_owned()
+        );
     }
 
     #[test]

@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
+  import { Button } from '@mozra-the-great/kern';
   import { tick, type Snippet } from 'svelte';
-  import Button from '../ui/Button.svelte';
 
   interface Props {
     items: readonly T[];
@@ -112,24 +112,24 @@
       <div class="row">{@render row(item, index)}</div>
       <div class="buttons">
         <Button
-          variant="ghost"
-          size="compact"
+          variant="secondary"
+          size="sm"
           data-action="up"
           aria-label={texts.upLabel(item)}
           disabled={index === 0}
           onclick={() => void move(item, index, index - 1, 'up')}>{texts.up}</Button
         >
         <Button
-          variant="ghost"
-          size="compact"
+          variant="secondary"
+          size="sm"
           data-action="down"
           aria-label={texts.downLabel(item)}
           disabled={index === items.length - 1}
           onclick={() => void move(item, index, index + 1, 'down')}>{texts.down}</Button
         >
         <Button
-          variant="ghost"
-          size="compact"
+          variant="secondary"
+          size="sm"
           data-action="remove"
           aria-label={texts.removeLabel(item)}
           onclick={() => {

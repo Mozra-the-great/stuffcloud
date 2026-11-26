@@ -1,5 +1,6 @@
 <script lang="ts">
   import {
+    Button,
     Card,
     CodeBlock,
     FileDrop,
@@ -12,10 +13,8 @@
     type ToastTone,
   } from '@mozra-the-great/kern';
   import '../styles/index.css';
-  import Button from '../ui/Button.svelte';
   import Checkbox from '../ui/Checkbox.svelte';
   import Input from '../ui/Input.svelte';
-  import LinkButton from '../ui/LinkButton.svelte';
   import Mascot from '../ui/Mascot.svelte';
   import { MASCOT_NAMES } from '../ui/mascots.ts';
   import Select from '../ui/Select.svelte';
@@ -98,11 +97,11 @@
     <h2 class="label" id="g-buttons">Button, link button</h2>
     <div class="row">
       <Button>Primary</Button>
-      <Button variant="ghost">Ghost</Button>
+      <Button variant="secondary">Ghost</Button>
       <Button variant="danger">Danger</Button>
       <Button disabled>Disabled</Button>
-      <Button size="compact">Compact</Button>
-      <Button size="icon" variant="ghost" aria-label="Menu">
+      <Button size="sm">Compact</Button>
+      <Button size="icon" variant="secondary" aria-label="Menu">
         <svg
           width="20"
           height="14"
@@ -117,8 +116,8 @@
       </Button>
     </div>
     <div class="row">
-      <LinkButton href="#buttons">Link button</LinkButton>
-      <LinkButton href="#buttons" variant="ghost">Ghost link</LinkButton>
+      <Button href="#buttons">Link button</Button>
+      <Button href="#buttons" variant="secondary">Ghost link</Button>
     </div>
     <div class="wide">
       <Button wide>
@@ -170,7 +169,7 @@
     <h2 class="label" id="g-dialog">Dialog</h2>
     <div class="row">
       <Button
-        variant="ghost"
+        variant="secondary"
         onclick={() => {
           dialogOpen = true;
         }}
@@ -182,7 +181,7 @@
       <p class="panel">my-site.example</p>
       {#snippet footer()}
         <Button
-          variant="ghost"
+          variant="secondary"
           onclick={() => {
             dialogOpen = false;
           }}
@@ -199,8 +198,8 @@
     <div class="row">
       {#each toastKinds as kind (kind.name)}
         <Button
-          variant="ghost"
-          size="compact"
+          variant="secondary"
+          size="sm"
           onclick={() => {
             toast({ message: `A ${kind.name} message`, tone: kind.tone });
           }}

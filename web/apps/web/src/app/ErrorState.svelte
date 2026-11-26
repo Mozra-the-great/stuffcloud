@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { Button } from '@mozra-the-great/kern';
   import { t } from '../i18n/index.ts';
-  import Button from '../ui/Button.svelte';
   import Mascot from '../ui/Mascot.svelte';
   import './pages/page.css';
 
@@ -31,7 +31,7 @@
     <p class="hint">{t('offline.hint')}</p>
   {/if}
   <div>
-    <Button variant="ghost" onclick={onretry}>{t('error.retry')}</Button>
+    <Button variant="secondary" onclick={onretry}>{t('error.retry')}</Button>
   </div>
 </section>
 

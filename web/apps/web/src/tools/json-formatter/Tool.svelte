@@ -1,11 +1,11 @@
 <script lang="ts">
+  import { Button } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
   import { saveText } from '../../app/download.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import Checkbox from '../../ui/Checkbox.svelte';
   import Input from '../../ui/Input.svelte';
   import Select from '../../ui/Select.svelte';
@@ -151,7 +151,7 @@
       <ToolStatus kind="alert" message={failure} />
       {#if parsed?.ok === false}
         <div>
-          <Button variant="ghost" size="compact" onclick={goToError}>{t('json.goToError')}</Button>
+          <Button variant="secondary" size="sm" onclick={goToError}>{t('json.goToError')}</Button>
         </div>
       {/if}
       {#if stats !== undefined && (stats.duplicateKeys > 0 || stats.bigNumbers > 0)}
@@ -176,14 +176,13 @@
         <div class="row">
           <CopyButton text={output} label={t('json.copy')} value={t('json.copied')} />
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             onclick={() => {
               saveText('formatted.json', output, 'application/json');
             }}>{t('json.download')}</Button
           >
-          <Button variant="ghost" size="compact" onclick={useAsInput}>{t('json.useAsInput')}</Button
-          >
+          <Button variant="secondary" size="sm" onclick={useAsInput}>{t('json.useAsInput')}</Button>
         </div>
       </section>
 

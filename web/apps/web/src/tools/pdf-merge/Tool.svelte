@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileDrop, Progress } from '@mozra-the-great/kern';
+  import { Button, FileDrop, Progress } from '@mozra-the-great/kern';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ReorderList from '../../app/ReorderList.svelte';
   import { i18n, t } from '../../i18n/index.ts';
@@ -11,8 +11,6 @@
   import LiveStatus from '../../pdf/LiveStatus.svelte';
   import { createOpsRunner } from '../../pdf/runners.ts';
   import type { PdfInput, PdfIssue, PdfOutput, PdfRunner } from '../../pdf/types.ts';
-  import Button from '../../ui/Button.svelte';
-  import LinkButton from '../../ui/LinkButton.svelte';
 
   interface Entry {
     /** Stays with the file while it moves in the list. */
@@ -261,8 +259,10 @@
 
   <div class="actions">
     <Button disabled={!canMerge} onclick={() => void merge()}>{t('pdf.merge.start')}</Button>
-    <Button variant="ghost" disabled={!working} onclick={cancel}>{t('pdf.action.cancel')}</Button>
-    <Button variant="ghost" disabled={entries.length === 0 || working} onclick={clear}
+    <Button variant="secondary" disabled={!working} onclick={cancel}
+      >{t('pdf.action.cancel')}</Button
+    >
+    <Button variant="secondary" disabled={entries.length === 0 || working} onclick={clear}
       >{t('pdf.merge.clear')}</Button
     >
   </div>
@@ -284,8 +284,8 @@
 
   {#if result !== undefined}
     <div class="result">
-      <LinkButton href={result.url} download={result.name}
-        >{t('pdf.action.download')} {result.name}</LinkButton
+      <Button href={result.url} download={result.name}
+        >{t('pdf.action.download')} {result.name}</Button
       >
     </div>
   {/if}

@@ -1,14 +1,16 @@
+import { CODE_ART, isCodeArt } from '@mozra-the-great/kern';
 import { STICKER_NAMES } from '@stuffcloud/tools';
 import { render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import Sticker from '../src/app/Sticker.svelte';
-import { stickerUrl } from '../src/app/stickers.ts';
+import { stickerArt, stickerScale, stickerUrl } from '../src/app/stickers.ts';
 import { CAPABILITY_LABELS, searchTools } from '../src/app/tools.ts';
 import { CAPABILITIES } from '@stuffcloud/tools';
 import { en } from '../src/i18n/messages/en.ts';
 import { de } from '../src/i18n/messages/de.ts';
 import { makeTool } from './app-helpers.ts';
 import { must } from './app-helpers.ts';
+import { readRepoFile } from './helpers.ts';
 
 describe('stickerUrl', () => {
   it('resolves every design sticker to its own file', () => {
@@ -35,19 +37,54 @@ describe('stickerUrl', () => {
   });
 });
 
+describe('stickerArt', () => {
+  it("is kern's code art for every design sticker, with the grid of the design's SVG", () => {
+    for (const name of STICKER_NAMES) {
+      const art = stickerArt(name);
+      expect(art, name).toBe(`tool-stickers/sticker-${name}`);
+      expect(isCodeArt(art), `kern has code art for ${name}`).toBe(true);
+      const grid = CODE_ART[art];
+      expect(readRepoFile(`docs/design/prototypes/sticker-${name}.svg`), name).toContain(
+        `viewBox="0 0 ${String(grid.cols)} ${String(grid.rows)}"`,
+      );
+    }
+  });
+});
+
+describe('stickerScale', () => {
+  it('picks the whole number of pixels per art pixel closest to the wanted height', () => {
+    expect(stickerScale(48, 12)).toBe(4);
+    expect(stickerScale(48, 9)).toBe(5);
+    expect(stickerScale(48, 5)).toBe(10);
+    expect(stickerScale(24, 12)).toBe(2);
+    expect(stickerScale(48, 11)).toBe(4);
+  });
+
+  it('never goes below one pixel per art pixel', () => {
+    expect(stickerScale(4, 12)).toBe(1);
+    expect(stickerScale(0, 12)).toBe(1);
+  });
+});
+
 describe('Sticker', () => {
-  it('renders a decorative pixel image of the right file, scaled by height only', () => {
+  it('renders a decorative, still pixel image of the right file at a whole scale', () => {
     const { container } = render(Sticker, { name: 'pdf-merge' });
     const image = must(container.querySelector('img'));
+    const grid = CODE_ART[stickerArt('pdf-merge')];
     expect(image.getAttribute('src')).toBe(stickerUrl('pdf-merge'));
     expect(image.getAttribute('alt')).toBe('');
-    expect(image.getAttribute('height')).toBe('48');
-    expect(image.hasAttribute('width')).toBe(false);
+    expect(image.getAttribute('aria-hidden')).toBe('true');
+    expect(Number(image.getAttribute('height'))).toBe(grid.rows * stickerScale(48, grid.rows));
+    expect(Number(image.getAttribute('width'))).toBe(grid.cols * stickerScale(48, grid.rows));
+    expect(container.querySelector('.k-mascot')?.getAttribute('data-motion')).toBe('still');
   });
 
   it('takes another size', () => {
     const { container } = render(Sticker, { name: 'qr', size: 24 });
-    expect(container.querySelector('img')?.getAttribute('height')).toBe('24');
+    const grid = CODE_ART[stickerArt('qr')];
+    expect(container.querySelector('img')?.getAttribute('height')).toBe(
+      String(grid.rows * stickerScale(24, grid.rows)),
+    );
   });
 });
 

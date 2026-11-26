@@ -88,7 +88,7 @@ function result(): string | undefined {
 }
 
 function statuses(): string {
-  return [...document.querySelectorAll('main .tool-status')]
+  return [...document.querySelectorAll('main [data-tool-status]')]
     .map((region) => region.textContent.trim())
     .filter((line) => line !== '')
     .join('|');
@@ -195,7 +195,9 @@ describe('json-yaml-xml', () => {
       );
     });
     expect(result()).toBeUndefined();
-    expect(document.querySelector('main .tool-status.alert')?.getAttribute('role')).toBe('alert');
+    expect(
+      document.querySelector('main [data-tool-status][role="alert"]')?.getAttribute('role'),
+    ).toBe('alert');
   });
 
   it('says what cannot be written, with the place', async () => {

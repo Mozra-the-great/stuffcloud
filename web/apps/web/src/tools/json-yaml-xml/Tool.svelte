@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
+  import { Input, Select, Button, Checkbox, Textarea, StatusMessage } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import DownloadButton from '../../app/DownloadButton.svelte';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import {
     FORMATS,
     MAX_INPUT_CHARS,
@@ -226,8 +225,8 @@
           spellcheck={false}
         />
       {/if}
-      <ToolStatus message={status} />
-      <ToolStatus kind="alert" message={failure} />
+      <StatusMessage data-tool-status class="tool-ok" message={status} />
+      <StatusMessage data-tool-status kind="alert" message={failure} />
       {#if notes.length > 0}
         <ul class="notes">
           {#each notes as note (note.kind)}

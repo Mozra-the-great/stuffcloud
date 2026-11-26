@@ -23,7 +23,7 @@ function sha256(page: Page): ReturnType<Page['locator']> {
 
 /** The tool's own polite status line (the first one on the page is the search count). */
 function status(page: Page): ReturnType<Page['locator']> {
-  return page.locator('main .tool-status:not(.alert)');
+  return page.locator('main [data-tool-status][role="status"]');
 }
 
 test.describe('hash', () => {

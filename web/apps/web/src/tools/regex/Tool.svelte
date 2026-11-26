@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { Input, Checkbox, Textarea } from '@mozra-the-great/kern';
+  import { Input, Checkbox, Textarea, StatusMessage } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import { explainPattern } from './explain.ts';
   import {
     DEBOUNCE_MS,
@@ -191,8 +190,8 @@
         autocapitalize="off"
         spellcheck={false}
       />
-      <ToolStatus message={status} />
-      <ToolStatus kind="alert" message={failure} />
+      <StatusMessage data-tool-status class="tool-ok" message={status} />
+      <StatusMessage data-tool-status kind="alert" message={failure} />
     </section>
 
     {#if output !== undefined}

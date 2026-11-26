@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { Input, Select } from '@mozra-the-great/kern';
+  import { Input, Select, StatusMessage } from '@mozra-the-great/kern';
   import { i18n, t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import { parseCron, type CronError } from './cron.ts';
   import { explainCron } from './explain.ts';
   import { ERROR_KEYS, FIELD_KEYS } from './messages.ts';
@@ -131,7 +130,7 @@
           onchange={announce}
         />
       </div>
-      <ToolStatus message={status} />
+      <StatusMessage data-tool-status class="tool-ok" message={status} />
     </section>
 
     {#if schedule !== undefined}

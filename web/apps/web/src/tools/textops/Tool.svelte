@@ -1,11 +1,10 @@
 <script lang="ts">
-  import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
+  import { Input, Select, Button, Checkbox, Textarea, StatusMessage } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import DownloadButton from '../../app/DownloadButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import { CASE_STYLES, type CaseStyle } from './case.ts';
   import type { Counts } from './count.ts';
   import type { TrimMode } from './lines.ts';
@@ -373,8 +372,8 @@
           {t('textops.use')}
         </Button>
       </div>
-      <ToolStatus message={status} />
-      <ToolStatus kind="alert" message={failure} />
+      <StatusMessage data-tool-status class="tool-ok" message={status} />
+      <StatusMessage data-tool-status kind="alert" message={failure} />
     </section>
   </div>
 </ToolFrame>

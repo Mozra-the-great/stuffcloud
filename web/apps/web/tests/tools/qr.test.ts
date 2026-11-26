@@ -72,13 +72,13 @@ afterEach(() => {
 });
 
 function statusText(): string {
-  return [...document.querySelectorAll('main .tool-status:not(.alert)')]
+  return [...document.querySelectorAll('main [data-tool-status][role="status"]')]
     .map((region) => region.textContent.trim())
     .join('');
 }
 
 function alertText(): string {
-  return document.querySelector('main .tool-status.alert')?.textContent.trim() ?? '';
+  return document.querySelector('main [data-tool-status][role="alert"]')?.textContent.trim() ?? '';
 }
 
 function picture(): HTMLImageElement | null {
@@ -129,8 +129,10 @@ describe('qr', () => {
     await openTool(manifest);
     expect(picture()).toBeNull();
     expect(screen.getByText('Type a text or a link to see the code.')).toBeTruthy();
-    expect(document.querySelectorAll('main .tool-status')).toHaveLength(2);
-    expect(document.querySelector('main .tool-status.alert')?.getAttribute('role')).toBe('alert');
+    expect(document.querySelectorAll('main [data-tool-status]')).toHaveLength(2);
+    expect(
+      document.querySelector('main [data-tool-status][role="alert"]')?.getAttribute('role'),
+    ).toBe('alert');
     expect(screen.queryByRole('button', { name: 'Download PNG' })).toBeNull();
   });
 });

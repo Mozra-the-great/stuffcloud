@@ -7,10 +7,10 @@
     Textarea,
     saveBlob,
     saveText,
+    StatusMessage,
   } from '@mozra-the-great/kern';
   import { t, type MessageKey } from '../../i18n/index.ts';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import { ECC_LEVELS, buildQr, type QrResult } from './check.ts';
   import type { Ecc } from './matrix.ts';
   import {
@@ -260,8 +260,8 @@
       {:else if problem !== ''}
         <p class="note">{problem}</p>
       {/if}
-      <ToolStatus message={status} />
-      <ToolStatus kind="alert" message={failure} />
+      <StatusMessage data-tool-status class="tool-ok" message={status} />
+      <StatusMessage data-tool-status kind="alert" message={failure} />
     </section>
   </div>
 </ToolFrame>

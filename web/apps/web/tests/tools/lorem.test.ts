@@ -31,7 +31,7 @@ function amount(): HTMLInputElement {
 }
 
 function statusText(): string {
-  return [...document.querySelectorAll('main .tool-status')]
+  return [...document.querySelectorAll('main [data-tool-status]')]
     .map((region) => region.textContent.trim())
     .join('');
 }

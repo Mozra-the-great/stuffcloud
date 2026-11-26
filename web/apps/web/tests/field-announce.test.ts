@@ -110,6 +110,6 @@ describe('a field error is announced exactly once', () => {
     expect(liveRegionsSaying(text)).toEqual([error]);
     await user.tab();
     expect(liveRegionsSaying(text)).toEqual([error]);
-    expect(document.querySelector('main .tool-status')?.textContent.trim()).toBe('');
+    expect(document.querySelector('main [data-tool-status]')?.textContent.trim()).toBe('');
   });
 });

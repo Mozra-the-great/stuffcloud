@@ -29,11 +29,11 @@ function picture(page: Page): ReturnType<Page['getByRole']> {
 
 /** The tool's own polite status line and its alert (the first live region on the page is the search count). */
 function status(page: Page): ReturnType<Page['locator']> {
-  return page.locator('main .tool-status:not(.alert)');
+  return page.locator('main [data-tool-status][role="status"]');
 }
 
 function alert(page: Page): ReturnType<Page['locator']> {
-  return page.locator('main .tool-status.alert');
+  return page.locator('main [data-tool-status][role="alert"]');
 }
 
 test.describe('qr', () => {

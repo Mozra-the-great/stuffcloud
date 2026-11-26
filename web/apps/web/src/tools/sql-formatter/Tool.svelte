@@ -1,10 +1,9 @@
 <script lang="ts">
-  import { Select, Button, Textarea } from '@mozra-the-great/kern';
+  import { Select, Button, Textarea, StatusMessage } from '@mozra-the-great/kern';
   import { t, type MessageKey } from '../../i18n/index.ts';
   import DownloadButton from '../../app/DownloadButton.svelte';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ToolStatus from '../../app/ToolStatus.svelte';
   import { formatSql } from './layout.ts';
   import { DIALECTS, isDialect, type Dialect, type KeywordCase } from './tokens.ts';
 
@@ -114,8 +113,8 @@
         />
         <Select label={t('sql.indent')} options={layoutOptions} bind:value={layout} />
       </div>
-      <ToolStatus message={status} />
-      <ToolStatus kind="alert" message={failure} />
+      <StatusMessage data-tool-status class="tool-ok" message={status} />
+      <StatusMessage data-tool-status kind="alert" message={failure} />
     </section>
 
     {#if output !== undefined}

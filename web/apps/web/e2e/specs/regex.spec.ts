@@ -25,11 +25,11 @@ function testText(page: Page): ReturnType<Page['getByRole']> {
 
 /** The tool's own polite status line (the first one on the page is the search count). */
 function status(page: Page): ReturnType<Page['locator']> {
-  return page.locator('main .tool-status:not(.alert)');
+  return page.locator('main [data-tool-status][role="status"]');
 }
 
 function alert(page: Page): ReturnType<Page['locator']> {
-  return page.locator('main .tool-status.alert');
+  return page.locator('main [data-tool-status][role="alert"]');
 }
 
 function matchRows(page: Page): ReturnType<Page['locator']> {

@@ -73,7 +73,7 @@ function rows(): Map<string, string> {
 
 /** The tool's own live region (the others on the page are the search count and the announcer). */
 function statusText(): string {
-  return document.querySelector('main .tool-status')?.textContent.trim() ?? 'NO REGION';
+  return document.querySelector('main [data-tool-status]')?.textContent.trim() ?? 'NO REGION';
 }
 
 function noteList(): string[] {

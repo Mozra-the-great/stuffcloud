@@ -59,7 +59,7 @@ async function type(user: User, label: string | RegExp, text: string): Promise<H
 
 /** The error line of the tool (the toast region has alerts of its own). */
 function problemText(): string {
-  return document.querySelector('.tool-status.alert')?.textContent ?? 'missing';
+  return document.querySelector('main [data-tool-status][role="alert"]')?.textContent ?? 'missing';
 }
 
 function statusText(): string {

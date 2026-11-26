@@ -34,8 +34,7 @@ export function encodeBytes(bytes: Uint8Array, options: EncodeOptions): string {
   const alphabet = options.urlSafe ? ENCODE_URL_SAFE : ENCODE_STANDARD;
   const full = Math.floor(bytes.length / 3);
   const rest = bytes.length - full * 3;
-  const length = full * 4 + (rest === 0 ? 0 : options.padding ? 4 : rest + 1);
-  const out = new Uint8Array(length);
+  const out = new Uint8Array(full * 4);
   let source = 0;
   let target = 0;
   const at = (index: number): number => alphabet[index] ?? 0;
@@ -49,24 +48,18 @@ export function encodeBytes(bytes: Uint8Array, options: EncodeOptions): string {
     source += 3;
     target += 4;
   }
-  if (rest === 1) {
-    const value = (bytes[source] ?? 0) << 16;
-    out[target] = at(value >> 18);
-    out[target + 1] = at((value >> 12) & 63);
-    if (options.padding) {
-      out[target + 2] = 61;
-      out[target + 3] = 61;
+  // The last one or two bytes: one more character than bytes, then `=` up to four when asked.
+  let tail = '';
+  if (rest > 0) {
+    const value = ((bytes[source] ?? 0) << 16) | (rest === 2 ? (bytes[source + 1] ?? 0) << 8 : 0);
+    for (let position = 0; position <= rest; position += 1) {
+      tail += String.fromCharCode(at((value >> (18 - 6 * position)) & 63));
     }
-  } else if (rest === 2) {
-    const value = ((bytes[source] ?? 0) << 16) | ((bytes[source + 1] ?? 0) << 8);
-    out[target] = at(value >> 18);
-    out[target + 1] = at((value >> 12) & 63);
-    out[target + 2] = at((value >> 6) & 63);
     if (options.padding) {
-      out[target + 3] = 61;
+      tail += '='.repeat(3 - rest);
     }
   }
-  return wrapLines(new TextDecoder().decode(out), options.lineLength);
+  return wrapLines(new TextDecoder().decode(out) + tail, options.lineLength);
 }
 
 /** `text` with a line break after every `length` characters (none for 0). */
@@ -121,12 +114,10 @@ const DATA_URI = /^\s*data:([^,]*?)(;base64)?,/i;
 function locate(text: string, offset: number): { line: number; column: number } {
   let line = 1;
   let lineStart = 0;
-  for (let index = 0; index < offset && index < text.length; index += 1) {
-    const code = text.charCodeAt(index);
-    if (code === 10 || (code === 13 && text.charCodeAt(index + 1) !== 10)) {
-      line += 1;
-      lineStart = index + 1;
-    }
+  // A line break is CR LF, CR or LF; `offset` is never inside a CR LF pair (white space is skipped).
+  for (const match of text.slice(0, offset).matchAll(/\r\n|\r|\n/g)) {
+    line += 1;
+    lineStart = match.index + match[0].length;
   }
   return { line, column: offset - lineStart + 1 };
 }
@@ -163,22 +154,27 @@ export function decodeBase64(source: string): Decoded {
       return fail('notBase64DataUri', 0);
     }
     start = uri[0].length;
-    mediaType = (uri[1] ?? '').trim() === '' ? undefined : (uri[1] ?? '').trim();
+    // Stryker disable next-line StringLiteral: the first group of DATA_URI always takes part in the match, so the fallback is never used
+    const named = (uri[1] ?? '').trim();
+    mediaType = named === '' ? undefined : named;
   }
+  // An upper bound of the output (the result is cut to what was produced): a larger buffer gives the same bytes.
+  // Stryker disable next-line ArithmeticOperator: any larger bound gives the same result; a smaller one fails the decoding tests
   const out = new Uint8Array(Math.ceil(((source.length - start) * 3) / 4) + 3);
   let produced = 0;
   let bits = 0;
   let held = 0;
   let characters = 0;
   let padding = 0;
-  let paddingAt = -1;
+  let paddingAt = 0;
   let alphabet: 'standard' | 'url' | undefined;
   for (let index = start; index < source.length; index += 1) {
     const code = source.charCodeAt(index);
     if (code === 32 || code === 9 || code === 10 || code === 13) {
       continue;
     }
-    const value = code < 128 ? (VALUES[code] ?? 255) : 255;
+    // Past the table (a code of 128 or more) there is no value either.
+    const value = VALUES[code] ?? 255;
     if (value === 255) {
       return fail('invalidChar', index, String.fromCodePoint(source.codePointAt(index) ?? code));
     }
@@ -228,8 +224,8 @@ export function decodeBase64(source: string): Decoded {
 
 /** Whether `text` has a control character other than the usual white space: a sign of a binary file. */
 function hasBinaryControl(text: string): boolean {
-  for (let index = 0; index < text.length; index += 1) {
-    const code = text.charCodeAt(index);
+  for (const char of text) {
+    const code = char.charCodeAt(0);
     if (code < 9 || (code > 13 && code < 32)) {
       return true;
     }
@@ -242,6 +238,7 @@ export function asText(bytes: Uint8Array): string | undefined {
   try {
     const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
     return hasBinaryControl(text) ? undefined : text;
+    // Stryker disable next-line BlockStatement: a function that ends without a return gives undefined as well; the return only says so
   } catch {
     return undefined;
   }
@@ -271,7 +268,9 @@ const ACTIVE_TYPES =
   /^(?:text\/(?:html|xml|javascript)|application\/(?:xhtml\+xml|xml|javascript)|image\/svg\+xml)$/;
 
 function baseType(mediaType: string | undefined): string {
-  return (mediaType ?? '').split(';')[0]?.trim().toLowerCase() ?? '';
+  const text = mediaType ?? '';
+  const cut = text.indexOf(';');
+  return (cut === -1 ? text : text.slice(0, cut)).trim().toLowerCase();
 }
 
 /**
@@ -281,6 +280,7 @@ function baseType(mediaType: string | undefined): string {
 export function downloadType(mediaType: string | undefined, isText: boolean): string {
   const type = baseType(mediaType);
   if (type !== '' && !ACTIVE_TYPES.test(type)) {
+    // Stryker disable next-line StringLiteral: a base type that is not empty comes from a media type that exists
     return mediaType ?? '';
   }
   return isText ? 'text/plain' : 'application/octet-stream';

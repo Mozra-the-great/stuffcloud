@@ -383,13 +383,13 @@
   .tool {
     display: flex;
     flex-direction: column;
-    gap: var(--space-40);
+    gap: var(--k-space-8);
   }
 
   .block {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     max-width: 760px;
   }
 
@@ -402,9 +402,9 @@
 
   .subheading {
     margin: 0;
-    font: 12px var(--mono);
+    font: 12px var(--k-font-mono);
     letter-spacing: 1px;
-    color: var(--mut);
+    color: var(--k-fg-muted);
     text-transform: uppercase;
     font-weight: 400;
   }
@@ -412,28 +412,28 @@
   .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
   }
 
   .counts {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: var(--space-12);
+    gap: var(--k-space-3);
     margin: 0;
   }
 
   .count {
-    padding: var(--space-8) var(--space-12);
-    border: 1px solid var(--line);
+    padding: var(--k-space-2) var(--k-space-3);
+    border: 1px solid var(--k-line);
   }
 
   .count dt {
-    font: 12px var(--mono);
-    color: var(--mut);
+    font: 12px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .count dd {
     margin: 0;
-    font: 500 18px/1.4 var(--mono);
+    font: 500 18px/1.4 var(--k-font-mono);
   }
 </style>

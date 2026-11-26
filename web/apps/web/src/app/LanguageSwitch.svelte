@@ -22,12 +22,12 @@
 <style>
   .lang {
     display: flex;
-    gap: var(--space-8);
+    gap: var(--k-space-2);
   }
 
   /* `[data-variant]` (kern's variant attribute) keeps the current language pink on hover too. */
   .lang :global(.k-button[data-variant][aria-pressed='true']) {
-    border-color: var(--pink);
-    color: var(--pink);
+    border-color: var(--k-accent);
+    color: var(--k-accent);
   }
 </style>

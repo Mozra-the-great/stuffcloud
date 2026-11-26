@@ -10,9 +10,9 @@ change:
    `fix/...`, `chore/...`, `docs/...`, `refactor/...`, `test/...`.
 3. Commits follow [Conventional Commits](https://www.conventionalcommits.org/):
    `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`.
-4. Design change? Rebuild the PDF (`python docs/design/tools/pdf/build.py`, or the
-   "Rebuild design PDF" workflow on your branch) and commit it with the PR; the
-   `build` check fails while it is stale. See `docs/design/README.md`.
+4. Design change? kern is the design source (ADR 0016): follow its `code` theme and its `--k-*`
+   tokens. A token or component stuffcloud lacks goes to kern as an issue first. `docs/design/`
+   is a frozen reference, nothing there has to be kept in step.
 5. Add an entry under `[Unreleased]` in `CHANGELOG.md` (English, with the PR number).
    A decision that is expensive to reverse (stack, hosting model, storage, auth, public
    surface, test strategy) also gets an architecture decision record, see
@@ -28,7 +28,7 @@ docs-only PRs too):
 
 | Check | What it does |
 |---|---|
-| `build` | Aggregate of every job in `.github/workflows/ci.yml`: rustfmt, clippy (warnings are errors), unit/property/regression/doc tests, rustdoc, coverage (95 % floor), mutation testing of the changed lines, mutation testing of the Python CI helpers (`mutation-python`), mutation testing of the TypeScript logic of the files a PR changes (`web-mutants`), 2-minute fuzz run per target, frontend (`web/`: lint, svelte-check/tsc, Vitest with 95 % coverage floor, production build, frozen lockfile), npm license gate and `THIRD-PARTY.md` freshness, `cargo-deny`, CodeQL (`security-extended`, fails on any result), label-script tests, design PDF check |
+| `build` | Aggregate of every job in `.github/workflows/ci.yml`: rustfmt, clippy (warnings are errors), unit/property/regression/doc tests, rustdoc, coverage (95 % floor), mutation testing of the changed lines, mutation testing of the Python CI helpers (`mutation-python`), mutation testing of the TypeScript logic of the files a PR changes (`web-mutants`), 2-minute fuzz run per target, frontend (`web/`: lint, svelte-check/tsc, Vitest with 95 % coverage floor, production build, frozen lockfile), npm license gate and `THIRD-PARTY.md` freshness, `cargo-deny`, CodeQL (`security-extended`, fails on any result), label-script tests |
 | `workflow-lint` | actionlint + zizmor over the workflows and `dependabot.yml` |
 | `gitleaks` | Secret scan over the PR range, using `.gitleaks.toml` |
 | `claude-review` | Optional Claude Code review; needs the `CLAUDE_CODE_OAUTH_TOKEN` secret and is **skipped (green)** without it |

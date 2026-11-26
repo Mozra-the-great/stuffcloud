@@ -270,13 +270,13 @@
   .tool {
     display: flex;
     flex-direction: column;
-    gap: var(--space-40);
+    gap: var(--k-space-8);
   }
 
   .block {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     max-width: 760px;
   }
 
@@ -291,42 +291,42 @@
     width: min(100%, 280px);
     height: auto;
     aspect-ratio: 1;
-    border: 1px solid var(--line);
+    border: 1px solid var(--k-line);
     image-rendering: pixelated;
     background: #ffffff;
   }
 
   .scan {
     margin: 0;
-    font: 14px/1.5 var(--mono);
-    color: var(--green);
+    font: 14px/1.5 var(--k-font-mono);
+    color: var(--k-ok);
   }
 
   .note {
     margin: 0;
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
   }
 
   .label {
-    margin: 0 0 var(--space-8);
-    font: 12px var(--mono);
+    margin: 0 0 var(--k-space-2);
+    font: 12px var(--k-font-mono);
     letter-spacing: 1px;
-    color: var(--mut);
+    color: var(--k-fg-muted);
     text-transform: uppercase;
   }
 
   .payload {
     margin: 0;
-    padding: var(--space-12) var(--space-14);
-    border: 1px solid var(--line);
-    font: 14px/1.5 var(--mono);
+    padding: var(--k-space-3) var(--k-space-3-5);
+    border: 1px solid var(--k-line);
+    font: 14px/1.5 var(--k-font-mono);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }

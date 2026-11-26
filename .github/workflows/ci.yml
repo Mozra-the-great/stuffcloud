@@ -92,13 +92,6 @@ jobs:
           STUFFCLOUD_FORBIDDEN_DOMAINS: ${{ secrets.STUFFCLOUD_FORBIDDEN_DOMAINS || vars.STUFFCLOUD_FORBIDDEN_DOMAINS }}
         run: python3 scripts/ci/check_operator_domains.py
 
-      # The hash of the design sources must match docs/design/pdf-source.sha256,
-      # which build.py writes with the PDF. Fails when docs/design changed without
-      # a PDF rebuild.
-      - name: Design PDF is current
-        if: ${{ hashFiles('docs/design/tools/pdf/source_hash.py') != '' }}
-        run: python3 docs/design/tools/pdf/source_hash.py --check
-
   # ── Rust: formatting ───────────────────────────────────────────────────────
   fmt:
     runs-on: ubuntu-latest

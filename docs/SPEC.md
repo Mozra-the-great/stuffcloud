@@ -651,7 +651,10 @@ zones:
 
 ## 12. Design and UX
 
-- Visual reference and mockups: `docs/design/` (decisions, tokens, page list).
+- **kern is the design source** ([ADR 0016](adr/0016-kern-is-the-design-source.md)): the app follows
+  kern's `code` theme and takes its tokens from kern's `--k-*`. `docs/design/` (mockups, tokens,
+  page list, the design PDF) is a frozen reference from the November 2026 exploration to orient on,
+  not a specification; there is no rebuild duty and no CI check on it.
 - Reference: screenshots in `docs/reference-images/` (local only, git-ignored:
   third-party material). Observed traits: near-black background (about `#101012`),
   thin grid lines, large white type, flat saturated accent blocks (orange, red,
@@ -666,13 +669,14 @@ zones:
   speech bubbles), and pages carry no filler copy.
 - Palette: pink and violet for surfaces and accents; stickers keep their own bright
   colours so categories stay recognisable. Grid layout with thin cell lines.
-  Tokens, page list and component decisions are in `docs/design/README.md`.
+  Tokens come from kern; the page list and component decisions of the exploration are in
+  `docs/design/README.md` (reference).
 - Seasonal decorations (winter, autumn, Christmas with Advent, Easter, Halloween, harvest
   festival and special days such as New Year, Valentine's Day, carnival, Women's Day, Earth
   Day, Europe Day, Pride, Unity Day, Nicholas Day and Human Rights Day; none in spring and
   summer) are a purely visual layer chosen by date; the admin can set *auto*, a fixed set
   or *off*, visitors can switch it off, and it never blocks
-  content (details in `docs/design/README.md`).
+  content (details in the reference `docs/design/README.md`).
 - QR codes offer two styles, *raw* and *stuffcloud* (violet modules, magenta
   finder squares, mascot in the centre); the stuffcloud style needs error-correction
   level H and an automatic scan test, falling back to raw.
@@ -734,7 +738,7 @@ On every PR and push (`ci.yml`):
 | `lighthouse` | Lighthouse on the shell of the production build, median of 5 runs in a pinned Chromium: performance, accessibility and best practices at least 95; the minimum is never lowered (T-25) |
 | `codeql` | CodeQL `security-extended` for Rust, Python and the workflows (JavaScript/TypeScript with `web/`); fails on any result, also weekly on `main` |
 | `supply-chain` | `cargo-deny`: RustSec advisories (incl. unmaintained, unsound, yanked), licenses (section 3), crates.io only, no wildcard versions |
-| `repo-checks` | CI helper tests, design PDF is current, cookie scope gate (`check_cookies.py`: no `Domain` attribute, `Set-Cookie` only in the cookie module), crypto misuse gate (`check_crypto.py`), operator-domain gate (`check_operator_domains.py`) |
+| `repo-checks` | CI helper tests, cookie scope gate (`check_cookies.py`: no `Domain` attribute, `Set-Cookie` only in the cookie module), crypto misuse gate (`check_crypto.py`), operator-domain gate (`check_operator_domains.py`) |
 
 Nightly and on demand (`deep-tests.yml`, not required, failures handled like a red
 PR): fuzzing for 45 minutes per target that grows and minimises the shared
@@ -864,7 +868,7 @@ Hosting ships after auth and quotas on purpose: it is the security-critical part
 
 1. **Mascot art:** original pixel art (Stuffy plus a cast of extra animals), licensed
    GPL-3.0-or-later like the repo. Extra animals and easter eggs are tracked in
-   `docs/design/`.
+   `docs/design/` (a frozen reference since ADR 0016; the art moves to kern, #199).
 2. **Root domains per zone:** entered by the operator in the admin settings (Admin >
    Zones, issue H-02), any number of zones per instance, nothing hard-coded; the DNS
    provider is Cloudflare first. The first-run setup asks for the first zone.
@@ -913,9 +917,12 @@ Hosting ships after auth and quotas on purpose: it is the security-critical part
     [ADR 0010](adr/0010-api-first-and-configuration-as-code.md)).
 
 14. **Frontend components (2026-11-26, #121):** the base components come from the shared design
-    kit kern with its `code` theme (drawn from `docs/design`, which stays the design source),
-    consumed as a pinned release tarball and bumped by hand; app shell, pages, tools, fonts and
-    mascot art stay here ([ADR 0014](adr/0014-frontend-components-from-shared-design-kit.md)).
+    kit kern with its `code` theme, consumed as a pinned release tarball and bumped by hand; app
+    shell, pages, tools and fonts stay here ([ADR 0014](adr/0014-frontend-components-from-shared-design-kit.md)).
+15. **kern is the design source (2026-11-26, #199):** the app takes its tokens from kern's `code`
+    theme; `docs/design` and the design PDF are a frozen reference with no rebuild duty and no CI check;
+    stickers, mascots, season sets and theme texts move to kern in a second step
+    ([ADR 0016](adr/0016-kern-is-the-design-source.md)).
 
-Architecture decision records for decisions 9, 10, 11, 12, 13 and 14 and for the choices in sections 4 to 8
+Architecture decision records for decisions 9, 10, 11, 12, 13, 14 and 15 and for the choices in sections 4 to 8
 and 14 are in [`docs/adr/`](adr/README.md).

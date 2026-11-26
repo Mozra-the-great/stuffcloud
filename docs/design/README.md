@@ -1,8 +1,15 @@
 # stuffcloud design reference
 
+> **Frozen reference from the November 2026 design exploration.** The binding design is
+> kern's `code` theme (ADR 0016); this folder shows the intent to orient on. Nothing here
+> has to be kept in step with the app: no rebuild duty, no CI check. The tokens, the
+> component look and the rules below are a snapshot; where kern differs, kern wins. The
+> stickers, mascots, season sets and `THEME-TEXTS.md` still live here until kern ships
+> them and the app switches over (issue #199, kern#181); then these copies go.
+
 Visual reference produced in the design exploration (November 2026). The files in
-`prototypes/` are **mockups to build from, not production code**. The production UI
-is built in Svelte (see `docs/SPEC.md`).
+`prototypes/` are **mockups to orient on, not production code**. The production UI
+is built in Svelte from kern (see `docs/SPEC.md`, ADR 0014 and ADR 0016).
 
 Explorations that were **not** chosen (console-only, terminal, combined and orange
 variants) are intentionally not part of this folder.
@@ -26,6 +33,8 @@ variants) are intentionally not part of this folder.
   44 px (48 px for icon buttons), real form controls and labels.
 
 ### Tokens
+
+A snapshot. The app takes its tokens from kern's `code` theme (`--k-*`).
 
 | Token | Value |
 |---|---|
@@ -217,30 +226,7 @@ white 2px outline, slight tilt and two-step bob like the others.
 
 `stuffcloud-design-system.pdf` (next to this file) is the whole design system as one
 document: principles, colours with contrast ratios, typography, components, stickers,
-mascots, seasonal sets, the page inventory and screenshots of every mockup (desktop
-and the first mobile screen). It is generated, never edited by hand.
-
-```sh
-pip install -r docs/design/tools/pdf/requirements.txt   # once; Playwright and Pillow
-python docs/design/tools/pdf/build.py                    # writes the PDF next to this file
-```
-
-Without a local Chrome, run the **Rebuild design PDF** workflow (Actions tab, or
-`gh workflow run design-pdf.yml -f branch=<branch>`): it rebuilds on the branch and
-commits the result. It pushes with a write deploy key (secret `DESIGN_PDF_DEPLOY_KEY`), so all required
-checks, `claude-review` included, run on its commit. If the secret is missing it falls
-back to the workflow token and dispatches only `build`, `workflow-lint` and `gitleaks`;
-then push an empty commit (`git commit --allow-empty -m "chore: rerun checks"`) for
-`claude-review`.
-
-The build also writes `pdf-source.sha256`, a fingerprint of the mockups,
-`THEME-TEXTS.md` and the build scripts. The `build` check in CI compares it with the
-current sources and fails while the PDF is stale, so a design change cannot merge
-without a rebuilt PDF.
-
-Needs Chrome or Chromium (set `CHROME` for a specific binary) and internet access for
-the Google Fonts. **Every design change must rebuild and commit the PDF in the same
-PR.** The script warns when a mockup in `prototypes/` is missing from `PAGES` in
-`tools/pdf/shots.py`; new sticker groups are listed in `STICKER_GROUPS` in
-`tools/pdf/build_book.py`. The chapters themselves live in `build_book.py`.
-
+mascots, seasonal sets, the page inventory and screenshots of every mockup. It is a
+**frozen snapshot** (ADR 0016): it is not rebuilt when the design changes, nothing checks
+it, and its build tooling was removed (it remains in the git history, last present before
+#199). It shows the intent of the exploration; kern's `code` theme is binding.

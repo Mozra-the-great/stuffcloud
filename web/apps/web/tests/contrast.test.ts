@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { readCustomProperties, readKernFile, readRepoFile, readRepoFiles } from './helpers.ts';
+import { readCustomProperties, readKernCodeTokens } from './helpers.ts';
 import { contrastRatio, parseHex, relativeLuminance } from './contrast.ts';
 
-const tokens = readCustomProperties('src/styles/tokens.css', 'src/styles/theme.css');
+// The values the app ships: kern's Code theme (<html data-theme="code">, dark), plus the few
+// app-local tokens (`--sc-*`, each waiting for a kern issue). kern's own theme contrast test
+// covers every theme with its own pair list; this one tests the pairs *stuffcloud draws*, so a
+// kern bump that weakens one of them fails here, never silently in the app.
+const tokens = new Map([...readKernCodeTokens(), ...readCustomProperties('src/styles/theme.css')]);
 
 function colour(name: string): string {
   const value = tokens.get(name);
@@ -43,28 +47,28 @@ describe('contrast helpers', () => {
   });
 });
 
-// Text pairs actually drawn by the components and the mockups, WCAG 2.2 AA (1.4.3): 4.5:1.
-// Disabled controls are exempt (1.4.3), so --fg-disabled is deliberately not listed.
+// Text pairs actually drawn by the components, WCAG 2.2 AA (1.4.3): 4.5:1.
+// Disabled controls are exempt (1.4.3), so --k-fg-disabled is deliberately not listed.
 const textPairs: readonly (readonly [foreground: string, background: string, where: string])[] = [
-  ['--fg', '--bg', 'body text'],
-  ['--fg', '--bg-raised', 'current tab, hovered tile, toast'],
-  ['--fg', '--bg-selected', 'dragged-over dropzone'],
-  ['--fg', '--bg-error', 'error toast'],
-  ['--fg', '--bg-warn', 'warning toast'],
-  ['--mut', '--bg', 'labels, hints, placeholders'],
-  ['--mut', '--bg-raised', 'labels on raised surfaces'],
-  ['--fg-soft', '--bg', 'long copy'],
-  ['--fg-code', '--bg-code', 'code block'],
-  ['--fg-hint', '--bg', 'dropzone hint'],
-  ['--fg-hint', '--bg-selected', 'dropzone hint while dragging'],
-  ['--lilac', '--bg', 'links and addresses'],
-  ['--pink', '--bg', 'link hover'],
-  ['--pink', '--bg-raised', 'tab hover on a raised surface'],
-  ['--pink2', '--bg', 'field error text'],
-  ['--green', '--bg-code', 'copied status'],
-  ['--bg', '--fg', 'primary button'],
-  ['--bg', '--pink', 'button hover'],
-  ['--bg', '--pink2', 'danger button'],
+  ['--k-fg', '--k-bg', 'body text'],
+  ['--k-fg', '--k-bg-raised', 'current tab, hovered tile, toast'],
+  ['--k-fg', '--k-surface-selected', 'dragged-over dropzone'],
+  ['--k-fg', '--k-surface-danger', 'error toast'],
+  ['--k-fg', '--k-surface-warn', 'warning toast'],
+  ['--k-fg-muted', '--k-bg', 'labels, hints, placeholders'],
+  ['--k-fg-muted', '--k-bg-raised', 'labels on raised surfaces'],
+  ['--k-fg-soft', '--k-bg', 'long copy'],
+  ['--k-fg-code', '--k-bg-code', 'code block'],
+  ['--k-fg-hint', '--k-bg', 'dropzone hint'],
+  ['--k-fg-hint', '--k-surface-selected', 'dropzone hint while dragging'],
+  ['--k-link', '--k-bg', 'links and addresses'],
+  ['--k-accent', '--k-bg', 'link hover'],
+  ['--k-accent', '--k-bg-raised', 'tab hover on a raised surface'],
+  ['--k-danger', '--k-bg', 'field error text'],
+  ['--k-ok', '--k-bg-code', 'copied status'],
+  ['--k-bg', '--k-fg', 'primary button'],
+  ['--k-bg', '--k-accent', 'button hover'],
+  ['--k-bg', '--k-danger', 'danger button'],
 ];
 
 describe('text contrast (WCAG 2.2 AA, 4.5:1)', () => {
@@ -74,19 +78,19 @@ describe('text contrast (WCAG 2.2 AA, 4.5:1)', () => {
 });
 
 // Non-text contrast (1.4.11): indicators and focus rings must reach 3:1 against the surface
-// they sit on. The thin hairlines (--line, --line2) only divide the layout (or frame a card
-// or a labelled button) and are not listed: the design carries meaning in text and in these
+// they sit on. The thin hairlines (--k-line, --k-line-strong) only divide the layout (or frame a card
+// or a labelled button) and are not listed: the UI carries meaning in text and in these
 // indicators. The border of a text field is the one hairline that identifies a control, so
-// it has its own token (--field-border, SF8) and its own section below.
+// it has its own token (--k-border, SF8) and its own section below.
 const indicatorPairs: readonly (readonly [colour: string, surface: string, where: string])[] = [
-  ['--fg', '--bg', 'focus ring'],
-  ['--pink', '--bg', 'selected tab underline, dragged-over border'],
-  ['--pink', '--bg-raised', 'selected tab underline on its raised surface'],
-  ['--pink2', '--bg', 'invalid field border'],
-  ['--green', '--bg', 'success status'],
-  ['--amber', '--bg', 'warning status and full bar'],
-  ['--pink', '--line', 'progress fill on its track'],
-  ['--amber', '--line', 'warning progress fill on its track'],
+  ['--k-fg', '--k-bg', 'focus ring'],
+  ['--k-accent', '--k-bg', 'selected tab underline, dragged-over border'],
+  ['--k-accent', '--k-bg-raised', 'selected tab underline on its raised surface'],
+  ['--k-danger', '--k-bg', 'invalid field border'],
+  ['--k-ok', '--k-bg', 'success status'],
+  ['--k-warn', '--k-bg', 'warning status and full bar'],
+  ['--k-accent', '--k-line', 'progress fill on its track'],
+  ['--k-warn', '--k-line', 'warning progress fill on its track'],
 ];
 
 describe('indicator contrast (WCAG 2.2 AA, 3:1)', () => {
@@ -98,71 +102,29 @@ describe('indicator contrast (WCAG 2.2 AA, 3:1)', () => {
 // Field borders (1.4.11): the border of an input, select or textarea must reach 3:1 against
 // every surface a field can sit on (the page, a raised surface, a checked/dragged-over one, a code block).
 const fieldSurfaces: readonly (readonly [surface: string, where: string])[] = [
-  ['--bg', 'page, dialog and card'],
-  ['--bg-raised', 'raised surface'],
-  ['--bg-selected', 'selected surface'],
-  ['--bg-code', 'code block surface'],
+  ['--k-bg', 'page, dialog and card'],
+  ['--k-bg-raised', 'raised surface'],
+  ['--k-surface-selected', 'selected surface'],
+  ['--k-bg-code', 'code block surface'],
 ];
 
 describe('field border contrast (WCAG 2.2 AA 1.4.11, 3:1)', () => {
-  it.each(fieldSurfaces)('--field-border on %s (%s)', (surface) => {
-    expect(ratio('--field-border', surface)).toBeGreaterThanOrEqual(3);
+  it.each(fieldSurfaces)('--k-border on %s (%s)', (surface) => {
+    expect(ratio('--k-border', surface)).toBeGreaterThanOrEqual(3);
   });
 
-  it('is clearly stronger than the hairline it replaced on fields', () => {
-    expect(ratio('--field-border', '--bg')).toBeGreaterThan(ratio('--line2', '--bg') * 2);
-  });
-});
-
-/** The declaration block of the first rule whose selector is exactly `selector`. */
-function ruleBody(css: string, selector: string): string {
-  const escaped = selector.replace(/[.[\]]/g, String.raw`\$&`);
-  const match = new RegExp(String.raw`(?:^|\})\s*${escaped}\s*\{([^}]*)\}`, 'm').exec(css);
-  if (match?.[1] === undefined) {
-    throw new Error(`no rule for ${selector}`);
-  }
-  return match[1];
-}
-
-describe('field borders use the token', () => {
-  it('draws the border of every Input, Select and Textarea (kern, theme code) in --field-border', () => {
-    // kern's fields draw their edge with --k-border (kern docs/themes.md); under the Code theme
-    // that token is the design's --field-border, not a hairline.
-    const css = readKernFile('dist/themes/brands/code.css');
-    const start = css.indexOf("[data-theme='code'],");
-    const block = css.slice(start, css.indexOf('}', start));
-    const border = /--k-border:\s*(#[0-9a-f]{6});/i.exec(block)?.[1];
-    expect(start).toBeGreaterThanOrEqual(0);
-    expect(border).toBe(tokens.get('--field-border'));
-    expect(border).not.toBe(tokens.get('--line2'));
-  });
-
-  it('draws the border of the design source .field with --field-border', () => {
-    const body = ruleBody(readRepoFile('docs/design/prototypes/stuff.css'), '.field');
-    expect(body).toMatch(/border:1px solid var\(--field-border\)/);
-  });
-
-  it('keeps hairline colours off the form controls of every mockup', () => {
-    const hairline = /<(?:input|select|textarea)\b[^>]*border:\s*1px solid #3a3a42[^>]*>/i;
-    const offenders = readRepoFiles('docs/design/prototypes', '.html').filter((html) =>
-      hairline.test(html),
-    );
-    expect(offenders).toHaveLength(0);
-  });
-
-  it('has a helper that finds nothing in a stylesheet without the rule', () => {
-    expect(() => ruleBody('.other { color: red }', '.sc-field')).toThrow('no rule for .sc-field');
-    expect(ruleBody('a { x: 1 } .sc-field { border: 0 }', '.sc-field')).toBe(' border: 0 ');
+  it('is clearly stronger than the hairline between cells', () => {
+    expect(ratio('--k-border', '--k-bg')).toBeGreaterThan(ratio('--k-line-strong', '--k-bg') * 2);
   });
 });
 
 describe('contrast guard', () => {
   it('fails on a pair that is too weak', () => {
-    expect(ratio('--line2', '--bg')).toBeLessThan(3);
+    expect(ratio('--k-line-strong', '--k-bg')).toBeLessThan(3);
   });
 
   it('refuses a token that is not a colour', () => {
-    expect(() => colour('--mono')).toThrow('--mono is not a hex colour token');
-    expect(() => colour('--missing')).toThrow('--missing is not a hex colour token');
+    expect(() => colour('--k-font-mono')).toThrow('--k-font-mono is not a hex colour token');
+    expect(() => colour('--k-missing')).toThrow('--k-missing is not a hex colour token');
   });
 });

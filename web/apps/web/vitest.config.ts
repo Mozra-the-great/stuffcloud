@@ -19,7 +19,6 @@ export default defineConfig({
       provider: 'v8',
       include: [
         'src/**/*.{ts,svelte}',
-        'scripts/tokens.ts',
         'scripts/tool-check.ts',
         'scripts/scaffold.ts',
         'scripts/perf-budget.ts',

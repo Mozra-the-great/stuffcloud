@@ -58,20 +58,20 @@
 
 <style>
   .tools {
-    gap: var(--space-20);
+    gap: var(--k-space-5);
   }
 
   .empty {
     display: flex;
     align-items: center;
-    gap: var(--space-20);
-    padding: var(--space-24) 0;
+    gap: var(--k-space-5);
+    padding: var(--k-space-6) 0;
   }
 
   .note {
     margin: 0;
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   /* kern's grid has inline-size containment, so `.page > div { align-self: flex-start }` (page.css)

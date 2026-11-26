@@ -145,7 +145,7 @@
   .list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-8);
+    gap: var(--k-space-2);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -156,9 +156,9 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-12);
-    padding: var(--space-12) var(--space-16);
-    border: 1px solid var(--line2);
+    gap: var(--k-space-3);
+    padding: var(--k-space-3) var(--k-space-4);
+    border: 1px solid var(--k-line-strong);
     cursor: grab;
   }
 
@@ -171,7 +171,7 @@
   .buttons {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-8);
+    gap: var(--k-space-2);
   }
 
   .dragging {
@@ -180,6 +180,6 @@
 
   .drop {
     border-style: dashed;
-    border-color: var(--lilac);
+    border-color: var(--k-link);
   }
 </style>

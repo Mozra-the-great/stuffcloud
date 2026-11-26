@@ -94,6 +94,6 @@
   .row {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
   }
 </style>

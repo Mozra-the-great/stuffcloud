@@ -49,12 +49,12 @@ crates/app/     LAN API (axum): config (env + _FILE), resource conventions (reso
                 reset mail end to end + the `smtp` group, log redaction, process)
 docker/app/     Dockerfile (distroless, non-root) + bootstrap.dev.json for the dev stack (reserved names, open sign-up, `smtp` group for Mailpit)
 web/            pnpm workspace (Node 24, own lockfile; the backend never depends on it)
-  apps/web/     Svelte + Vite SPA (static build): src/styles (generated tokens.css, fonts.css, theme.css),
+  apps/web/     Svelte + Vite SPA (static build): src/styles (fonts.css, theme.css: base styles and the few app-local `--sc-*` tokens; every other token is kern's `--k-*`),
                 src/app (app shell, router, pages, mascot art URLs,
                 tool registry + `ToolFrame`), src/tools/<id>/ (one directory per tool: manifest.ts + Tool.svelte),
                 src/pdf (what the PDF tools share: engine on pdf-lib, workers + pools, pictures on pdf.js,
                 page grid, ZIP writer; ADR 0013; the network scan covers it like src/tools),
-                tools.config.json (disabled tools), perf-budgets.json (shell budgets + Lighthouse minimums), scripts/ (tokens, check-tools, new-tool, perf-budget + check-budgets, lighthouse),
+                tools.config.json (disabled tools), perf-budgets.json (shell budgets + Lighthouse minimums), scripts/ (check-tools, new-tool, perf-budget + check-budgets, lighthouse),
                 stryker.config.mjs + vitest.stryker.config.ts (mutation testing; shared options and the scope helper in web/stryker.shared.mjs),
                 src/i18n (catalogues de/en, typed keys, CI check), src/gallery (component gallery),
                 src/assets/fonts (self-hosted), bench/ (animation benchmark: `node bench/run.ts bench|verify|size`),
@@ -82,7 +82,7 @@ compose.dev.yml local dev stack (Caddy, app, Mailpit; `edge` joins with H-19); d
 docs/           SPEC.md, ACCESSIBILITY.md (a11y gate, keyboard map), adr/ (architecture decision
                 records), api/ (openapi.json generated from `app`, problems.md: the problem types),
                 THIRD-PARTY.md (generated),
-                THIRD-PARTY-ASSETS.md, design/, TEMPLATE-SETUP.md
+                THIRD-PARTY-ASSETS.md, design/ (frozen reference), TEMPLATE-SETUP.md
 ```
 
 ## Commands
@@ -120,7 +120,6 @@ Frontend, from `web/` (`corepack enable` once; Node per `.nvmrc`):
 pnpm install --frozen-lockfile
 pnpm lint && pnpm typecheck && pnpm test && pnpm build   # coverage floor 95 % per package
 pnpm test:mutation                                       # StrykerJS: every mutant of the TypeScript logic must be caught (apps/web: tools + pdf, packages/tools); `pnpm --filter @stuffcloud/tools test:mutation` for one package
-pnpm tokens                                              # regenerate src/styles/tokens.css from docs/design (test fails when stale)
 pnpm new-tool <id> [--category c] [--sticker s] [--name "N"] [--worker]   # scaffold a tool (ADR 0012)
 pnpm check-tools                                         # validate all tool manifests (`vite build` runs the same check)
 pnpm perf:build && pnpm check-budgets                    # production build with the Vite manifest, then the gzip budgets of the shell and every tool (docs/PERFORMANCE.md)
@@ -241,19 +240,22 @@ Removed), written in English, with the PR number in parentheses. Add it in the
 same PR, not afterwards. Pure typo fixes and dependency bumps by Dependabot are
 exempt. A release moves `[Unreleased]` under the new version heading.
 
-## Design PDF
+## Design
 
-`docs/design/stuffcloud-design-system.pdf` is generated from `docs/design/`. Any PR
-that changes the design (mockups in `docs/design/prototypes/`, `stuff.css`, stickers,
-mascots, decorations, `THEME-TEXTS.md`, tokens or rules in `docs/design/README.md`)
-must regenerate and commit the PDF (and `docs/design/pdf-source.sha256`) in the same PR;
-the `build` check fails when they are stale. Without a local Chrome run the
-"Rebuild design PDF" workflow on the branch instead (`gh workflow run design-pdf.yml -f branch=<name>`).
-Locally:
-`pip install -r docs/design/tools/pdf/requirements.txt` once, then
-`python docs/design/tools/pdf/build.py`. A new mockup also goes into `PAGES` in
-`docs/design/tools/pdf/shots.py`; a new sticker group into `STICKER_GROUPS` in
-`docs/design/tools/pdf/build_book.py` (unlisted stickers land in "Other").
+kern is the design source (ADR 0016, #199). Follow its `code` theme: every colour, font, space and
+size in the app is a kern `--k-*` token (`<html data-theme="code">`), and a kern bump alone carries a
+theme change into the app. Rules:
+
+- No colour or size literal in a component and no local copy of a kern token. A generic token or
+  component the app lacks goes to kern as an issue first (search open and closed ones, never change kern
+  from here); until it ships, the app keeps a minimal local `--sc-*` token in `src/styles/theme.css`
+  with a "waiting for kern#N" comment, and the contrast and token tests cover it.
+- Reusable art (stickers, mascots, season sets, theme texts) belongs in kern (kern#181); until kern ships
+  it the copies in `docs/design/` keep working. Only what is truly stuffcloud-only stays here: the page
+  layouts, the tool-category to sticker mapping and the app's own copy.
+- `docs/design/` (mockups, `stuff.css`, README, `stuffcloud-design-system.pdf`) is a **frozen reference**
+  to orient on, not a specification. There is no PDF to rebuild and no CI check on it; do not update it
+  after a design change.
 
 ## Notes
 

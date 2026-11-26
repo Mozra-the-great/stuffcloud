@@ -289,39 +289,39 @@
   .file {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
     align-items: baseline;
     margin: 0;
     overflow-wrap: anywhere;
   }
 
   .meta {
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .options {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     max-width: 40rem;
   }
 
   .hint {
     margin: 0;
-    color: var(--mut);
+    color: var(--k-fg-muted);
   }
 
   .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
   }
 
   .results {
     display: flex;
     flex-direction: column;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
   }
 
   .sub {
@@ -333,7 +333,7 @@
   .files {
     display: flex;
     flex-direction: column;
-    gap: var(--space-8);
+    gap: var(--k-space-2);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -343,9 +343,9 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-12);
-    padding: var(--space-8) var(--space-12);
-    border: 1px solid var(--line2);
+    gap: var(--k-space-3);
+    padding: var(--k-space-2) var(--k-space-3);
+    border: 1px solid var(--k-line-strong);
   }
 
   .file-name {

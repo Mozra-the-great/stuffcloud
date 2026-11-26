@@ -276,13 +276,13 @@
   .tool {
     display: flex;
     flex-direction: column;
-    gap: var(--space-40);
+    gap: var(--k-space-8);
   }
 
   .block {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     max-width: 760px;
   }
 
@@ -296,7 +296,7 @@
   .digests {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -306,31 +306,31 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-8) var(--space-16);
+    gap: var(--k-space-2) var(--k-space-4);
   }
 
   .algorithm {
     flex: 0 0 5.5rem;
-    font: 12px var(--mono);
+    font: 12px var(--k-font-mono);
     letter-spacing: 1px;
-    color: var(--mut);
+    color: var(--k-fg-muted);
     text-transform: uppercase;
   }
 
   .value {
     flex: 1 1 18rem;
-    font: 14px/1.5 var(--mono);
+    font: 14px/1.5 var(--k-font-mono);
     overflow-wrap: anywhere;
   }
 
   .note {
     margin: 0;
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .verdict {
     margin: 0;
-    font: 500 16px/1.4 var(--mono);
+    font: 500 16px/1.4 var(--k-font-mono);
   }
 </style>

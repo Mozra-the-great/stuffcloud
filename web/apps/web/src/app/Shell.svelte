@@ -73,7 +73,7 @@
     max-width: 1240px;
     min-height: 100vh;
     margin: 0 auto;
-    border-left: 1px solid var(--line);
-    border-right: 1px solid var(--line);
+    border-left: 1px solid var(--k-line);
+    border-right: 1px solid var(--k-line);
   }
 </style>

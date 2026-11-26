@@ -20,11 +20,11 @@
   .tool-status {
     margin: 0;
     min-height: 1.5em;
-    font: 14px/1.5 var(--mono);
-    color: var(--green);
+    font: 14px/1.5 var(--k-font-mono);
+    color: var(--k-ok);
   }
 
   .tool-status.alert {
-    color: var(--pink2);
+    color: var(--k-danger);
   }
 </style>

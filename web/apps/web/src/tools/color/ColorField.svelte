@@ -55,7 +55,7 @@
   .color-field {
     display: flex;
     align-items: flex-start;
-    gap: var(--space-12);
+    gap: var(--k-space-3);
   }
 
   .text {
@@ -67,21 +67,14 @@
   .picker {
     box-sizing: border-box;
     flex: none;
-    width: var(--control-h);
-    height: var(--control-h);
+    width: var(--k-control-h);
+    height: var(--k-control-h);
     margin-top: 28px;
     padding: 2px;
     background: transparent;
-    border: 1px solid var(--field-border);
-    border-radius: var(--radius);
+    border: 1px solid var(--k-border);
+    border-radius: var(--k-radius-control);
     cursor: pointer;
-  }
-
-  @media (max-width: 760px) {
-    .picker {
-      width: var(--control-h-m);
-      height: var(--control-h-m);
-    }
   }
 
   @media (forced-colors: active) {

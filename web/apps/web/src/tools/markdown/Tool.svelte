@@ -130,19 +130,19 @@
   .tool {
     display: flex;
     flex-direction: column;
-    gap: var(--space-24);
+    gap: var(--k-space-6);
   }
 
   .columns {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
-    gap: var(--space-40);
+    gap: var(--k-space-8);
   }
 
   .block {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     min-width: 0;
   }
 
@@ -156,14 +156,14 @@
   .note {
     margin: 0;
     max-width: 760px;
-    font: 13px/1.5 var(--mono);
-    color: var(--mut);
+    font: 13px/1.5 var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .preview {
     min-width: 0;
-    padding: var(--space-16);
-    border: 1px solid var(--line2);
+    padding: var(--k-space-4);
+    border: 1px solid var(--k-line-strong);
     border-radius: 8px;
     font-size: 15px;
     line-height: 1.6;
@@ -183,7 +183,7 @@
   .preview :global(h4),
   .preview :global(h5),
   .preview :global(h6) {
-    margin: var(--space-24) 0 var(--space-8);
+    margin: var(--k-space-6) 0 var(--k-space-2);
     font-weight: 600;
     line-height: 1.3;
   }
@@ -209,16 +209,16 @@
   .preview :global(table),
   .preview :global(details),
   .preview :global(dl) {
-    margin: 0 0 var(--space-16);
+    margin: 0 0 var(--k-space-4);
   }
 
   .preview :global(ul),
   .preview :global(ol) {
-    padding-left: var(--space-24);
+    padding-left: var(--k-space-6);
   }
 
   .preview :global(a) {
-    color: var(--pink);
+    color: var(--k-accent);
     text-decoration: underline;
     text-underline-offset: 3px;
   }
@@ -226,15 +226,15 @@
   .preview :global(code),
   .preview :global(kbd),
   .preview :global(samp) {
-    font: 0.9em var(--mono);
+    font: 0.9em var(--k-font-mono);
     padding: 1px 5px;
-    border: 1px solid var(--line2);
+    border: 1px solid var(--k-line-strong);
     border-radius: 4px;
   }
 
   .preview :global(pre) {
-    padding: var(--space-12) var(--space-16);
-    border: 1px solid var(--line2);
+    padding: var(--k-space-3) var(--k-space-4);
+    border: 1px solid var(--k-line-strong);
     border-radius: 6px;
     white-space: pre-wrap;
   }
@@ -245,9 +245,9 @@
   }
 
   .preview :global(blockquote) {
-    padding-left: var(--space-16);
-    border-left: 3px solid var(--line2);
-    color: var(--mut);
+    padding-left: var(--k-space-4);
+    border-left: 3px solid var(--k-line-strong);
+    color: var(--k-fg-muted);
   }
 
   .preview :global(table) {
@@ -258,8 +258,8 @@
 
   .preview :global(th),
   .preview :global(td) {
-    padding: var(--space-8) var(--space-12);
-    border: 1px solid var(--line2);
+    padding: var(--k-space-2) var(--k-space-3);
+    border: 1px solid var(--k-line-strong);
     text-align: left;
     vertical-align: top;
   }
@@ -276,18 +276,18 @@
 
   .preview :global(hr) {
     border: 0;
-    border-top: 1px solid var(--line2);
-    margin: var(--space-24) 0;
+    border-top: 1px solid var(--k-line-strong);
+    margin: var(--k-space-6) 0;
   }
 
   .preview :global(mark) {
-    background: var(--pink);
-    color: var(--bg);
+    background: var(--k-accent);
+    color: var(--k-bg);
   }
 
   .preview :global(.blocked-image) {
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .preview :global(img) {

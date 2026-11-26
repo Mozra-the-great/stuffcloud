@@ -220,7 +220,7 @@
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     outline: none;
   }
 
@@ -229,9 +229,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-8);
-    padding: var(--space-12);
-    border: 1px solid var(--line2);
+    gap: var(--k-space-2);
+    padding: var(--k-space-3);
+    border: 1px solid var(--k-line-strong);
     cursor: pointer;
     user-select: none;
   }
@@ -245,8 +245,8 @@
   }
 
   .number {
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   .check {
@@ -255,18 +255,18 @@
     right: 6px;
     width: 18px;
     height: 18px;
-    border: 2px solid var(--fg);
-    background: var(--bg);
+    border: 2px solid var(--k-fg);
+    background: var(--k-bg);
   }
 
   .selected {
-    border-color: var(--pink);
-    background: var(--bg-selected);
+    border-color: var(--k-accent);
+    background: var(--k-surface-selected);
   }
 
   .selected .check {
-    background: var(--pink);
-    border-color: var(--pink);
+    background: var(--k-accent);
+    border-color: var(--k-accent);
   }
 
   .selected .check::after {
@@ -275,7 +275,7 @@
     width: 5px;
     height: 9px;
     margin: 0 0 0 4px;
-    border: solid var(--bg);
+    border: solid var(--k-bg);
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
   }
@@ -286,7 +286,7 @@
 
   .drop {
     border-style: dashed;
-    border-color: var(--lilac);
+    border-color: var(--k-link);
   }
 
   @media (forced-colors: active) {

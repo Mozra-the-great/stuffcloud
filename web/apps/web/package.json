@@ -13,8 +13,6 @@
     "test": "vitest run --coverage",
     "test:mutation": "stryker run",
     "build": "vite build",
-    "tokens": "node scripts/gen-tokens.ts --write",
-    "tokens:check": "node scripts/gen-tokens.ts --check",
     "check-tools": "node scripts/check-tools.ts",
     "perf:build": "vite build --manifest --outDir dist-perf",
     "check-budgets": "node scripts/check-budgets.ts",

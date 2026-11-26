@@ -23,7 +23,7 @@
   .live {
     display: flex;
     flex-direction: column;
-    gap: var(--space-8);
+    gap: var(--k-space-2);
   }
 
   p {
@@ -32,15 +32,15 @@
   }
 
   .status {
-    color: var(--fg);
+    color: var(--k-fg);
   }
 
   .error {
-    color: var(--pink);
+    color: var(--k-accent);
   }
 
   .error:not(:empty) {
-    padding: var(--space-12) var(--space-16);
-    border: 1px solid var(--pink);
+    padding: var(--k-space-3) var(--k-space-4);
+    border: 1px solid var(--k-accent);
   }
 </style>

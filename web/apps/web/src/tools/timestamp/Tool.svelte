@@ -178,13 +178,13 @@
   .tool {
     display: flex;
     flex-direction: column;
-    gap: var(--space-40);
+    gap: var(--k-space-8);
   }
 
   .block {
     display: flex;
     flex-direction: column;
-    gap: var(--space-16);
+    gap: var(--k-space-4);
     max-width: 760px;
   }
 
@@ -198,30 +198,30 @@
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: var(--space-20);
+    gap: var(--k-space-5);
   }
 
   .relative {
     margin: 0;
-    font: 500 22px/1.4 var(--mono);
+    font: 500 22px/1.4 var(--k-font-mono);
   }
 
   .note {
     margin: 0;
-    font: 13px var(--mono);
-    color: var(--mut);
+    font: 13px var(--k-font-mono);
+    color: var(--k-fg-muted);
   }
 
   table {
     border-collapse: collapse;
     width: 100%;
-    font: 14px var(--mono);
+    font: 14px var(--k-font-mono);
   }
 
   th,
   td {
-    padding: var(--space-8) var(--space-12);
-    border-bottom: 1px solid var(--line);
+    padding: var(--k-space-2) var(--k-space-3);
+    border-bottom: 1px solid var(--k-line);
     text-align: left;
     font-weight: 400;
     vertical-align: middle;
@@ -230,6 +230,6 @@
 
   thead th,
   tbody th {
-    color: var(--mut);
+    color: var(--k-fg-muted);
   }
 </style>

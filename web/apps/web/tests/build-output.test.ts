@@ -199,9 +199,9 @@ describe('production build output', () => {
     }
   });
 
-  it('keeps the design tokens in the shipped stylesheet', () => {
+  it("keeps kern's Code theme tokens in the shipped stylesheet", () => {
     const css = text(/\.css$/).join('\n');
-    expect(css).toContain('--bg:#101012');
-    expect(css).toContain('--pix:"Silkscreen"');
+    expect(css).toContain('--k-bg:#101012');
+    expect(css).toContain('--k-font-display:"Silkscreen"');
   });
 });

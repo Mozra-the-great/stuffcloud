@@ -5,7 +5,12 @@ import Gallery from '../src/gallery/Gallery.svelte';
 import { GALLERY_COLOURS, GALLERY_FONTS } from '../src/gallery/swatches.ts';
 import { mountApp } from '../src/mount-app.ts';
 import { toast } from '@mozra-the-great/kern';
-import { dataTransferInit, readAppFile, readCustomProperties } from './helpers.ts';
+import {
+  dataTransferInit,
+  readAppFile,
+  readCustomProperties,
+  readKernCodeTokens,
+} from './helpers.ts';
 
 afterEach(() => {
   toast.clear();
@@ -107,7 +112,10 @@ describe('component gallery', () => {
   });
 
   it('lists only tokens that exist, and shows the three fonts', () => {
-    const tokens = readCustomProperties('src/styles/tokens.css', 'src/styles/theme.css');
+    const tokens = new Map([
+      ...readKernCodeTokens(),
+      ...readCustomProperties('src/styles/theme.css'),
+    ]);
     for (const name of [...GALLERY_COLOURS, ...GALLERY_FONTS.map((font) => font.token)]) {
       expect(tokens.has(name), `${name} is not a token`).toBe(true);
     }
@@ -115,7 +123,11 @@ describe('component gallery', () => {
     for (const name of GALLERY_COLOURS) {
       expect(screen.getByText(name)).toBeTruthy();
     }
-    expect(GALLERY_FONTS.map((font) => font.token)).toEqual(['--pix', '--mono', '--sans']);
+    expect(GALLERY_FONTS.map((font) => font.token)).toEqual([
+      '--k-font-display',
+      '--k-font-mono',
+      '--k-font-sans',
+    ]);
   });
 
   it('shows a toast of each kind from the buttons, errors in the alert region', async () => {

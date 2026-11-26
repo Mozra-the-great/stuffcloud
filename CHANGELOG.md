@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   tag and attribute, the removed ones, both sides of the link and picture patterns, Trusted Types, one purifier instance), the IPv6 reader
   and writer, masks, subnet counts and the merge of ranges are tested at every boundary, and guards that no input could reach were removed
   (`tests/worker-entry.ts` runs a tool's `worker.ts` as a worker). (#182)
+- No surviving mutant in the UUID, timestamp and unit converter tools (#162): UUID v4 and v7 against written-down outputs, every ISO offset
+  form and the first and last instant with a clock, the switch of the relative time at the average month and year, number formatting on both
+  sides of 1e15 and 1e-6 (and a property test of the digit count), absolute zero, and the unit search against a plain-loop reference for
+  every two-letter query; guards no input could reach were removed. (#184)
 - Mutation testing of the Python CI helpers (#161, ADR 0007 addendum): job `mutation-python` in `ci.yml` (part of
   `build`; it never skips itself) and the nightly `deep-tests.yml` run [mutmut](https://github.com/boxed/mutmut) 3
   over every `scripts/ci/*.py`, and `scripts/ci/mutation_gate.py` fails on any mutant no test noticed (`mutmut run`

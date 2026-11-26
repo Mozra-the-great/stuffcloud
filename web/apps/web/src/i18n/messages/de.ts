@@ -153,6 +153,8 @@ export const de: Readonly<Record<MessageKey, Message>> = {
   'pdf.range.tooMany': 'Das ergäbe mehr als {max} Dateien.',
   'pdf.pages.keys':
     'Pfeiltasten wechseln zwischen den Seiten, die Leertaste wählt aus, Umschalt erweitert die Auswahl, Strg+A wählt alle. Mit Alt und einer Pfeiltaste wandert die Seite.',
+  'pdf.pages.reorderHint':
+    'Alt gedrückt halten und eine Pfeiltaste drücken, um diese Seite zu verschieben.',
   'pdf.pages.summary': {
     one: '{count} von {total} Seite behalten',
     other: '{count} von {total} Seiten behalten',

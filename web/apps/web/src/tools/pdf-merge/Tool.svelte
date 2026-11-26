@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { Button, FileDrop, Progress } from '@mozra-the-great/kern';
+  import { Button, FileDrop, Progress, SortableList } from '@mozra-the-great/kern';
   import ToolFrame from '../../app/ToolFrame.svelte';
-  import ReorderList from '../../app/ReorderList.svelte';
   import { i18n, t } from '../../i18n/index.ts';
   import { buildFiles, inspectFile } from '../../pdf/client.ts';
   import { release, toResult, type ResultFile } from '../../pdf/download.ts';
@@ -227,22 +226,21 @@
   />
 
   {#if entries.length > 0}
-    <ReorderList
+    <SortableList
       items={entries}
-      keyOf={(entry: Entry) => entry.key}
+      key={(entry: Entry) => entry.key}
+      itemLabel={(entry: Entry) => entry.file.name}
       label={t('pdf.merge.list')}
-      texts={{
-        up: t('pdf.move.up'),
-        down: t('pdf.move.down'),
-        remove: t('pdf.remove'),
-        upLabel: (entry: Entry) => t('pdf.merge.upLabel', { name: entry.file.name }),
-        downLabel: (entry: Entry) => t('pdf.merge.downLabel', { name: entry.file.name }),
-        removeLabel: (entry: Entry) => t('pdf.merge.removeLabel', { name: entry.file.name }),
-      }}
+      upText={t('pdf.move.up')}
+      downText={t('pdf.move.down')}
+      removeText={t('pdf.remove')}
+      upLabel={t('pdf.merge.upLabel', { name: '{name}' })}
+      downLabel={t('pdf.merge.downLabel', { name: '{name}' })}
+      removeLabel={t('pdf.merge.removeLabel', { name: '{name}' })}
       onmove={move}
       onremove={remove}
     >
-      {#snippet row(entry: Entry)}
+      {#snippet item(entry: Entry)}
         <strong class="name">{entry.file.name}</strong>
         <span class="meta">
           {#if entry.state === 'reading'}
@@ -254,7 +252,7 @@
           {/if}
         </span>
       {/snippet}
-    </ReorderList>
+    </SortableList>
   {/if}
 
   <div class="actions">

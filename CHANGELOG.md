@@ -398,6 +398,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `docs/TEMPLATE-SETUP.md`: secrets, runner choice, rulesets and costs of a new repo.
 
 ### Changed
+- Buttons from kern (#121, ADR 0014): every button and link button is kern's `Button` (`secondary` for the old ghost, `sm` for compact, `<Button href>` for links); `Button`, `LinkButton`, `button-classes.ts`, `button.css` and their test go. (#179)
 - File drop zone and toasts from kern (#121, ADR 0014): the file tools use kern's `FileDrop` in `dispatch` mode (refused files still reported by each tool), and the shell shows notifications in kern's `Toaster` at the bottom left; `FileDropzone`, `accept.ts`, `ToastRegion`, the toast store and their tests go. (#177)
 - Dialogs from kern (#121, ADR 0014): the search dialog and the gallery use kern's `Modal` (the design's dialog look, page scroll locked while open); `Dialog.svelte` and its tests go. kern#154 (the Modal's header is a second banner landmark) is worked around with an unnamed `<section>` until kern fixes it. (#175)
 - Base components from kern (#121, ADR 0014), first batch: `Card`, `Tile`, `TileGrid`, `CodeBlock` and `Progress` (bare bar with `hideLabel`, the label stays its accessible name) replace the app's own copies, which go together with their tests. (#172)

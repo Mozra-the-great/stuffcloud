@@ -22,6 +22,19 @@ export type Reply<O = unknown> =
   | { readonly type: 'result'; readonly id: number; readonly output: O }
   | { readonly type: 'error'; readonly id: number; readonly message: string };
 
+/**
+ * `Number.isFinite` as a type guard. It is false for everything that is not a number (it does not
+ * convert), so no `typeof` check goes with it.
+ */
+function isFiniteNumber(value: unknown): value is number {
+  return Number.isFinite(value);
+}
+
+/** `Number.isSafeInteger` as a type guard; false for everything that is not a number. */
+function isSafeInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value);
+}
+
 /** `0 <= completed <= total` and `total > 0`, all finite. */
 export function isProgress(value: unknown): value is Progress {
   if (typeof value !== 'object' || value === null) {
@@ -29,10 +42,8 @@ export function isProgress(value: unknown): value is Progress {
   }
   const { completed, total } = value as { readonly completed?: unknown; readonly total?: unknown };
   return (
-    typeof completed === 'number' &&
-    typeof total === 'number' &&
-    Number.isFinite(completed) &&
-    Number.isFinite(total) &&
+    isFiniteNumber(completed) &&
+    isFiniteNumber(total) &&
     total > 0 &&
     completed >= 0 &&
     completed <= total
@@ -45,7 +56,7 @@ export function progressFraction(progress: Progress): number {
 }
 
 function isSafeId(value: unknown): value is number {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+  return isSafeInteger(value) && value >= 0;
 }
 
 /** Whether `value` is a well-formed reply; anything else from a worker is a protocol error. */

@@ -71,6 +71,7 @@ export const MAX_DEFAULT_POOL_SIZE = 4;
  * its own copy of the data), at least one. Unknown core counts give two.
  */
 export function defaultPoolSize(cores: number | undefined): number {
+  // Stryker disable next-line ConditionalExpression: `Number.isFinite(undefined)` is false as well, so the second operand already returns 2 for an unknown count; the first only narrows the type for the compiler
   if (cores === undefined || !Number.isFinite(cores) || cores < 1) {
     return 2;
   }
@@ -168,7 +169,7 @@ export class WorkerPool<I = unknown, O = unknown> {
         const onAbort = (): void => {
           this.#cancel(job, abortError(signal.reason));
         };
-        signal.addEventListener('abort', onAbort, { once: true });
+        signal.addEventListener('abort', onAbort);
         job.detach = (): void => {
           signal.removeEventListener('abort', onAbort);
         };
@@ -180,9 +181,6 @@ export class WorkerPool<I = unknown, O = unknown> {
 
   /** Stops every worker and rejects every job that has not finished. Safe to call twice. */
   terminate(): void {
-    if (this.#terminated) {
-      return;
-    }
     this.#terminated = true;
     const jobs = [...this.#queue, ...this.#slots.flatMap((slot) => (slot.job ? [slot.job] : []))];
     this.#queue.length = 0;
@@ -202,30 +200,29 @@ export class WorkerPool<I = unknown, O = unknown> {
   }
 
   #pump(): void {
-    while (this.#queue.length > 0) {
+    for (;;) {
+      const job = this.#queue[0];
+      if (job === undefined) {
+        return;
+      }
       let slot = this.#slots.find((candidate) => candidate.job === undefined);
       if (slot === undefined) {
         if (this.#slots.length >= this.#size) {
           return;
         }
-        const job = this.#queue[0];
         try {
           slot = this.#spawn();
         } catch (error: unknown) {
           // The worker could not be started (blocked script, bad URL): that job cannot run.
           this.#queue.shift();
-          if (job !== undefined) {
-            this.#settle(job, () => {
-              job.reject(new WorkerCrashError(`could not start a worker: ${describe(error)}`));
-            });
-          }
+          this.#settle(job, () => {
+            job.reject(new WorkerCrashError(`could not start a worker: ${describe(error)}`));
+          });
           continue;
         }
       }
-      const job = this.#queue.shift();
-      if (job !== undefined) {
-        this.#assign(slot, job);
-      }
+      this.#queue.shift();
+      this.#assign(slot, job);
     }
   }
 
@@ -312,6 +309,7 @@ export class WorkerPool<I = unknown, O = unknown> {
       return;
     }
     const slot = this.#slots.find((candidate) => candidate.job === job);
+    // Stryker disable next-line ConditionalExpression,BlockStatement: unreachable. The abort listener is removed when the job settles, so a job that is cancelled is always queued or running; the guard only narrows the type
     if (slot === undefined) {
       return;
     }

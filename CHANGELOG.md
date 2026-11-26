@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   (part of `build`; it never skips itself) mutates the scoped files a PR changes, with `--incremental`; `web-mutants-full` in
   `deep-tests.yml` (sharded, report artifacts) runs the whole scope on demand until the survivors listed in #162 are closed. Equivalent
   mutants carry `// Stryker disable next-line <mutator>: <reason>`. The tests that bound their run time scale their limit under
-  Stryker (`timeBudget`). (#180)
+  Stryker (`timeBudget`). `packages/tools` has no surviving mutant (#181). (#180)
 - No surviving mutant in the Markdown tool and the subnet calculator (#162): the sanitiser's policy is asserted a second time (every allowed
   tag and attribute, the removed ones, both sides of the link and picture patterns, Trusted Types, one purifier instance), the IPv6 reader
   and writer, masks, subnet counts and the merge of ranges are tested at every boundary, and guards that no input could reach were removed

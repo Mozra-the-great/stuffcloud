@@ -15,7 +15,8 @@
 //!   A link for an admin account comes only from the command line: through the API a stolen
 //!   admin session (or admin token) could otherwise take over every other admin account, and a
 //!   re-authentication step would not help an API token (#147).
-//!   With an SMTP server (A-10) the account will be able to ask for the link itself.
+//!   With an SMTP server (A-10, [`crate::mail_api`]) the account asks for the link itself and gets
+//!   it by e-mail; never for an admin account.
 //!
 //! Links put the token after `#`, so it never reaches a server log or a `Referer` header; the
 //! web pages that read them come with the account UI.

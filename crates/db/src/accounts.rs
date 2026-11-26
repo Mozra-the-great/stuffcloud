@@ -110,6 +110,32 @@ pub enum ResetIssue {
     AdminAccount,
 }
 
+/// Result of [`Database::issue_password_reset_for_mail`]. Everything but `Issued` means that no
+/// mail is sent; the caller answers all of them alike, so the answer tells nothing about which
+/// accounts exist.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MailedReset {
+    /// The token is stored (any older one of the account is replaced); send it to `email`.
+    Issued {
+        /// The account.
+        user: User,
+        /// The address stored for the account, the only one a mail may go to.
+        email: String,
+    },
+    /// No account has this login name or address.
+    UnknownUser,
+    /// The account is a service account, which has no password.
+    ServiceAccount,
+    /// The account is an admin: its links come only from the operator's command line, so a
+    /// hijacked mailbox is not enough to take over an admin account.
+    AdminAccount,
+    /// The account has no e-mail address.
+    NoAddress,
+    /// A token was issued for the account less than the cool-down ago: it gets no second mail
+    /// (and nobody can void the link in a person's inbox by asking again and again).
+    Cooldown,
+}
+
 /// Reads an account and its password by login name or e-mail address.
 fn read_record(
     conn: &Connection,
@@ -538,6 +564,70 @@ impl Database {
         )?;
         tx.commit()?;
         Ok(ResetIssue::Issued(user))
+    }
+
+    /// Stores a password reset token for the account a person named when they asked for a link
+    /// by e-mail (self-service, A-10): `identifier` is the typed login name or address. Only a
+    /// person's account that is not an admin, has an address and got no token within
+    /// `cooldown_ms` gets one ([`MailedReset`]); an older token of the account is replaced. The
+    /// audit row names the account by id and no actor (nobody is logged in).
+    ///
+    /// # Errors
+    ///
+    /// [`DbError::Sqlite`], [`DbError::Corrupt`] or [`DbError::Poisoned`].
+    pub fn issue_password_reset_for_mail(
+        &self,
+        identifier: &Identifier,
+        hash: &TokenHash,
+        expires_at: i64,
+        now: i64,
+        cooldown_ms: i64,
+    ) -> Result<MailedReset, DbError> {
+        let mut conn = self.lock()?;
+        let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let Some(record) = read_record(&tx, identifier)? else {
+            return Ok(MailedReset::UnknownUser);
+        };
+        let user = record.user;
+        if user.kind != UserKind::Person {
+            return Ok(MailedReset::ServiceAccount);
+        }
+        if user.role == Role::Admin {
+            return Ok(MailedReset::AdminAccount);
+        }
+        let email: Option<String> =
+            tx.query_row("SELECT email FROM users WHERE id = ?1", [user.id], |row| {
+                row.get(0)
+            })?;
+        let Some(email) = email else {
+            return Ok(MailedReset::NoAddress);
+        };
+        let recent: bool = tx.query_row(
+            "SELECT EXISTS (SELECT 1 FROM password_resets WHERE user_id = ?1 AND created_at > ?2)",
+            params![user.id, now.saturating_sub(cooldown_ms)],
+            |row| row.get(0),
+        )?;
+        if recent {
+            return Ok(MailedReset::Cooldown);
+        }
+        let _rows = tx.execute(
+            "INSERT INTO password_resets (token_hash, user_id, created_by, created_at, expires_at)
+             VALUES (?1, ?2, NULL, ?3, ?4)
+             ON CONFLICT (user_id) DO UPDATE SET token_hash = excluded.token_hash,
+                 created_by = NULL, created_at = excluded.created_at,
+                 expires_at = excluded.expires_at",
+            params![&hash[..], user.id, now, expires_at],
+        )?;
+        audit(
+            &tx,
+            now,
+            None,
+            "password.reset_requested",
+            USER_KIND,
+            &user.id.to_string(),
+        )?;
+        tx.commit()?;
+        Ok(MailedReset::Issued { user, email })
     }
 
     /// The account a password reset token is for, when the token is valid at `now` (to check

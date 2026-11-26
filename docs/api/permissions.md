@@ -46,10 +46,12 @@ permission from the matrix.
 | POST | `/api/v1/admin/users/{login}/password-reset` | `admin:users:write` |
 | POST | `/api/v1/auth/login` | public |
 | POST | `/api/v1/auth/password-reset` | public |
+| POST | `/api/v1/auth/password-reset/request` | public |
 | POST | `/api/v1/auth/register` | public |
 | DELETE | `/api/v1/auth/session` | session |
 | GET | `/api/v1/auth/session` | public |
 | DELETE | `/api/v1/auth/sessions` | session |
+| GET | `/api/v1/features` | public |
 | GET | `/api/v1/openapi.json` | public |
 | DELETE | `/api/v1/settings/reserved-names` | `admin:settings:write` |
 | GET | `/api/v1/settings/reserved-names` | public |
@@ -57,6 +59,9 @@ permission from the matrix.
 | DELETE | `/api/v1/settings/signup` | `admin:settings:write` |
 | GET | `/api/v1/settings/signup` | public |
 | PUT | `/api/v1/settings/signup` | `admin:settings:write` |
+| DELETE | `/api/v1/settings/smtp` | `admin:settings:write` |
+| GET | `/api/v1/settings/smtp` | `admin:settings:read` |
+| PUT | `/api/v1/settings/smtp` | `admin:settings:write` |
 | GET | `/healthz` | public |
 | GET | `/metrics` | public |
 | GET | `/readyz` | public |

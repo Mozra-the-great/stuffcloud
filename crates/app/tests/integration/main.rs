@@ -15,5 +15,6 @@ mod auth;
 mod authz;
 mod common;
 mod conventions;
+mod mail;
 mod operations;
 mod process;

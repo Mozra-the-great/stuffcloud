@@ -11,14 +11,16 @@ same gates but not listed. WASM modules, ML models, fonts and data files that
 come from neither package manager are in
 [`THIRD-PARTY-ASSETS.md`](THIRD-PARTY-ASSETS.md).
 
-## Rust (116)
+## Rust (177)
 
 | Name | Version | License | Source |
 |---|---|---|---|
 | argon2 | 0.6.0 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/argon2/0.6.0) |
+| async-trait | 0.1.92 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/async-trait/0.1.92) |
 | atomic-waker | 1.1.2 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/atomic-waker/1.1.2) |
 | axum | 0.8.9 | MIT | [crates.io](https://crates.io/crates/axum/0.8.9) |
 | axum-core | 0.5.6 | MIT | [crates.io](https://crates.io/crates/axum-core/0.5.6) |
+| base64 | 0.23.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/base64/0.23.1) |
 | base64ct | 1.8.3 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/base64ct/1.8.3) |
 | bitflags | 2.13.2 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/bitflags/2.13.2) |
 | blake2 | 0.11.0 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/blake2/0.11.0) |
@@ -28,21 +30,30 @@ come from neither package manager are in
 | cfg-if | 1.0.5 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/cfg-if/1.0.5) |
 | cmov | 0.5.4 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/cmov/0.5.4) |
 | const-oid | 0.10.3 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/const-oid/0.10.3) |
+| core-foundation | 0.10.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/core-foundation/0.10.1) |
+| core-foundation-sys | 0.8.7 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/core-foundation-sys/0.8.7) |
 | cpufeatures | 0.3.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/cpufeatures/0.3.1) |
 | crypto-common | 0.2.2 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/crypto-common/0.2.2) |
 | ctutils | 0.4.8 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/ctutils/0.4.8) |
 | deranged | 0.5.9 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/deranged/0.5.9) |
 | digest | 0.11.3 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/digest/0.11.3) |
+| displaydoc | 0.2.7 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/displaydoc/0.2.7) |
 | dtoa | 1.0.11 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/dtoa/1.0.11) |
+| email-encoding | 0.4.3 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/email-encoding/0.4.3) |
+| email_address | 0.2.10 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/email_address/0.2.10) |
 | equivalent | 1.0.3 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/equivalent/1.0.3) |
 | errno | 0.3.15 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/errno/0.3.15) |
 | fallible-iterator | 0.3.0 | MIT/Apache-2.0 | [crates.io](https://crates.io/crates/fallible-iterator/0.3.0) |
 | fallible-streaming-iterator | 0.1.9 | MIT/Apache-2.0 | [crates.io](https://crates.io/crates/fallible-streaming-iterator/0.1.9) |
+| fastrand | 2.5.0 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/fastrand/2.5.0) |
 | find-msvc-tools | 0.1.15 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/find-msvc-tools/0.1.15) |
 | foldhash | 0.2.0 | Zlib | [crates.io](https://crates.io/crates/foldhash/0.2.0) |
+| form_urlencoded | 1.2.3 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/form_urlencoded/1.2.3) |
 | futures-core | 0.3.34 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/futures-core/0.3.34) |
+| futures-io | 0.3.34 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/futures-io/0.3.34) |
 | futures-task | 0.3.34 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/futures-task/0.3.34) |
 | futures-util | 0.3.34 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/futures-util/0.3.34) |
+| getrandom | 0.2.17 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/getrandom/0.2.17) |
 | getrandom | 0.4.3 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/getrandom/0.4.3) |
 | hashbrown | 0.17.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/hashbrown/0.17.1) |
 | hashlink | 0.12.2 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/hashlink/0.12.2) |
@@ -54,19 +65,32 @@ come from neither package manager are in
 | hybrid-array | 0.4.15 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/hybrid-array/0.4.15) |
 | hyper | 1.12.0 | MIT | [crates.io](https://crates.io/crates/hyper/1.12.0) |
 | hyper-util | 0.1.21 | MIT | [crates.io](https://crates.io/crates/hyper-util/0.1.21) |
+| icu_collections | 2.4.0 | Unicode-3.0 | [crates.io](https://crates.io/crates/icu_collections/2.4.0) |
+| icu_locale_core | 2.4.0 | Unicode-3.0 | [crates.io](https://crates.io/crates/icu_locale_core/2.4.0) |
+| icu_normalizer | 2.4.0 | Unicode-3.0 | [crates.io](https://crates.io/crates/icu_normalizer/2.4.0) |
+| icu_normalizer_data | 2.4.0 | Unicode-3.0 | [crates.io](https://crates.io/crates/icu_normalizer_data/2.4.0) |
+| icu_properties | 2.4.0 | Unicode-3.0 | [crates.io](https://crates.io/crates/icu_properties/2.4.0) |
+| icu_properties_data | 2.4.0 | Unicode-3.0 | [crates.io](https://crates.io/crates/icu_properties_data/2.4.0) |
+| icu_provider | 2.4.0 | Unicode-3.0 | [crates.io](https://crates.io/crates/icu_provider/2.4.0) |
+| idna | 1.1.0 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/idna/1.1.0) |
+| idna_adapter | 1.2.2 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/idna_adapter/1.2.2) |
 | indexmap | 2.14.2 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/indexmap/2.14.2) |
 | itoa | 1.0.19 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/itoa/1.0.19) |
 | lazy_static | 1.5.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/lazy_static/1.5.1) |
+| lettre | 0.11.24 | MIT | [crates.io](https://crates.io/crates/lettre/0.11.24) |
 | libc | 0.2.191 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/libc/0.2.191) |
 | libsqlite3-sys | 0.40.0 | MIT | [crates.io](https://crates.io/crates/libsqlite3-sys/0.40.0) |
+| litemap | 0.8.3 | Unicode-3.0 | [crates.io](https://crates.io/crates/litemap/0.8.3) |
 | lock_api | 0.4.14 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/lock_api/0.4.14) |
 | log | 0.4.35 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/log/0.4.35) |
 | matchit | 0.8.4 | MIT AND BSD-3-Clause | [crates.io](https://crates.io/crates/matchit/0.8.4) |
 | memchr | 2.8.3 | Unlicense OR MIT | [crates.io](https://crates.io/crates/memchr/2.8.3) |
 | mime | 0.3.18 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/mime/0.3.18) |
 | mio | 1.2.5 | MIT | [crates.io](https://crates.io/crates/mio/1.2.5) |
+| nom | 8.0.0 | MIT | [crates.io](https://crates.io/crates/nom/8.0.0) |
 | num-conv | 0.2.2 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/num-conv/0.2.2) |
 | once_cell | 1.21.4 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/once_cell/1.21.4) |
+| openssl-probe | 0.2.2 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/openssl-probe/0.2.2) |
 | parking_lot | 0.12.5 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/parking_lot/0.12.5) |
 | parking_lot_core | 0.9.12 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/parking_lot_core/0.9.12) |
 | password-hash | 0.6.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/password-hash/0.6.1) |
@@ -74,17 +98,27 @@ come from neither package manager are in
 | phc | 0.6.1 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/phc/0.6.1) |
 | pin-project-lite | 0.2.17 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/pin-project-lite/0.2.17) |
 | pkg-config | 0.3.34 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/pkg-config/0.3.34) |
+| potential_utf | 0.1.6 | Unicode-3.0 | [crates.io](https://crates.io/crates/potential_utf/0.1.6) |
 | powerfmt | 0.2.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/powerfmt/0.2.1) |
 | proc-macro2 | 1.0.107 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/proc-macro2/1.0.107) |
 | prometheus-client | 0.26.0 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/prometheus-client/0.26.0) |
 | prometheus-client-derive-encode | 0.5.1 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/prometheus-client-derive-encode/0.5.1) |
 | quote | 1.0.47 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/quote/1.0.47) |
+| quoted_printable | 0.5.2 | 0BSD | [crates.io](https://crates.io/crates/quoted_printable/0.5.2) |
 | r-efi | 6.0.0 | MIT OR Apache-2.0 OR LGPL-2.1-or-later | [crates.io](https://crates.io/crates/r-efi/6.0.0) |
 | rand_core | 0.10.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/rand_core/0.10.1) |
 | redox_syscall | 0.5.18 | MIT | [crates.io](https://crates.io/crates/redox_syscall/0.5.18) |
+| ring | 0.17.14 | Apache-2.0 AND ISC | [crates.io](https://crates.io/crates/ring/0.17.14) |
 | rsqlite-vfs | 0.2.0 | MIT | [crates.io](https://crates.io/crates/rsqlite-vfs/0.2.0) |
 | rusqlite | 0.43.0 | MIT | [crates.io](https://crates.io/crates/rusqlite/0.43.0) |
+| rustls | 0.23.46 | Apache-2.0 OR ISC OR MIT | [crates.io](https://crates.io/crates/rustls/0.23.46) |
+| rustls-native-certs | 0.8.5 | Apache-2.0 OR ISC OR MIT | [crates.io](https://crates.io/crates/rustls-native-certs/0.8.5) |
+| rustls-pki-types | 1.16.0 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/rustls-pki-types/1.16.0) |
+| rustls-webpki | 0.103.17 | ISC | [crates.io](https://crates.io/crates/rustls-webpki/0.103.17) |
+| schannel | 0.1.30 | MIT | [crates.io](https://crates.io/crates/schannel/0.1.30) |
 | scopeguard | 1.2.0 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/scopeguard/1.2.0) |
+| security-framework | 3.7.0 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/security-framework/3.7.0) |
+| security-framework-sys | 2.17.0 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/security-framework-sys/2.17.0) |
 | serde | 1.0.229 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/serde/1.0.229) |
 | serde_core | 1.0.229 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/serde_core/1.0.229) |
 | serde_derive | 1.0.229 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/serde_derive/1.0.229) |
@@ -98,18 +132,23 @@ come from neither package manager are in
 | smallvec | 1.16.6 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/smallvec/1.16.6) |
 | socket2 | 0.6.5 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/socket2/0.6.5) |
 | sqlite-wasm-rs | 0.6.3 | MIT | [crates.io](https://crates.io/crates/sqlite-wasm-rs/0.6.3) |
+| stable_deref_trait | 1.2.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/stable_deref_trait/1.2.1) |
+| subtle | 2.6.1 | BSD-3-Clause | [crates.io](https://crates.io/crates/subtle/2.6.1) |
 | syn | 2.0.119 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/syn/2.0.119) |
 | syn | 3.0.10 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/syn/3.0.10) |
 | sync_wrapper | 1.0.2 | Apache-2.0 | [crates.io](https://crates.io/crates/sync_wrapper/1.0.2) |
+| synstructure | 0.14.0 | MIT | [crates.io](https://crates.io/crates/synstructure/0.14.0) |
 | thiserror | 2.0.21 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/thiserror/2.0.21) |
 | thiserror-impl | 2.0.21 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/thiserror-impl/2.0.21) |
 | thread_local | 1.1.10 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/thread_local/1.1.10) |
 | time | 0.3.55 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/time/0.3.55) |
 | time-core | 0.1.9 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/time-core/0.1.9) |
 | time-macros | 0.2.32 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/time-macros/0.2.32) |
+| tinystr | 0.8.5 | Unicode-3.0 | [crates.io](https://crates.io/crates/tinystr/0.8.5) |
 | tinyvec | 1.13.3 | Zlib OR Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/tinyvec/1.13.3) |
 | tokio | 1.54.1 | MIT | [crates.io](https://crates.io/crates/tokio/1.54.1) |
 | tokio-macros | 2.7.2 | MIT | [crates.io](https://crates.io/crates/tokio-macros/2.7.2) |
+| tokio-rustls | 0.26.6 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/tokio-rustls/0.26.6) |
 | tower | 0.5.3 | MIT | [crates.io](https://crates.io/crates/tower/0.5.3) |
 | tower-http | 0.7.1 | MIT | [crates.io](https://crates.io/crates/tower-http/0.7.1) |
 | tower-layer | 0.3.3 | MIT | [crates.io](https://crates.io/crates/tower-layer/0.3.3) |
@@ -122,14 +161,36 @@ come from neither package manager are in
 | typenum | 1.20.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/typenum/1.20.1) |
 | unicode-ident | 1.0.27 | (MIT OR Apache-2.0) AND Unicode-3.0 | [crates.io](https://crates.io/crates/unicode-ident/1.0.27) |
 | unicode-normalization | 0.1.26 | (MIT OR Apache-2.0) AND Unicode-3.0 | [crates.io](https://crates.io/crates/unicode-normalization/0.1.26) |
+| untrusted | 0.9.0 | ISC | [crates.io](https://crates.io/crates/untrusted/0.9.0) |
+| url | 2.5.9 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/url/2.5.9) |
+| utf8_iter | 1.1.0 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/utf8_iter/1.1.0) |
+| utf_types | 1.0.0 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/utf_types/1.0.0) |
 | utoipa | 6.0.0 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/utoipa/6.0.0) |
 | utoipa-gen | 6.0.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/utoipa-gen/6.0.1) |
 | valuable | 0.1.1 | MIT | [crates.io](https://crates.io/crates/valuable/0.1.1) |
 | vcpkg | 0.2.15 | MIT/Apache-2.0 | [crates.io](https://crates.io/crates/vcpkg/0.2.15) |
 | wasi | 0.11.1+wasi-snapshot-preview1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/wasi/0.11.1+wasi-snapshot-preview1) |
 | windows-link | 0.2.1 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows-link/0.2.1) |
+| windows-sys | 0.52.0 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows-sys/0.52.0) |
 | windows-sys | 0.61.2 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows-sys/0.61.2) |
+| windows-targets | 0.52.6 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows-targets/0.52.6) |
+| windows_aarch64_gnullvm | 0.52.6 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows_aarch64_gnullvm/0.52.6) |
+| windows_aarch64_msvc | 0.52.6 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows_aarch64_msvc/0.52.6) |
+| windows_i686_gnu | 0.52.6 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows_i686_gnu/0.52.6) |
+| windows_i686_gnullvm | 0.52.6 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows_i686_gnullvm/0.52.6) |
+| windows_i686_msvc | 0.52.6 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows_i686_msvc/0.52.6) |
+| windows_x86_64_gnu | 0.52.6 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows_x86_64_gnu/0.52.6) |
+| windows_x86_64_gnullvm | 0.52.6 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows_x86_64_gnullvm/0.52.6) |
+| windows_x86_64_msvc | 0.52.6 | MIT OR Apache-2.0 | [crates.io](https://crates.io/crates/windows_x86_64_msvc/0.52.6) |
+| writeable | 0.6.4 | Unicode-3.0 | [crates.io](https://crates.io/crates/writeable/0.6.4) |
+| yoke | 0.8.4 | Unicode-3.0 | [crates.io](https://crates.io/crates/yoke/0.8.4) |
+| yoke-derive | 0.8.4 | Unicode-3.0 | [crates.io](https://crates.io/crates/yoke-derive/0.8.4) |
+| zerofrom | 0.1.8 | Unicode-3.0 | [crates.io](https://crates.io/crates/zerofrom/0.1.8) |
+| zerofrom-derive | 0.1.8 | Unicode-3.0 | [crates.io](https://crates.io/crates/zerofrom-derive/0.1.8) |
 | zeroize | 1.9.2 | Apache-2.0 OR MIT | [crates.io](https://crates.io/crates/zeroize/1.9.2) |
+| zerotrie | 0.2.5 | Unicode-3.0 | [crates.io](https://crates.io/crates/zerotrie/0.2.5) |
+| zerovec | 0.11.9 | Unicode-3.0 | [crates.io](https://crates.io/crates/zerovec/0.11.9) |
+| zerovec-derive | 0.11.7 | Unicode-3.0 | [crates.io](https://crates.io/crates/zerovec-derive/0.11.7) |
 | zmij | 1.0.23 | MIT | [crates.io](https://crates.io/crates/zmij/1.0.23) |
 
 ## npm (36)

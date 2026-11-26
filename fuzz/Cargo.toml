@@ -105,3 +105,10 @@ path = "fuzz_targets/forwarded_for.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "smtp_settings"
+path = "fuzz_targets/smtp_settings.rs"
+test = false
+doc = false
+bench = false

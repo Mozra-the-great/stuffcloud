@@ -28,7 +28,8 @@ use std::time::Duration;
 use rusqlite::{Connection, OpenFlags};
 
 pub use accounts::{
-    Invitation, InvitationOutcome, NewAccount, PasswordRecord, Profile, Registration, ResetIssue,
+    Invitation, InvitationOutcome, MailedReset, NewAccount, PasswordRecord, Profile, Registration,
+    ResetIssue,
 };
 pub use auth::{
     NewSession, RoleChange, Session, SessionLookup, TOUCH_INTERVAL_MS, TokenHash, User, token_hash,

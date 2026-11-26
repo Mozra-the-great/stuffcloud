@@ -16,6 +16,9 @@
 //!   links; [`password`]: Argon2id hashing, the dummy hash for unknown accounts and the offline
 //!   breached-password list; [`throttle`]: the login throttles per client address and account;
 //!   [`maintenance`]: the periodic purge of expired sessions and tokens.
+//! - [`mail`]: the optional mailer (A-10): a bounded queue in memory, a worker that issues the reset
+//!   token and delivers the mail with retries; [`mail_api`]: `GET /api/v1/features` and the request
+//!   for a reset link by e-mail.
 //! - [`sampler`]: the rate limit of log lines a client can trigger (refused cross-site requests).
 //! - [`problem`]: RFC 9457 problem details, the only error format.
 //! - [`health`], [`metrics`], [`telemetry`]: probes, Prometheus metrics, structured logs
@@ -35,6 +38,8 @@ pub mod cli;
 pub mod config;
 pub mod health;
 pub mod invitations;
+pub mod mail;
+pub mod mail_api;
 pub mod maintenance;
 pub mod metrics;
 pub mod middleware;

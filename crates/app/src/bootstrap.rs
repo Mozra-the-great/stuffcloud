@@ -12,8 +12,8 @@
 //! { "version": 1, "settings": { "reserved-names": { "names": ["intranet", "wiki"] } } }
 //! ```
 //!
-//! Only the resources that exist so far are accepted (the settings groups `reserved-names` and
-//! `signup`); every problem in the file is reported at once with a JSON Pointer, and
+//! Only the resources that exist so far are accepted (the settings groups `reserved-names`,
+//! `signup` and `smtp`); every problem in the file is reported at once with a JSON Pointer, and
 //! the app refuses to start. The file never holds secrets (ADR 0010 decision 4). YAML
 //! arrives with the CLI's `validate`/`plan`/`apply` (H-13, #57), which shares this format.
 //! The first admin (`STUFFCLOUD_BOOTSTRAP_ADMIN_*`, the local break-glass admin) is created in
@@ -26,6 +26,7 @@ use serde_json::Value;
 use stuffcloud_core::body::{Writable, canonical, parse_writable_value};
 use stuffcloud_core::field::{FieldError, FieldErrorCode, JsonPointer};
 use stuffcloud_core::settings::{ReservedNames, Signup};
+use stuffcloud_core::smtp::Smtp;
 use stuffcloud_db::{BootstrapOutcome, Change, Database, DbError, NewAccount};
 
 use crate::settings::KIND;
@@ -164,6 +165,8 @@ pub fn parse_file(bytes: &[u8]) -> Result<Vec<BootstrapWrite>, BootstrapError> {
                         ))
                     } else if group == Signup::GROUP {
                         Some((Signup::GROUP, parse_resource::<Signup>(document, &group_at)))
+                    } else if group == Smtp::GROUP {
+                        Some((Smtp::GROUP, parse_resource::<Smtp>(document, &group_at)))
                     } else {
                         None
                     };
@@ -312,7 +315,7 @@ mod tests {
             invalid(&json!({
                 "version": 2,
                 "zones": [],
-                "settings": {"reserved-names": {"names": ["ok1", "BAD"], "x": 1}, "smtp": {}}
+                "settings": {"reserved-names": {"names": ["ok1", "BAD"], "x": 1}, "nope": {}}
             })),
             vec![
                 ("/version".to_owned(), FieldErrorCode::InvalidValue),
@@ -324,7 +327,7 @@ mod tests {
                     "/settings/reserved-names/names/1".to_owned(),
                     FieldErrorCode::InvalidValue
                 ),
-                ("/settings/smtp".to_owned(), FieldErrorCode::UnknownField),
+                ("/settings/nope".to_owned(), FieldErrorCode::UnknownField),
                 ("/zones".to_owned(), FieldErrorCode::UnknownField),
             ]
         );
@@ -335,6 +338,60 @@ mod tests {
         assert_eq!(
             invalid(&json!({"version": "1"})),
             vec![("/version".to_owned(), FieldErrorCode::InvalidValue)]
+        );
+    }
+
+    #[test]
+    fn takes_the_smtp_group_with_a_reference_and_reports_what_is_wrong_with_it() {
+        let smtp = json!({
+            "host": "mailpit", "port": 1025, "security": "none", "username": null,
+            "password": null, "from": "noreply@stuff.localhost", "from_name": null
+        });
+        let writes = parse_file(
+            json!({"version": 1, "settings": {"smtp": smtp}})
+                .to_string()
+                .as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(writes.len(), 1);
+        assert_eq!((writes[0].0, writes[0].1), (KIND, "smtp"));
+        assert_eq!(
+            writes[0].2,
+            r#"{"host":"mailpit","port":1025,"security":"none","username":null,"password":null,"from":"noreply@stuff.localhost","from_name":null}"#
+        );
+        let with_reference = json!({
+            "host": "smtp.example.com", "port": 587, "security": "starttls", "username": "u",
+            "password": {"ref": "STUFFCLOUD_SECRET_SMTP"}, "from": "noreply@example.com",
+            "from_name": "stuffcloud"
+        });
+        assert!(
+            parse_file(
+                json!({"version": 1, "settings": {"smtp": with_reference}})
+                    .to_string()
+                    .as_bytes()
+            )
+            .is_ok()
+        );
+        // A secret value is no part of a configuration file: only a reference.
+        let with_value = json!({
+            "host": "smtp.example.com", "port": 587, "security": "starttls", "username": "u",
+            "password": {"value": "hunter2"}, "from": "noreply@example.com", "from_name": null
+        });
+        assert_eq!(
+            invalid(&json!({"version": 1, "settings": {"smtp": with_value}})),
+            vec![(
+                "/settings/smtp/password".to_owned(),
+                FieldErrorCode::InvalidType
+            )]
+        );
+        // Every missing member is reported at its place.
+        let missing = invalid(&json!({"version": 1, "settings": {"smtp": {}}}));
+        assert_eq!(missing.len(), 7);
+        assert!(
+            missing
+                .iter()
+                .all(|(pointer, code)| pointer.starts_with("/settings/smtp/")
+                    && *code == FieldErrorCode::MissingField)
         );
     }
 

@@ -1,0 +1,1 @@
+{"host":"smtp.example.com","port":587,"security":"starttls","username":"stuffcloud","password":{"ref":"STUFFCLOUD_SECRET_SMTP"},"from":"noreply@example.com","from_name":"x\r\nBcc: victim@example.net"}

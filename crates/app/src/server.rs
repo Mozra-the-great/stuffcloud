@@ -19,14 +19,15 @@ use crate::invitations::{
     INVITATION_PATH, INVITATIONS_PATH, RESET_LINK_PATH, create_invitation, create_reset_link,
     list_invitations, revoke_invitation,
 };
+use crate::mail_api::{FEATURES_PATH, RESET_REQUEST_PATH, get_features, request_password_reset};
 use crate::middleware::{
     observe, panic_response, problems_for_bare_errors, security_headers, timeout,
 };
 use crate::problem::{Problem, ProblemKind};
 use crate::sessions::{SESSION_PATH, SESSIONS_PATH, delete_session, delete_sessions, get_session};
 use crate::settings::{
-    RESERVED_NAMES_PATH, SIGNUP_PATH, delete_reserved_names, delete_signup, get_reserved_names,
-    get_signup, put_reserved_names, put_signup,
+    RESERVED_NAMES_PATH, SIGNUP_PATH, SMTP_PATH, delete_reserved_names, delete_signup, delete_smtp,
+    get_reserved_names, get_signup, get_smtp, put_reserved_names, put_signup, put_smtp,
 };
 use crate::state::AppState;
 use crate::{auth, health, metrics, openapi};
@@ -51,12 +52,15 @@ fn v1(path: &str) -> String {
 ///
 /// Reads of the settings groups the client needs before it logs in are `public` (the API is
 /// LAN-only and these hold no secret, ADR 0010 decision 4); every write needs the permission
-/// of its area. A settings group that may hold anything private declares
-/// `admin:settings:read` for its `GET`.
+/// of its area. A settings group that may hold anything private (the `smtp` group: the server,
+/// the login and the reference to the password) declares `admin:settings:read` for its `GET`.
 ///
-/// Logging in, registering and redeeming a reset link are `public` (they are how a client gets
-/// an account or a session); they still pass the `Origin` and CSRF checks of every write.
+/// Logging in, registering, redeeming a reset link and asking for one by e-mail are `public`
+/// (they are how a client gets an account or a session); they still pass the `Origin` and CSRF
+/// checks of every write. `GET /features` is `public`: it tells a client whether to offer
+/// "forgot your password?" and holds nothing about accounts.
 fn table(endpoints: Endpoints) -> Endpoints {
+    let read_settings = Requirement::Permit(Permission::new(Area::AdminSettings, Level::Read));
     let write_settings = Requirement::Permit(Permission::new(Area::AdminSettings, Level::Write));
     let read_account = Requirement::Permit(Permission::new(Area::Account, Level::Read));
     let write_account = Requirement::Permit(Permission::new(Area::Account, Level::Write));
@@ -77,6 +81,12 @@ fn table(endpoints: Endpoints) -> Endpoints {
         .post(&v1(LOGIN_PATH), Requirement::Public, login)
         .post(&v1(REGISTER_PATH), Requirement::Public, register)
         .post(&v1(RESET_PATH), Requirement::Public, reset_password)
+        .post(
+            &v1(RESET_REQUEST_PATH),
+            Requirement::Public,
+            request_password_reset,
+        )
+        .get(&v1(FEATURES_PATH), Requirement::Public, get_features)
         .get(&v1(ACCOUNT_PATH), read_account, get_account)
         .post(&v1(PASSWORD_PATH), write_account, change_password)
         .post(&v1(INVITATIONS_PATH), write_users, create_invitation)
@@ -97,6 +107,9 @@ fn table(endpoints: Endpoints) -> Endpoints {
         .get(&v1(SIGNUP_PATH), Requirement::Public, get_signup)
         .put(&v1(SIGNUP_PATH), write_settings, put_signup)
         .delete(&v1(SIGNUP_PATH), write_settings, delete_signup)
+        .get(&v1(SMTP_PATH), read_settings, get_smtp)
+        .put(&v1(SMTP_PATH), write_settings, put_smtp)
+        .delete(&v1(SMTP_PATH), write_settings, delete_smtp)
 }
 
 /// The routes with a guard in front of each (what [`router`] serves).

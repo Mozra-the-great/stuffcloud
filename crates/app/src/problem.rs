@@ -41,6 +41,9 @@ pub enum ProblemKind {
     NotFound,
     /// 409: a limit of the instance is reached (for example pending invitations).
     LimitReached,
+    /// 409: the instance has no mail set up (no `smtp` settings), so a feature that sends mail
+    /// is not available.
+    MailNotConfigured,
     /// 405: the route exists but not with this method.
     MethodNotAllowed,
     /// 412: an `If-Match` / `If-None-Match` precondition failed.
@@ -72,7 +75,7 @@ impl ProblemKind {
             Self::Unauthenticated | Self::InvalidCredentials => StatusCode::UNAUTHORIZED,
             Self::Forbidden | Self::CsrfRejected | Self::SignupClosed => StatusCode::FORBIDDEN,
             Self::NotFound => StatusCode::NOT_FOUND,
-            Self::LimitReached => StatusCode::CONFLICT,
+            Self::LimitReached | Self::MailNotConfigured => StatusCode::CONFLICT,
             Self::TooManyRequests => StatusCode::TOO_MANY_REQUESTS,
             Self::MethodNotAllowed => StatusCode::METHOD_NOT_ALLOWED,
             Self::PreconditionFailed => StatusCode::PRECONDITION_FAILED,
@@ -96,6 +99,7 @@ impl ProblemKind {
             Self::InvalidCredentials => Some("invalid-credentials"),
             Self::SignupClosed => Some("signup-closed"),
             Self::LimitReached => Some("limit-reached"),
+            Self::MailNotConfigured => Some("mail-not-configured"),
             Self::TooManyRequests => Some("too-many-requests"),
             Self::Forbidden => Some("forbidden"),
             Self::CsrfRejected => Some("csrf-rejected"),
@@ -131,6 +135,7 @@ impl ProblemKind {
             Self::InvalidCredentials => "Invalid credentials",
             Self::SignupClosed => "Sign-up closed",
             Self::LimitReached => "Limit reached",
+            Self::MailNotConfigured => "Mail not configured",
             Self::TooManyRequests => "Too many requests",
             Self::Forbidden => "Forbidden",
             Self::CsrfRejected => "Cross-site request refused",
@@ -228,6 +233,13 @@ impl Problem {
         Self::retry_later(wait_ms, "the server is busy checking other passwords")
     }
 
+    /// Too many mails are waiting to be sent: the same 429 with `Retry-After`. Nothing was
+    /// queued or counted against an account.
+    #[must_use]
+    pub fn mail_busy(wait_ms: i64) -> Self {
+        Self::retry_later(wait_ms, "the server has too many mails waiting")
+    }
+
     fn retry_later(wait_ms: i64, reason: &str) -> Self {
         let seconds = u64::try_from(wait_ms).unwrap_or(0).div_ceil(1000).max(1);
         Self {
@@ -294,7 +306,7 @@ mod tests {
 
     use super::*;
 
-    const ALL: [ProblemKind; 19] = [
+    const ALL: [ProblemKind; 20] = [
         ProblemKind::BadRequest,
         ProblemKind::MalformedBody,
         ProblemKind::Unauthenticated,
@@ -304,6 +316,7 @@ mod tests {
         ProblemKind::SignupClosed,
         ProblemKind::NotFound,
         ProblemKind::LimitReached,
+        ProblemKind::MailNotConfigured,
         ProblemKind::MethodNotAllowed,
         ProblemKind::PreconditionFailed,
         ProblemKind::PayloadTooLarge,
@@ -335,6 +348,7 @@ mod tests {
                 (403, "Sign-up closed", t("signup-closed")),
                 (404, "Not found", t("not-found")),
                 (409, "Limit reached", t("limit-reached")),
+                (409, "Mail not configured", t("mail-not-configured")),
                 (405, "Method not allowed", t("method-not-allowed")),
                 (412, "Precondition failed", t("precondition-failed")),
                 (413, "Payload too large", t("payload-too-large")),

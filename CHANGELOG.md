@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Optional SMTP mailer (A-10, #40, [ADR 0015](docs/adr/0015-optional-mailer.md)): the settings group `smtp`
+  (`GET`/`PUT`/`DELETE /api/v1/settings/smtp`, `admin:settings:read` to read; host, port, security `starttls`, `tls` or `none`,
+  username, the password as a reference `{"ref": "STUFFCLOUD_SECRET_..."}` to deployment configuration, sender; part of the
+  bootstrap file) and `GET /api/v1/features` (`{"mail": bool}`). With it an account asks for a password reset link itself:
+  `POST /api/v1/auth/password-reset/request` answers `202` with no body for every login name or address, known or not (the
+  work happens after the answer), throttled per client address and one link per account per 5 minutes, never for an admin
+  account, only to the stored address; without mail it is `409 mail-not-configured`. The mail is plain text in German or
+  English (no HTML, image or tracking), built so no header or recipient can be injected, sent by the new crate `crates/mail`
+  (`lettre`, TLS with rustls and ring, `STARTTLS` required where asked, system root certificates) from an in-memory queue with
+  4 workers and retries after 15 s, 1, 5 and 15 minutes; logs and the counter `stuffcloud_mail_deliveries_total{result}` name no
+  address, name, token or server text. The dev stack's Mailpit receives the mail (its bootstrap file sets up `smtp` and opens
+  sign-up); the smoke test registers an account, asks for a reset mail, reads it in Mailpit and redeems the link. Fuzz target
+  `smtp_settings`, property tests and a regression corpus of injections; the write-only SMTP password stays with #152. (#PR)
 - Performance budgets and a Lighthouse gate (T-25, #29, `docs/PERFORMANCE.md`): job `perf-budgets` in `ci.yml` (part of `build`)
   checks the gzip size of the shell (first-load JavaScript, CSS, fonts; `apps/web/perf-budgets.json`) and of every tool (its lazy
   code and what its workers can download; the `budget` of its manifest) against a production build made with the Vite manifest

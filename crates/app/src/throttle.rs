@@ -19,6 +19,9 @@
 //!   so the table holds no login names or addresses.
 //! - **Registrations per client address** ([`REGISTER_RULE`]): every registration attempt
 //!   counts; 5 are free, then waits from one minute up to an hour.
+//! - **Requests for a reset link by e-mail per client address** ([`RESET_REQUEST_RULE`]): the
+//!   same numbers, counted whether or not the account exists. What one account may be sent is
+//!   limited in the database (one token per cool-down).
 //!
 //! **Attempts are reserved before they are checked** (#145). [`Throttles::reserve_login`]
 //! takes the attempt's place in the address and account counts under the same lock that reads
@@ -67,6 +70,16 @@ pub const ACCOUNT_RULE: Rule = Rule {
 
 /// Registration attempts per client address.
 pub const REGISTER_RULE: Rule = Rule {
+    free: 5,
+    base_ms: MINUTE_MS,
+    max_ms: HOUR_MS,
+    window_ms: 6 * HOUR_MS,
+};
+
+/// Requests for a reset link by e-mail per client address: every request counts; 5 are free,
+/// then waits from one minute up to an hour (the same as registrations: nobody forgets their
+/// password five times in a row, and every request that gets through can cost a mail).
+pub const RESET_REQUEST_RULE: Rule = Rule {
     free: 5,
     base_ms: MINUTE_MS,
     max_ms: HOUR_MS,
@@ -320,6 +333,7 @@ pub struct Throttles {
     clients: Table<Bucket>,
     accounts: Table<AccountKey>,
     registrations: Table<Bucket>,
+    reset_requests: Table<Bucket>,
     known: Mutex<KnownTable>,
     capacity: usize,
 }
@@ -421,6 +435,7 @@ impl Throttles {
             clients: Table::new(CLIENT_RULE, capacity),
             accounts: Table::new(ACCOUNT_RULE, capacity),
             registrations: Table::new(REGISTER_RULE, capacity),
+            reset_requests: Table::new(RESET_REQUEST_RULE, capacity),
             known: Mutex::new(KnownTable::default()),
             capacity,
         }
@@ -479,6 +494,13 @@ impl Throttles {
         self.registrations.attempt(client, now)
     }
 
+    /// Counts a request for a reset link by e-mail from `client`, unless it has to wait: then
+    /// the wait.
+    #[must_use]
+    pub fn reset_request_attempt(&self, client: Bucket, now: i64) -> Option<i64> {
+        self.reset_requests.attempt(client, now)
+    }
+
     /// Drops every key whose window has passed and every known address older than
     /// [`KNOWN_FOR_MS`]; returns how many entries went. Runs with the periodic purge.
     pub fn sweep(&self, now: i64) -> usize {
@@ -491,12 +513,14 @@ impl Throttles {
             .sweep(now)
             .saturating_add(self.accounts.sweep(now))
             .saturating_add(self.registrations.sweep(now))
+            .saturating_add(self.reset_requests.sweep(now))
             .saturating_add(known)
     }
 
-    /// The number of keys in the tables (clients, accounts, registrations, known pairs).
+    /// The number of keys in the tables (clients, accounts, registrations, known pairs, reset
+    /// requests).
     #[must_use]
-    pub fn sizes(&self) -> [usize; 4] {
+    pub fn sizes(&self) -> [usize; 5] {
         [
             self.clients.len(),
             self.accounts.len(),
@@ -505,6 +529,7 @@ impl Throttles {
                 .lock()
                 .unwrap_or_else(PoisonError::into_inner)
                 .pairs,
+            self.reset_requests.len(),
         ]
     }
 }

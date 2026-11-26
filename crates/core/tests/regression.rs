@@ -585,3 +585,130 @@ fn proxy_peers_without_a_list_are_recognised() {
     let listed = ProxyList::parse("172.18.0.0/16").unwrap();
     assert!(!unlisted_proxy("172.18.0.3".parse().unwrap(), &listed));
 }
+
+/// A-10: header and protocol injection through the `smtp` settings. Every entry must stay
+/// refused in the field it targets (the same strings are seeds of the `smtp_settings` fuzz
+/// target).
+#[test]
+fn smtp_settings_injection_attempts_stay_refused() {
+    use stuffcloud_core::body::Writable;
+    use stuffcloud_core::smtp::{SecretRef, Smtp, SmtpSecurity};
+
+    fn base() -> Smtp {
+        Smtp {
+            host: "smtp.example.com".to_owned(),
+            port: 587,
+            security: SmtpSecurity::Starttls,
+            username: Some("stuffcloud".to_owned()),
+            password: Some(SecretRef {
+                name: "STUFFCLOUD_SECRET_SMTP".to_owned(),
+            }),
+            from: "noreply@example.com".to_owned(),
+            from_name: Some("stuffcloud".to_owned()),
+        }
+    }
+    let hosts = [
+        "smtp.example.com\r\nRCPT TO:<victim@example.net>",
+        "smtp.example.com\nQUIT",
+        "smtp.example.com:25",
+        "smtp.example.com/../x",
+        "user@smtp.example.com",
+        "[::1]",
+        "smtp.example.com\0.evil.example",
+        "smtp.ex\u{e4}mple.com",
+        "",
+    ];
+    for host in hosts {
+        let mut smtp = base();
+        smtp.host = host.to_owned();
+        let errors = smtp.validate();
+        assert_eq!(errors.len(), 1, "{host:?}");
+        assert_eq!(errors[0].pointer.as_str(), "/host");
+    }
+    let names = [
+        "x\r\nBcc: victim@example.net",
+        "x\nBcc: victim@example.net",
+        "Bob <victim@example.net>",
+        "x\"; Bcc: victim@example.net; \"",
+        "x\\\r\ny",
+        "x\u{85}y",
+        "x\u{2028}Bcc: victim@example.net",
+        "\0",
+    ];
+    for name in names {
+        let mut smtp = base();
+        smtp.from_name = Some(name.to_owned());
+        let errors = smtp.validate();
+        assert_eq!(errors.len(), 1, "{name:?}");
+        assert_eq!(errors[0].pointer.as_str(), "/from_name");
+    }
+    let senders = [
+        "noreply@example.com\r\nBcc: victim@example.net",
+        "noreply@example.com>\r\nBcc: victim@example.net",
+        "<noreply@example.com>",
+        "noreply@example.com, victim@example.net",
+        "\"noreply\"@example.com",
+        "noreply@example.com\0",
+    ];
+    for from in senders {
+        let mut smtp = base();
+        smtp.from = from.to_owned();
+        let errors = smtp.validate();
+        assert_eq!(errors.len(), 1, "{from:?}");
+        assert_eq!(errors[0].pointer.as_str(), "/from");
+    }
+    // A reference names a variable of the secrets, never another variable of the process.
+    for reference in [
+        "PATH",
+        "HOME",
+        "STUFFCLOUD_SECRETS_KEY_FILE",
+        "STUFFCLOUD_SECRETS_KEY",
+        "STUFFCLOUD_BOOTSTRAP_ADMIN_PASSWORD",
+        "STUFFCLOUD_SECRET_SMTP\nPATH",
+        "STUFFCLOUD_SECRET_../etc/passwd",
+        "stuffcloud_secret_smtp",
+    ] {
+        let mut smtp = base();
+        smtp.password = Some(SecretRef {
+            name: reference.to_owned(),
+        });
+        let errors = smtp.validate();
+        assert_eq!(errors.len(), 1, "{reference:?}");
+        assert_eq!(errors[0].pointer.as_str(), "/password/ref");
+    }
+    // Credentials never go over a plain connection.
+    let mut smtp = base();
+    smtp.security = SmtpSecurity::None;
+    assert!(
+        smtp.validate()
+            .iter()
+            .any(|e| e.pointer.as_str() == "/security")
+    );
+}
+
+/// A-10: a secret written where only a reference belongs is never echoed in the error.
+#[test]
+fn a_secret_value_is_never_echoed_in_a_field_error() {
+    use stuffcloud_core::body::{BodyError, parse_writable};
+    use stuffcloud_core::smtp::Smtp;
+    for password in [
+        r#""hunter2""#,
+        r#"{"value":"hunter2"}"#,
+        r#"{"ref":"STUFFCLOUD_SECRET_SMTP","value":"hunter2"}"#,
+        r#"["hunter2"]"#,
+        r#"{"ref":{"value":"hunter2"}}"#,
+    ] {
+        let body = format!(
+            r#"{{"host":"smtp.example.com","port":587,"security":"starttls","username":"u","password":{password},"from":"noreply@example.com","from_name":null}}"#
+        );
+        match parse_writable::<Smtp>(body.as_bytes()) {
+            Err(BodyError::Invalid(errors)) => {
+                assert!(
+                    errors.iter().all(|e| !e.detail.contains("hunter2")),
+                    "{password}: {errors:?}"
+                );
+            }
+            other => panic!("{password}: {other:?}"),
+        }
+    }
+}

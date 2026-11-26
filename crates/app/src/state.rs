@@ -11,6 +11,7 @@ use crate::access::{AccessPolicy, DenialKey};
 use crate::accounts::Accounts;
 use crate::auth::AuthSettings;
 use crate::config::Limits;
+use crate::mail::Mailer;
 use crate::metrics::Metrics;
 use crate::problem::Problem;
 use crate::sampler::{KeyedLimiter, LogSampler};
@@ -64,6 +65,7 @@ struct Inner {
     rejection_log: LogSampler,
     denial_audit: KeyedLimiter<DenialKey>,
     accounts: Accounts,
+    mailer: Mailer,
 }
 
 impl AppState {
@@ -76,6 +78,7 @@ impl AppState {
         limits: Limits,
         auth: AuthSettings,
         accounts: Accounts,
+        mailer: Mailer,
     ) -> Self {
         Self {
             inner: Arc::new(Inner {
@@ -88,6 +91,7 @@ impl AppState {
                 rejection_log: LogSampler::new(REJECTION_LOG_INTERVAL),
                 denial_audit: KeyedLimiter::new(DENIAL_AUDIT_INTERVAL, DENIAL_AUDIT_CAPACITY),
                 accounts,
+                mailer,
             }),
         }
     }
@@ -108,6 +112,12 @@ impl AppState {
     #[must_use]
     pub fn accounts(&self) -> &Accounts {
         &self.inner.accounts
+    }
+
+    /// The queue of the optional mailer.
+    #[must_use]
+    pub fn mailer(&self) -> &Mailer {
+        &self.inner.mailer
     }
 
     /// The rate limit of the log lines for refused requests.
@@ -224,6 +234,11 @@ pub(crate) mod tests {
 
     /// A state with this account machinery.
     pub(crate) fn state_with_accounts(accounts: Accounts) -> AppState {
+        state_with_mailer(accounts, Mailer::disabled())
+    }
+
+    /// A state with this account machinery and this mailer.
+    pub(crate) fn state_with_mailer(accounts: Accounts, mailer: Mailer) -> AppState {
         let dir = tempfile::tempdir().unwrap().keep();
         let db = Arc::new(Database::open(&dir.join("s.sqlite3")).unwrap());
         let _ = db.migrate().unwrap();
@@ -234,6 +249,7 @@ pub(crate) mod tests {
             Limits::default(),
             settings(),
             accounts,
+            mailer,
         )
     }
 
@@ -254,6 +270,7 @@ pub(crate) mod tests {
             Limits::default(),
             settings(),
             accounts(),
+            Mailer::disabled(),
         );
         assert_eq!(state.db(|_db| Ok(7)).await.unwrap(), 7);
         let failed = state
@@ -281,6 +298,7 @@ pub(crate) mod tests {
             Limits::default(),
             settings(),
             accounts(),
+            Mailer::disabled(),
         );
         let outcome = state
             .db_outcome(|_db| Err::<(), _>(DbError::Poisoned))

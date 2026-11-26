@@ -22,6 +22,9 @@ script, no DNS or hosts entry needed):
 - the tunnel listener (inside the container, it is not published) serves `public.<site base>`
   and answers every other name exactly like a name that does not exist (ADR 0009)
 - Mailpit takes a message over SMTP and shows it through the Caddy route
+- the password reset mail (A-10): an account registers (the dev bootstrap file opens sign-up), asks
+  for a reset link by e-mail, the mail arrives in Mailpit in German with a link that redeems once
+  and the new password logs in
 - the login throttle counts each client behind Caddy on its own (#146): failed logins from the
   host run into a wait, and while it lasts a login from another client (inside the Caddy
   container) is still checked; runs last, because it leaves the host's address throttled
@@ -343,6 +346,87 @@ def login_from_inside_caddy(token: str) -> str:
     return done.stdout.strip()
 
 
+def post_json(path: str, body: dict[str, object], token: str) -> Response:
+    """A write from the app origin with the CSRF checks passed (header and cookie of the token)."""
+    return request(
+        "POST",
+        url(APP_HOST, path),
+        body=json.dumps(body).encode(),
+        headers={
+            "Content-Type": "application/json",
+            "Origin": f"http://{APP_HOST}:{HTTP_PORT}",
+            "X-CSRF-Token": token,
+            "Cookie": f"__Host-stuffcloud-csrf={token}",
+        },
+    )
+
+
+def mailbox_message(address: str, subject: str) -> dict[str, object] | None:
+    """The newest Mailpit message to `address` with `subject`, with its text, or None."""
+    listing = get(url(MAIL_HOST, "/api/v1/messages"))
+    try:
+        messages = json.loads(listing.body).get("messages", [])
+    except (json.JSONDecodeError, AttributeError):
+        return None
+    for message in messages:
+        recipients = [str(entry.get("Address", "")) for entry in message.get("To", [])]
+        if address in recipients and message.get("Subject") == subject:
+            detail = get(url(MAIL_HOST, f"/api/v1/message/{message['ID']}"))
+            try:
+                return {**message, **json.loads(detail.body)}
+            except json.JSONDecodeError:
+                return None
+    return None
+
+
+def reset_mail() -> None:
+    features = get(url(APP_HOST, "/api/v1/features"))
+    check("the dev bootstrap file sets mail up (features.mail)", features.status == 200 and json.loads(features.body) == {"mail": True}, features.body[:200])
+    suffix = secrets.token_hex(4)
+    login, address = f"smoke{suffix}", f"smoke-{suffix}@example.com"
+    token = anonymous_csrf()
+    registered = post_json(
+        "/api/v1/auth/register",
+        {"login": login, "email": address, "password": "a long smoke passphrase"},
+        token,
+    )
+    check("an account registers (the dev stack has open sign-up)", registered.status == 201, f"{registered.status} {registered.body[:200]}")
+    asked = post_json("/api/v1/auth/password-reset/request", {"login": address, "language": "de"}, token)
+    check("the request for a reset link is accepted", asked.status == 202 and asked.body == "", f"{asked.status} {asked.body[:200]}")
+    unknown = post_json("/api/v1/auth/password-reset/request", {"login": f"nobody-{suffix}@example.com"}, token)
+    check("an address nobody has gets the same answer", unknown.status == 202 and unknown.body == "", f"{unknown.status} {unknown.body[:200]}")
+    subject = "stuffcloud: Passwort zurücksetzen"
+    message = None
+    for _ in range(40):
+        message = mailbox_message(address, subject)
+        if message is not None:
+            break
+        time.sleep(0.5)
+    check("the reset mail arrives in Mailpit", message is not None, f"no message for {address}")
+    if message is None:
+        return
+    sender = message.get("From", {})
+    check(
+        "the mail comes from the configured sender, in plain text",
+        isinstance(sender, dict) and sender.get("Address") == "noreply@stuff.localhost" and not message.get("HTML"),
+        json.dumps({"From": sender, "HTML": bool(message.get("HTML"))}),
+    )
+    text = str(message.get("Text", ""))
+    found = re.search(r"/password-reset#token=([0-9a-f]{64})", text)
+    check("the mail carries one reset link with a token", found is not None and text.count("#token=") == 1, text[:300])
+    if found is None:
+        return
+    check("no other mail went to the unknown address", mailbox_message(f"nobody-{suffix}@example.com", subject) is None)
+    redeemed = post_json("/api/v1/auth/password-reset", {"token": found.group(1), "password": "a different smoke passphrase"}, token)
+    check("the link redeems and sets the new password", redeemed.status == 204, f"{redeemed.status} {redeemed.body[:200]}")
+    again = post_json("/api/v1/auth/password-reset", {"token": found.group(1), "password": "yet another smoke passphrase"}, token)
+    check("the link works once only", again.status == 422, f"{again.status} {again.body[:200]}")
+    logged_in = post_json("/api/v1/auth/login", {"login": login, "password": "a different smoke passphrase"}, token)
+    check("the new password logs in", logged_in.status == 200, f"{logged_in.status} {logged_in.body[:200]}")
+    old = post_json("/api/v1/auth/login", {"login": login, "password": "a long smoke passphrase"}, token)
+    check("the old password does not", old.status == 401, f"{old.status} {old.body[:200]}")
+
+
 def throttles() -> None:
     token = anonymous_csrf()
     check("session endpoint hands out a CSRF token for the logins", len(token) == 64)
@@ -381,7 +465,7 @@ def throttles() -> None:
 
 
 def main() -> int:
-    for section in (web_app, api, sites, cookies, tunnel_listener, mail, throttles):
+    for section in (web_app, api, sites, cookies, tunnel_listener, mail, reset_mail, throttles):
         print(f"-- {section.__name__}")
         try:
             section()

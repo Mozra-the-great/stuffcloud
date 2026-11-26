@@ -618,3 +618,181 @@ fn one_password_per_account() {
     );
     assert!(second.is_err());
 }
+
+const COOLDOWN: i64 = 300_000;
+
+fn mailed(db: &Database, who: &Identifier, token: u8, now: i64) -> MailedReset {
+    db.issue_password_reset_for_mail(
+        who,
+        &hash(token),
+        now.saturating_add(3_600_000),
+        now,
+        COOLDOWN,
+    )
+    .unwrap()
+}
+
+#[test]
+fn a_reset_by_mail_is_issued_by_login_name_or_address_and_returns_the_stored_address() {
+    let (_dir, db) = db();
+    let alice = created(register(&db, "alice", "alice@example.com", None));
+    let by_login = Identifier::Login(login("alice"));
+    assert_eq!(
+        mailed(&db, &by_login, 1, 1_000_000),
+        MailedReset::Issued {
+            user: alice.clone(),
+            email: "alice@example.com".to_owned()
+        }
+    );
+    // The token works once, for 60 minutes from `now`.
+    let target = db
+        .password_reset_target(&hash(1), 1_000_000 + 3_599_999)
+        .unwrap()
+        .unwrap();
+    assert_eq!(target.user, alice);
+    assert_eq!(
+        db.password_reset_target(&hash(1), 1_000_000 + 3_600_000)
+            .unwrap(),
+        None
+    );
+    // By address, once the cool-down has passed; the older token is replaced.
+    let by_address = Identifier::Email(email("alice@example.com"));
+    assert_eq!(
+        mailed(&db, &by_address, 2, 1_000_000 + COOLDOWN),
+        MailedReset::Issued {
+            user: alice,
+            email: "alice@example.com".to_owned()
+        }
+    );
+    assert_eq!(db.password_reset_target(&hash(1), 1_000_001).unwrap(), None);
+    assert!(
+        db.password_reset_target(&hash(2), 1_000_001)
+            .unwrap()
+            .is_some()
+    );
+}
+
+#[test]
+fn a_reset_by_mail_is_audited_by_id_without_an_actor() {
+    let (_dir, db) = db();
+    let alice = created(register(&db, "alice", "alice@example.com", None));
+    let _issued = mailed(&db, &Identifier::Login(login("alice")), 1, 1_000_000);
+    let rows = actions(&db);
+    let last = rows.last().unwrap();
+    assert_eq!(
+        last,
+        &(
+            None,
+            "password.reset_requested".to_owned(),
+            "user".to_owned(),
+            alice.id.to_string()
+        )
+    );
+}
+
+#[test]
+fn the_cooldown_is_exact_and_covers_tokens_of_any_origin() {
+    let (_dir, db) = db();
+    let admin = db
+        .create_user("admin", UserKind::Person, Role::Admin, None, 1)
+        .unwrap();
+    let _alice = created(register(&db, "alice", "alice@example.com", None));
+    let who = Identifier::Login(login("alice"));
+    assert!(matches!(
+        mailed(&db, &who, 1, 1_000_000),
+        MailedReset::Issued { .. }
+    ));
+    for at in [1_000_000, 1_000_001, 1_000_000 + COOLDOWN - 1] {
+        assert_eq!(mailed(&db, &who, 2, at), MailedReset::Cooldown, "{at}");
+    }
+    // A refused request changed nothing: the first token still works, the second never existed.
+    assert!(
+        db.password_reset_target(&hash(1), 1_000_001)
+            .unwrap()
+            .is_some()
+    );
+    assert_eq!(db.password_reset_target(&hash(2), 1_000_001).unwrap(), None);
+    assert_eq!(
+        actions(&db)
+            .iter()
+            .filter(|row| row.1 == "password.reset_requested")
+            .count(),
+        1
+    );
+    assert!(matches!(
+        mailed(&db, &who, 3, 1_000_000 + COOLDOWN),
+        MailedReset::Issued { .. }
+    ));
+    // A link an admin issued counts like any other.
+    assert!(matches!(
+        db.issue_password_reset(
+            &login("alice"),
+            &hash(4),
+            Some(admin.id),
+            9_000_000,
+            5_000_000
+        )
+        .unwrap(),
+        ResetIssue::Issued(_)
+    ));
+    assert_eq!(mailed(&db, &who, 5, 5_000_000 + 1), MailedReset::Cooldown);
+}
+
+#[test]
+fn a_reset_by_mail_refuses_what_has_no_business_getting_one() {
+    let (_dir, db) = db();
+    let _admin = db
+        .create_user("admin", UserKind::Person, Role::Admin, None, 1)
+        .unwrap();
+    let _robot = db
+        .create_user("robot", UserKind::Service, Role::User, None, 1)
+        .unwrap();
+    let _plain = db
+        .create_user("plain", UserKind::Person, Role::User, None, 1)
+        .unwrap();
+    let _moderator = created(register(&db, "mod", "mod@example.com", None));
+    for (who, expected) in [
+        (Identifier::Login(login("nobody")), MailedReset::UnknownUser),
+        (
+            Identifier::Email(email("nobody@example.com")),
+            MailedReset::UnknownUser,
+        ),
+        (
+            Identifier::Login(login("robot")),
+            MailedReset::ServiceAccount,
+        ),
+        (Identifier::Login(login("admin")), MailedReset::AdminAccount),
+        (Identifier::Login(login("plain")), MailedReset::NoAddress),
+    ] {
+        assert_eq!(mailed(&db, &who, 9, 1_000_000), expected, "{who:?}");
+    }
+    // Nothing was stored or audited.
+    assert_eq!(db.password_reset_target(&hash(9), 1_000_001).unwrap(), None);
+    assert!(
+        !actions(&db)
+            .iter()
+            .any(|row| row.1 == "password.reset_requested")
+    );
+}
+
+#[test]
+fn an_admin_with_an_address_gets_no_mail_either() {
+    let (_dir, db) = db();
+    let admin = login("boss");
+    let address = email("boss@example.com");
+    let _created = db
+        .register(
+            &NewAccount {
+                login: &admin,
+                email: Some(&address),
+                role: Role::Admin,
+                password_hash: "phc",
+            },
+            None,
+            100,
+        )
+        .unwrap();
+    for who in [Identifier::Login(admin), Identifier::Email(address)] {
+        assert_eq!(mailed(&db, &who, 1, 1_000_000), MailedReset::AdminAccount);
+    }
+}

@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `deep-tests.yml` (sharded, report artifacts) runs the whole scope on demand until the survivors listed in #162 are closed. Equivalent
   mutants carry `// Stryker disable next-line <mutator>: <reason>`. The tests that bound their run time scale their limit under
   Stryker (`timeBudget`). (#180)
+- No surviving mutant in the Markdown tool and the subnet calculator (#162): the sanitiser's policy is asserted a second time (every allowed
+  tag and attribute, the removed ones, both sides of the link and picture patterns, Trusted Types, one purifier instance), the IPv6 reader
+  and writer, masks, subnet counts and the merge of ranges are tested at every boundary, and guards that no input could reach were removed
+  (`tests/worker-entry.ts` runs a tool's `worker.ts` as a worker). (#182)
 - Mutation testing of the Python CI helpers (#161, ADR 0007 addendum): job `mutation-python` in `ci.yml` (part of
   `build`; it never skips itself) and the nightly `deep-tests.yml` run [mutmut](https://github.com/boxed/mutmut) 3
   over every `scripts/ci/*.py`, and `scripts/ci/mutation_gate.py` fails on any mutant no test noticed (`mutmut run`

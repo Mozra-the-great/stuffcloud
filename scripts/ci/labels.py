@@ -101,7 +101,7 @@ def labels_for_issue_title(title: str, config: dict) -> set[str]:
         if re.match(re.escape(word) + r"(?![a-z0-9])", lowered):
             found.update(labels)
     found |= labels_for_title(rest, config.get("title_prefixes", {}),
-                              config.get("title_scopes", {}))
+                              config.get("title_scopes"))
     return found
 
 
@@ -126,7 +126,7 @@ def pr_labels(title: str, paths: list[str], config: dict,
               issue_labels: set[str] | None = None) -> set[str]:
     labels = labels_for_paths(paths, config["paths"])
     labels |= labels_for_title(title, config["title_prefixes"],
-                               config.get("title_scopes", {}))
+                               config.get("title_scopes"))
     if only_docs(paths):
         labels.add("type/docs")
     if issue_labels:
@@ -201,7 +201,7 @@ def plan_sync(existing: dict[str, dict], wanted: list[dict]) -> list[tuple]:
         current = lower.get(name.lower())
         if current is not None:
             cur = existing[current]
-            if (cur.get("color", "").lower() != color
+            if (cur["color"].lower() != color
                     or (cur.get("description") or "") != desc
                     or current != name):
                 actions.append(("update", current, name, color, desc))
@@ -298,7 +298,9 @@ def items(include_closed: bool) -> list[tuple[int, bool]]:
              "--jq", ".[] | [.number, (.pull_request != null)] | @tsv")
     result = []
     for line in out.splitlines():
-        number, is_pr = line.split("\t")
+        # Equivalent mutant: two fields without white space of their own, so splitting on any
+        # white space gives the same pair.
+        number, is_pr = line.split("\t")  # pragma: no mutate
         result.append((int(number), is_pr == "true"))
     return result
 

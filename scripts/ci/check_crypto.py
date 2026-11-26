@@ -88,15 +88,15 @@ ALLOWLIST: dict[tuple[str, str], Allowed] = {
 }
 
 WEAK_DEPENDENCIES = re.compile(
-    r"^\s*(?:md5|md-5|md4|sha1|sha-1|sha1_smol)\s*(?:=|\.)", re.IGNORECASE | re.MULTILINE
+    r"^[ \t]*(?:md5|md-5|md4|sha1|sha-1|sha1_smol)[ \t]*(?:=|\.)", re.IGNORECASE | re.MULTILINE
 )
 WEAK_DEPENDENCY_TABLE = re.compile(
-    r"^\s*\[[^\]]*dependencies\.(?:md5|md-5|md4|sha1|sha-1|sha1_smol)\s*\]", re.IGNORECASE | re.MULTILINE
+    r"^[ \t]*\[[^\]]*dependencies\.(?:md5|md-5|md4|sha1|sha-1|sha1_smol)\s*\]", re.IGNORECASE | re.MULTILINE
 )
 
 NOT_PRODUCT = re.compile(r"^(?:crates/[^/]+/(?:tests|benches|examples)/|fuzz/)|_tests\.rs$")
 CFG_TEST = re.compile(r"#\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]")
-ATTRIBUTE = re.compile(r"\s*#\s*!?\s*\[")
+ATTRIBUTE = re.compile(r"\s*#\s*!?\s*(\[)")
 
 
 def _matching(code: str, open_index: int, opening: str, closing: str) -> int:
@@ -120,7 +120,7 @@ def without_test_items(code: str) -> str:
         index = match.end()
         # Further attributes of the same item (`#[path = "..."]`, `#[expect(...)]`).
         while attribute := ATTRIBUTE.match(code, index):
-            index = _matching(code, attribute.end() - 1, "[", "]")
+            index = _matching(code, attribute.start(1), "[", "]")
         body = re.compile(r"[{;]").search(code, index)
         end = len(code) if body is None else (
             body.end() if body.group() == ";" else _matching(code, body.start(), "{", "}")
@@ -137,7 +137,7 @@ def hits(source: str) -> dict[str, list[int]]:
     code = without_test_items(scan(source).code)
     found: dict[str, list[int]] = {}
     for name, pattern in PATTERNS.items():
-        lines = [code.count("\n", 0, match.start()) + 1 for match in pattern.finditer(code)]
+        lines = [code[: match.start()].count("\n") + 1 for match in pattern.finditer(code)]
         if lines:
             found[name] = lines
     return found
@@ -167,7 +167,7 @@ def check_file(relative: str, source: str) -> list[str]:
 def check_manifest(relative: str, text: str) -> list[str]:
     """A weak hash crate as a dependency of any manifest."""
     lines = [
-        text.count("\n", 0, match.start()) + 1
+        text[: match.start()].count("\n") + 1
         for pattern in (WEAK_DEPENDENCIES, WEAK_DEPENDENCY_TABLE)
         for match in pattern.finditer(text)
     ]

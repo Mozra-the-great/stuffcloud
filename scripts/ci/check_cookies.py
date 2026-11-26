@@ -73,6 +73,7 @@ SKIPPED_DIRECTORIES = frozenset(
         ".svelte-kit",
         ".vite",
         ".pnpm-store",
+        "mutants",  # the mutmut working copy at the repository root (pyproject.toml)
         "corpus",
         "artifacts",
         "playwright-report",
@@ -135,6 +136,8 @@ WEB_DOMAIN_ATTRIBUTE = re.compile(r"[;'\"`]\s*domain\s*=", re.IGNORECASE)
 JS_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
 JS_LINE_COMMENT = re.compile(r"(?m)(?:^|(?<=[\s;,(){}\[\]]))//.*$")
 HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+# `path:line: message`, what every finding starts with.
+FINDING_LINE = re.compile(r"[^:]*:([0-9]+):")
 
 
 @dataclass(frozen=True)
@@ -212,7 +215,7 @@ def _raw_string(source: str, r_index: int) -> tuple[int, int, int] | None:
     body = index + 1
     closing = '"' + "#" * hashes
     body_end = source.find(closing, body)
-    if body_end < 0:
+    if body_end == -1:
         return len(source), body, len(source)
     return body_end + len(closing), body, body_end
 
@@ -242,13 +245,14 @@ def scan(source: str) -> Scanned:
         pair = source[index : index + 2]
         if pair == "//":
             end = source.find("\n", index)
-            end = length if end < 0 else end
+            end = length if end == -1 else end
             code.append(blank(source[index:end]))
             index = end
         elif pair == "/*":
             depth = 0
             end = index
-            while end < length:
+            # Equivalent mutant: `end <= length` only takes one more step past the end of an unterminated comment.
+            while end < length:  # pragma: no mutate
                 if source.startswith("/*", end):
                     depth += 1
                     end += 2
@@ -261,13 +265,13 @@ def scan(source: str) -> Scanned:
                     end += 1
             code.append(blank(source[index:end]))
             index = end
-        elif char in "rb" and not _ident_before(source, index):
+        elif char in {"r", "b"} and not _ident_before(source, index):
             r_index = index + 1 if source.startswith("br", index) else index
             raw = _raw_string(source, r_index) if source[r_index] == "r" else None
             if raw is not None:
                 end, body, body_end = raw
                 literals.append(
-                    Literal(source.count("\n", 0, index) + 1, source[body:body_end], index, True)
+                    Literal(_line_of(source, index), source[body:body_end], index, True)
                 )
                 code.append(blank(source[index:end]))
                 index = end
@@ -283,16 +287,15 @@ def scan(source: str) -> Scanned:
             while end < length and source[end] != '"':
                 end += 2 if source[end] == "\\" else 1
             end = min(end + 1, length)
-            literals.append(
-                Literal(source.count("\n", 0, index) + 1, source[index + 1 : end - 1], index)
-            )
+            literals.append(Literal(_line_of(source, index), source[index + 1 : end - 1], index))
             code.append(blank(source[index:end]))
             index = end
         elif char == "'":
             # A character literal ('x', '\n', '\u{1F600}') or a lifetime ('a).
             if index + 1 < length and source[index + 1] == "\\":
-                end = source.find("'", index + 2)
-                end = length if end < 0 else end + 1
+                # The escaped character is at index + 2 (it can be a quote: '\''), the closing quote follows it.
+                end = source.find("'", index + 3)
+                end = length if end == -1 else end + 1
                 code.append(blank(source[index:end]))
                 index = end
             elif index + 2 < length and source[index + 2] == "'":
@@ -308,7 +311,7 @@ def scan(source: str) -> Scanned:
 
 
 def _line_of(text: str, offset: int) -> int:
-    return text.count("\n", 0, offset) + 1
+    return text[:offset].count("\n") + 1
 
 
 def _concatenated(scanned: Scanned) -> list[Literal]:
@@ -378,8 +381,8 @@ def check_file(relative: str, source: str) -> list[str]:
 
 def _finding_order(finding: str) -> tuple[int, str]:
     """Findings sorted by line number, then text, for a stable output."""
-    parts = finding.split(":", 2)
-    return (int(parts[1]) if len(parts) > 2 and parts[1].isdigit() else 0, finding)
+    match = FINDING_LINE.match(finding)
+    return (int(match.group(1)) if match else 0, finding)
 
 
 def check_manifest(relative: str, text: str) -> list[str]:

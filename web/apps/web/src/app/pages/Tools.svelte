@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { TabLinks, Tile, TileGrid, type TabLinkItem } from '@mozra-the-great/kern';
+  import { Mascot, TabLinks, Tile, TileGrid, type TabLinkItem } from '@mozra-the-great/kern';
   import { i18n, t } from '../../i18n/index.ts';
-  import Mascot from '../../ui/Mascot.svelte';
   import { getTools } from '../context.ts';
   import type { RouteProps } from '../router/router.svelte.ts';
   import Sticker from '../Sticker.svelte';
@@ -14,6 +13,7 @@
     usedCategories,
   } from '../tools.ts';
   import './page.css';
+  import { MASCOT_URLS } from '../mascots.ts';
 
   let { query }: RouteProps = $props();
 
@@ -22,7 +22,7 @@
   const requested = $derived(query.get('category') ?? '');
   const category = $derived(isToolCategory(requested) ? requested : undefined);
   const visible = $derived(toolsInCategory(tools, category));
-  const links = $derived<TabLinkItem[]>([
+  const links = $derived<readonly TabLinkItem[]>([
     { href: TOOLS_PATH, label: t('tools.all'), current: category === undefined },
     ...usedCategories(tools).map((name) => ({
       href: `${TOOLS_PATH}?category=${name}`,
@@ -39,7 +39,7 @@
   {/if}
   {#if visible.length === 0}
     <div class="empty">
-      <Mascot name="stuffy" scale={8} compactScale={6} />
+      <Mascot name="stuffy" src={MASCOT_URLS.stuffy} scale={8} compactScale={6} />
       <p class="note">{t('tools.empty')}</p>
     </div>
   {:else}

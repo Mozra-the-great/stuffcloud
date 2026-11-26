@@ -1,13 +1,11 @@
 <script lang="ts">
-  import { Progress } from '@mozra-the-great/kern';
+  import { Button, FileDrop, Progress } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { i18n, t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
-  import FileDropzone from '../../ui/FileDropzone.svelte';
   import Input from '../../ui/Input.svelte';
   import Select from '../../ui/Select.svelte';
   import {
@@ -194,8 +192,11 @@
           onchange={announceText}
         />
       {:else}
-        <FileDropzone
-          hint={t('hash.dropHint')}
+        <FileDrop
+          mode="dispatch"
+          rejectMessages={false}
+          statusLabel=""
+          dropLabel={t('hash.dropHint')}
           buttonLabel={t('hash.choose')}
           multiple={false}
           disabled={working}
@@ -223,7 +224,7 @@
             })}
           />
           <div>
-            <Button variant="ghost" size="compact" onclick={cancel}>{t('hash.cancel')}</Button>
+            <Button variant="secondary" size="sm" onclick={cancel}>{t('hash.cancel')}</Button>
           </div>
         {/if}
       {/if}

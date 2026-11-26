@@ -9,7 +9,7 @@ import { i18n } from '../../src/i18n/index.ts';
 import manifest from '../../src/tools/mac/manifest.ts';
 import type * as MacTask from '../../src/tools/mac/task.ts';
 import { runTask, type Input } from '../../src/tools/mac/task.ts';
-import { toaster } from '../../src/ui/toast.svelte.ts';
+import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
 import { SAMPLE_MA_L, SAMPLE_MA_M, SAMPLE_MA_S, csvFile } from './mac-fixtures.ts';
 
@@ -75,7 +75,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  toaster.clear();
+  toast.clear();
   vi.unstubAllGlobals();
   i18n.setLocale('en');
 });

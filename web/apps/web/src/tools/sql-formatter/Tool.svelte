@@ -1,11 +1,11 @@
 <script lang="ts">
+  import { Button } from '@mozra-the-great/kern';
   import { t, type MessageKey } from '../../i18n/index.ts';
   import { saveText } from '../../app/download.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import Select from '../../ui/Select.svelte';
   import { formatSql } from './layout.ts';
   import { DIALECTS, isDialect, type Dialect, type KeywordCase } from './tokens.ts';
@@ -127,15 +127,15 @@
         <div class="row">
           <CopyButton text={output} label={t('sql.copy')} value={t('sql.copied')} />
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             onclick={() => {
               saveText('formatted.sql', output, 'application/sql');
             }}>{t('sql.download')}</Button
           >
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             onclick={() => {
               text = output;
             }}>{t('sql.useAsInput')}</Button

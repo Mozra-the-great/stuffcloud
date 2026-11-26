@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Button } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import { saveText } from '../../app/download.ts';
@@ -6,7 +7,6 @@
   import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import Checkbox from '../../ui/Checkbox.svelte';
   import Input from '../../ui/Input.svelte';
   import Select from '../../ui/Select.svelte';
@@ -203,7 +203,7 @@
         />
       </div>
       <div>
-        <Button variant="ghost" size="compact" onclick={swap}>{t('convert.swap')}</Button>
+        <Button variant="secondary" size="sm" onclick={swap}>{t('convert.swap')}</Button>
       </div>
       <TextArea
         label={t('convert.input')}
@@ -259,7 +259,7 @@
         />
         <div class="row">
           <CopyButton text={result} label={t('convert.copy')} value={t('convert.copied')} />
-          <Button variant="ghost" size="compact" onclick={download}>{t('convert.download')}</Button>
+          <Button variant="secondary" size="sm" onclick={download}>{t('convert.download')}</Button>
         </div>
       </section>
     {/if}

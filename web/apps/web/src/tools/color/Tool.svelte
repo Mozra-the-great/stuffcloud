@@ -1,10 +1,9 @@
 <script lang="ts">
+  import { Button, FileDrop } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
-  import FileDropzone from '../../ui/FileDropzone.svelte';
   import Input from '../../ui/Input.svelte';
   import { ColorEntry } from './color-entry.svelte.ts';
   import ColorField from './ColorField.svelte';
@@ -215,20 +214,20 @@
       </div>
       <div class="actions">
         <Button
-          variant="ghost"
-          size="compact"
+          variant="secondary"
+          size="sm"
           onclick={() => {
             useAs(text);
           }}>{t('color.contrast.useText')}</Button
         >
         <Button
-          variant="ghost"
-          size="compact"
+          variant="secondary"
+          size="sm"
           onclick={() => {
             useAs(background);
           }}>{t('color.contrast.useBackground')}</Button
         >
-        <Button variant="ghost" size="compact" onclick={swap}>{t('color.contrast.swap')}</Button>
+        <Button variant="secondary" size="sm" onclick={swap}>{t('color.contrast.swap')}</Button>
       </div>
       <!--
         A picture of the two colours, not text of the page: the sample is drawn as generated content
@@ -267,8 +266,11 @@
 
     <section class="block">
       <h2 class="heading">{t('color.palette.title')}</h2>
-      <FileDropzone
-        hint={t('color.palette.hint')}
+      <FileDrop
+        mode="dispatch"
+        rejectMessages={false}
+        statusLabel=""
+        dropLabel={t('color.palette.hint')}
         buttonLabel={t('color.palette.choose')}
         accept="image/*"
         multiple={false}
@@ -301,8 +303,8 @@
                 })}</span
               >
               <Button
-                variant="ghost"
-                size="compact"
+                variant="secondary"
+                size="sm"
                 aria-label={t('color.palette.use', { hex: formatHex(color.rgb) })}
                 onclick={() => {
                   useFromPalette(color);

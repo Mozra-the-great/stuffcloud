@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Progress } from '@mozra-the-great/kern';
+  import { Button, FileDrop, Progress } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import { saveBlob, saveText } from '../../app/download.ts';
@@ -7,9 +7,7 @@
   import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import Checkbox from '../../ui/Checkbox.svelte';
-  import FileDropzone from '../../ui/FileDropzone.svelte';
   import Input from '../../ui/Input.svelte';
   import Select from '../../ui/Select.svelte';
   import {
@@ -323,8 +321,11 @@
           spellcheck={false}
         />
       {:else}
-        <FileDropzone
-          hint={direction === 'encode' ? t('base64.dropEncode') : t('base64.dropDecode')}
+        <FileDrop
+          mode="dispatch"
+          rejectMessages={false}
+          statusLabel=""
+          dropLabel={direction === 'encode' ? t('base64.dropEncode') : t('base64.dropDecode')}
           buttonLabel={t('base64.choose')}
           multiple={false}
           disabled={working}
@@ -342,7 +343,7 @@
             valueText={`${formatSize(done)} / ${formatSize(total)}`}
           />
           <div>
-            <Button variant="ghost" size="compact" onclick={cancel}>{t('base64.cancel')}</Button>
+            <Button variant="secondary" size="sm" onclick={cancel}>{t('base64.cancel')}</Button>
           </div>
         {/if}
       {/if}
@@ -395,8 +396,8 @@
         <div class="row">
           <CopyButton text={encoded ?? ''} label={t('base64.copy')} value={t('base64.copied')} />
           <Button
-            variant="ghost"
-            size="compact"
+            variant="secondary"
+            size="sm"
             onclick={() => {
               saveText('encoded.txt', encoded ?? '');
             }}>{t('base64.downloadText')}</Button
@@ -431,7 +432,7 @@
           {#if decodedAsText !== undefined}
             <CopyButton text={decodedAsText} label={t('base64.copy')} value={t('base64.copied')} />
           {/if}
-          <Button variant="ghost" size="compact" onclick={downloadDecoded}
+          <Button variant="secondary" size="sm" onclick={downloadDecoded}
             >{t('base64.downloadFile')}</Button
           >
         </div>

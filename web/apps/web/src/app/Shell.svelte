@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { Toaster } from '@mozra-the-great/kern';
   import { t } from '../i18n/index.ts';
-  import ToastRegion from '../ui/ToastRegion.svelte';
   import { Announcer } from './announcer.svelte.ts';
   import { provideTools } from './context.ts';
   import Footer from './Footer.svelte';
@@ -69,7 +69,7 @@
     router.navigate(href);
   }}
 />
-<ToastRegion label={t('toast.region')} dismissLabel={t('toast.dismiss')} />
+<Toaster position="bottom-left" label={t('toast.region')} dismissLabel={t('toast.dismiss')} />
 <LiveAnnouncer {announcer} />
 
 <style>

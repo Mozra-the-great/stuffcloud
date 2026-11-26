@@ -1,11 +1,11 @@
 <script lang="ts">
+  import { Button } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
   import { saveText } from '../../app/download.ts';
   import TextArea from '../../app/TextArea.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
-  import Button from '../../ui/Button.svelte';
   import Checkbox from '../../ui/Checkbox.svelte';
   import Input from '../../ui/Input.svelte';
   import Select from '../../ui/Select.svelte';
@@ -114,7 +114,7 @@
       />
       <div class="actions">
         <CopyButton {text} label={t('uuid.copy')} value={t('uuid.copiedValue')} />
-        <Button variant="ghost" size="compact" disabled={text === ''} onclick={download}>
+        <Button variant="secondary" size="sm" disabled={text === ''} onclick={download}>
           {t('uuid.download')}
         </Button>
       </div>

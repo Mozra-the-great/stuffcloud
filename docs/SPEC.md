@@ -712,6 +712,8 @@ On every PR and push (`ci.yml`):
 | `docs` | rustdoc without warnings or broken links |
 | `coverage` | `cargo-llvm-cov`, fails below 95 % of lines and of regions |
 | `mutants` | `cargo-mutants` on the lines the PR changes (all mutants on `main`); a surviving mutant fails |
+| `mutation-python` | `mutmut` over every `scripts/ci/*.py` (when a PR touches them, and on `main`), with line and branch coverage of the helpers first; `scripts/ci/mutation_gate.py` fails on a surviving mutant (ADR 0007, addendum) |
+| `web-mutants` | StrykerJS over the scoped `.ts` files of `web/apps/web` (`src/tools`, `src/pdf`) and `web/packages/tools` that the PR changes, with `--incremental`; any surviving mutant fails; never skips itself (ADR 0007, addendum) |
 | `fuzz` | every cargo-fuzz target for 2 minutes with AddressSanitizer, starting from the committed seeds and the nightly corpus |
 | `e2e` | Playwright in Chromium and Firefox against the built app: app shell, tool registry, worker pool in a real browser, and the privacy test (no request carries file content, no request leaves the own origin or is anything but a `GET` of an own asset); no retries; axe joins with T-05 |
 | `codeql` | CodeQL `security-extended` for Rust, Python and the workflows (JavaScript/TypeScript with `web/`); fails on any result, also weekly on `main` |
@@ -720,7 +722,7 @@ On every PR and push (`ci.yml`):
 
 Nightly and on demand (`deep-tests.yml`, not required, failures handled like a red
 PR): fuzzing for 45 minutes per target that grows and minimises the shared
-corpus, the full mutation run, Miri over the whole test suite, property tests with
+corpus, the full mutation run (Rust and the Python CI helpers; StrykerJS over the whole `web/` scope on demand until its survivors are closed), Miri over the whole test suite, property tests with
 500 000 cases, a fresh advisory check, and tests plus lints on the beta toolchain.
 
 Test layers and what each must cover:

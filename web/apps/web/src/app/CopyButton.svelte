@@ -1,7 +1,6 @@
 <script lang="ts">
+  import { Button, toast } from '@mozra-the-great/kern';
   import { t } from '../i18n/index.ts';
-  import Button from '../ui/Button.svelte';
-  import { toaster } from '../ui/toast.svelte.ts';
   import { copyText } from './clipboard.ts';
 
   interface Props {
@@ -17,16 +16,16 @@
 
   async function copy(): Promise<void> {
     if (await copyText(text)) {
-      toaster.push(t('tool.copied', { value: value ?? text }), { kind: 'success' });
+      toast.ok(t('tool.copied', { value: value ?? text }));
     } else {
-      toaster.push(t('tool.copyFailed'), { kind: 'warn' });
+      toast.warn(t('tool.copyFailed'));
     }
   }
 </script>
 
 <!--
   Candidate for kern (#121): a copy button whose result is announced (kern issue #72; #46 covers the
-  one inside a code block). Here it reports through the app's toast region (role="status"), once
+  one inside a code block). Here it reports through the app's toast region (kern's Toaster) (role="status"), once
   per click, for a failure as well as a success.
 -->
-<Button variant="ghost" size="compact" aria-label={label} onclick={copy}>{t('tool.copy')}</Button>
+<Button variant="secondary" size="sm" aria-label={label} onclick={copy}>{t('tool.copy')}</Button>

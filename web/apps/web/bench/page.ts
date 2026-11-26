@@ -4,7 +4,8 @@
  * DevTools protocol. Opening the page with `?variant=css-transform&count=1` runs one variant by
  * hand and prints the result.
  */
-import { MASCOTS } from '../src/ui/mascots.ts';
+import { MASCOT_SOURCES } from '@mozra-the-great/kern';
+import { MASCOT_URLS } from '../src/app/mascots.ts';
 import {
   runBench,
   startBench,
@@ -85,10 +86,17 @@ function stage(): HTMLElement {
   return host;
 }
 
+/** The main mascot: kern's pixel grid, the app's art file. */
+const STUFFY = {
+  url: MASCOT_URLS.stuffy,
+  cols: MASCOT_SOURCES.stuffy.cols,
+  rows: MASCOT_SOURCES.stuffy.rows,
+} as const;
+
 let pending: RunningBench | null = null;
 
 async function start(options: RunOptions): Promise<void> {
-  pending = await startBench(options, MASCOTS.stuffy, stage(), env);
+  pending = await startBench(options, STUFFY, stage(), env);
 }
 
 async function finish(): Promise<RunResult> {
@@ -101,7 +109,7 @@ async function finish(): Promise<RunResult> {
 }
 
 async function run(options: RunOptions): Promise<RunResult> {
-  return runBench(options, MASCOTS.stuffy, stage(), env);
+  return runBench(options, STUFFY, stage(), env);
 }
 
 declare global {

@@ -86,6 +86,11 @@ function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/** `Number.isInteger` as a type guard; false for everything that is not a number. */
+function isWholeNumber(value: unknown): value is number {
+  return Number.isInteger(value);
+}
+
 function budgetIssues(value: unknown): ManifestIssue[] {
   const issue = (path: string, message: string): ManifestIssue => ({
     path,
@@ -104,7 +109,7 @@ function budgetIssues(value: unknown): ManifestIssue[] {
   for (const field of ['scriptKb', 'assetsKb'] as const) {
     const limit = BUDGET_LIMITS[field];
     const entry = Object.hasOwn(value, field) ? value[field] : undefined;
-    if (typeof entry !== 'number' || !Number.isInteger(entry) || entry < 0 || entry > limit) {
+    if (!isWholeNumber(entry) || entry < 0 || entry > limit) {
       issues.push(
         issue(`budget.${field}`, `must be a whole number of KiB from 0 to ${String(limit)}`),
       );
@@ -127,7 +132,7 @@ function requiresIssues(value: unknown): ManifestIssue[] {
   const seen = new Set<string>();
   (value as readonly unknown[]).forEach((entry, index) => {
     const path = `requires[${String(index)}]`;
-    if (typeof entry !== 'string' || !isCapability(entry)) {
+    if (!isCapability(entry)) {
       issues.push({
         path,
         code: 'unknown-capability',
@@ -193,7 +198,7 @@ export function parseToolManifest<K extends string = string, M = unknown>(
   }
 
   const category = field('category');
-  if (present('category') && (typeof category !== 'string' || !isToolCategory(category))) {
+  if (present('category') && !isToolCategory(category)) {
     issues.push({
       path: 'category',
       code: 'invalid-category',
@@ -221,7 +226,7 @@ export function parseToolManifest<K extends string = string, M = unknown>(
   }
 
   const sticker = field('sticker');
-  if (present('sticker') && (typeof sticker !== 'string' || !isStickerName(sticker))) {
+  if (present('sticker') && !isStickerName(sticker)) {
     issues.push({
       path: 'sticker',
       code: 'invalid-sticker',

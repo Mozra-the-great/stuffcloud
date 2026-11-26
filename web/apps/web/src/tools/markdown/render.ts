@@ -106,13 +106,20 @@ function sanitiser(): ReturnType<typeof DOMPurify> {
     const name = node.nodeName.toLowerCase();
     if (name === 'a') {
       // DOMPurify lets a relative or fragment link through; here only a link to the internet or to a mail address stays.
-      if (node.hasAttribute('href') && !LINK_PROTOCOLS.test(node.getAttribute('href') ?? '')) {
+      const address = node.getAttribute('href');
+      // Stryker disable next-line ConditionalExpression,BlockStatement: without `href` the test below reads the text "null", which is no link either, and removing an attribute that is not there changes nothing
+      if (address === null) {
+        return;
+      }
+      if (!LINK_PROTOCOLS.test(address)) {
         node.removeAttribute('href');
       }
     } else if (name === 'img') {
-      const source = node.getAttribute('src') ?? '';
-      const inline = source.startsWith('data:');
-      if (!(inline ? INLINE_PICTURE.test(source) : LINK_PROTOCOLS.test(source))) {
+      const source = node.getAttribute('src');
+      if (
+        source !== null &&
+        !(source.startsWith('data:') ? INLINE_PICTURE.test(source) : LINK_PROTOCOLS.test(source))
+      ) {
         node.removeAttribute('src');
       }
     } else if (name === 'input') {
@@ -120,7 +127,7 @@ function sanitiser(): ReturnType<typeof DOMPurify> {
       if (node.getAttribute('type')?.toLowerCase() === 'checkbox') {
         node.setAttribute('disabled', '');
       } else {
-        node.parentNode?.removeChild(node);
+        node.remove();
       }
     }
   });

@@ -13,9 +13,12 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
+    "test:mutation": "stryker run",
     "build": "tsc -p tsconfig.build.json"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/vitest-runner": "^10.1.1",
     "@vitest/coverage-v8": "^5.1.0",
     "vitest": "^5.1.0"
   }

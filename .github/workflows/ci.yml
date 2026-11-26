@@ -590,6 +590,194 @@ jobs:
       - name: cargo-deny (fuzz workspace)
         run: cargo deny --locked --manifest-path fuzz/Cargo.toml --config deny.toml check
 
+  # ── Python CI helpers: mutation testing (#161, ADR 0007) ───────────────────
+  # Like `mutants` for the Rust code: a surviving mutant is a missing test. mutmut (pinned with
+  # hashes in scripts/ci/requirements-mutmut.txt, config in pyproject.toml) mutates every
+  # function of scripts/ci/*.py and reruns the tests that call it; scripts/ci/mutation_gate.py
+  # fails the job on any mutant that no test noticed (`mutmut run` itself always exits 0). The
+  # whole directory is mutated, not only the changed files: a changed test or script can let a
+  # mutant of another one live, and the full run takes minutes (CONTRIBUTING.md has the number).
+  # The job itself never skips (the `build` aggregate counts a skipped job as a failure): on a PR
+  # that touches neither scripts/ci/ nor pyproject.toml its steps pass with nothing to do; the
+  # nightly run in deep-tests.yml and every push to main run everything. dev_stack_smoke.py is
+  # not mutated (it drives a running Docker stack); the Docker calls of
+  # check_container_hardening.py are replaced by a recorder in its tests, so it is.
+  mutation-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Does this change touch the helpers?
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "origin/${BASE_REF}...HEAD" | grep -Eq '^(scripts/ci/|pyproject\.toml$)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No change in scripts/ci/ or pyproject.toml: nothing to mutate."
+          fi
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: ${{ steps.scope.outputs.run == 'true' }}
+        with:
+          python-version: '3.12'
+      - name: Install mutmut (hash-locked)
+        if: ${{ steps.scope.outputs.run == 'true' }}
+        run: python -m pip install --require-hashes --no-deps -r scripts/ci/requirements-mutmut.txt
+      # coverage.py (installed with mutmut, configured in pyproject.toml): line and branch coverage
+      # of the helpers, so untested branches show before the mutation run starts. The floor in
+      # pyproject.toml is what the tests reach today.
+      - name: Coverage of the helpers
+        if: ${{ steps.scope.outputs.run == 'true' }}
+        run: |
+          set -euo pipefail
+          python -m coverage run -m unittest discover -s scripts/ci -p "test_*.py"
+          python -m coverage report
+      - name: Mutation run
+        if: ${{ steps.scope.outputs.run == 'true' }}
+        run: mutmut run
+      - name: Survivors
+        if: ${{ steps.scope.outputs.run == 'true' }}
+        run: |
+          set -euo pipefail
+          mutmut export-cicd-stats
+          mutmut results | tee mutants/results.txt
+          grep -E ': (survived|no tests|suspicious)$' mutants/results.txt | sed -E 's/^ +//; s/: [a-z ]+$//' > mutants/survivors.txt || true
+          while read -r name; do
+            mutmut show "$name"
+          done < mutants/survivors.txt | tee mutants/survivors-diff.txt
+      - name: Gate
+        if: ${{ steps.scope.outputs.run == 'true' }}
+        run: python3 scripts/ci/mutation_gate.py
+      - name: Upload mutmut report
+        if: ${{ always() && steps.scope.outputs.run == 'true' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutmut-report
+          path: |
+            mutants/mutmut-cicd-stats.json
+            mutants/results.txt
+            mutants/survivors.txt
+            mutants/survivors-diff.txt
+            mutants/scripts/ci/*.meta
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ── Frontend (web/): mutation testing of the TypeScript logic (#162, ADR 0007) ─────────────
+  # Like `mutants` for the Rust code: a surviving mutant is a missing test. StrykerJS mutates the
+  # scoped .ts files of this change (web/apps/web/src/tools and src/pdf, web/packages/tools/src;
+  # scope and exclusions with their reasons in web/stryker.shared.mjs and the stryker.config.mjs
+  # of each package) and reruns only the Vitest tests that cover the mutated line;
+  # `thresholds.break: 100` fails the job on any survivor, so a file a PR touches must be clean.
+  # `--incremental` reuses the results of an earlier run (cache `web-stryker-incremental-*`, saved
+  # on pushes to main) for mutants whose code and tests did not change. The job never skips itself
+  # (the `build` aggregate counts a skipped job as a failure): a change without a scoped file runs
+  # its steps and passes with nothing to do. The full run of every file is the manual and, once the
+  # last survivor is gone, nightly job `web-mutants-full` in deep-tests.yml.
+  web-mutants:
+    name: web-mutants (${{ matrix.package }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: web
+    env:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [apps/web, packages/tools]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: web/.nvmrc
+          package-manager-cache: false
+      - name: Enable pnpm (corepack, version from packageManager)
+        run: corepack enable
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('web/pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+      # The files this change touches, relative to web/; the Stryker config keeps those in scope.
+      # A diff that cannot be computed fails the job instead of passing it with nothing to do.
+      - name: Which files does this change touch?
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          : > "$RUNNER_TEMP/changed.txt"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            git diff --name-only --relative "origin/${BASE_REF}...HEAD" -- . > "$RUNNER_TEMP/changed.txt"
+          elif [ "$EVENT_NAME" = "push" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            git diff --name-only --relative "${BEFORE}...HEAD" -- . > "$RUNNER_TEMP/changed.txt"
+          fi
+          cat "$RUNNER_TEMP/changed.txt"
+      - name: How many scoped files are that?
+        id: scope
+        working-directory: web/${{ matrix.package }}
+        env:
+          STRYKER_CHANGED_FILES_FILE: ${{ runner.temp }}/changed.txt
+          PACKAGE: ${{ matrix.package }}
+        run: |
+          set -euo pipefail
+          files="$(node --input-type=module -e "const { default: config } = await import('./stryker.config.mjs'); console.log(config.mutate.length);")"
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+          if [ "$files" = "0" ]; then
+            echo "No scoped file of $PACKAGE changed: nothing to mutate."
+          fi
+      - name: Restore the incremental report of main
+        if: ${{ steps.scope.outputs.files != '0' }}
+        id: incremental
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: web/${{ matrix.package }}/reports/mutation/stryker-incremental.json
+          key: web-stryker-incremental-${{ matrix.package }}-${{ github.sha }}
+          restore-keys: web-stryker-incremental-${{ matrix.package }}-
+      - name: Mutation run (changed files)
+        if: ${{ steps.scope.outputs.files != '0' }}
+        working-directory: web/${{ matrix.package }}
+        env:
+          STRYKER_CHANGED_FILES_FILE: ${{ runner.temp }}/changed.txt
+        run: pnpm exec stryker run --incremental
+      - name: Save the incremental report
+        if: ${{ github.event_name == 'push' && steps.scope.outputs.files != '0' && !cancelled() }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: web/${{ matrix.package }}/reports/mutation/stryker-incremental.json
+          key: web-stryker-incremental-${{ matrix.package }}-${{ github.sha }}
+      - name: Upload the mutation report
+        if: ${{ always() && steps.scope.outputs.files != '0' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stryker-report-${{ strategy.job-index }}
+          path: |
+            web/${{ matrix.package }}/reports/mutation/mutation.html
+            web/${{ matrix.package }}/reports/mutation/mutation.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+
   # ── CodeQL (security-extended, fails on any finding) ───────────────────────
   # Reusable workflow, so the weekly scheduled run and this one stay identical.
   codeql:
@@ -604,7 +792,7 @@ jobs:
   # ── Required check: everything above passed ────────────────────────────────
   build:
     if: ${{ always() }}
-    needs: [repo-checks, fmt, clippy, test, docs, coverage, mutants, fuzz, web, e2e, openapi, licenses, dev-stack, supply-chain, codeql]
+    needs: [repo-checks, fmt, clippy, test, docs, coverage, mutants, mutation-python, web-mutants, fuzz, web, e2e, openapi, licenses, dev-stack, supply-chain, codeql]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

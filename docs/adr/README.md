@@ -15,7 +15,7 @@ stuffcloud is, an ADR says *why* a core choice was made and what it costs.
 | [0004](0004-client-side-tools.md) | Client-side-first tool execution and asset loading | Accepted | 2026-11-05 |
 | [0005](0005-auth-model.md) | Auth model: local accounts, passkeys, TOTP and OIDC | Partly superseded by ADR 0009 (sessions and CSRF, authorisation, local accounts, A-03 hardening: addenda 2026-11-19) | 2026-11-05 |
 | [0006](0006-edge-and-core.md) | Public surface: the minimal `edge` process and the shared `core` crate | Accepted | 2026-11-14 |
-| [0007](0007-test-strategy.md) | Test strategy: err on the side of too many tests | Accepted | 2026-11-14 |
+| [0007](0007-test-strategy.md) | Test strategy: err on the side of too many tests | Accepted (Python CI helpers and the TypeScript logic of web/ under the mutation rule: addenda 2026-11-26) | 2026-11-14 |
 | [0008](0008-pixel-art-animation-runtime.md) | Pixel-art animation runtime: CSS transform keyframes with `steps()` | Accepted | 2026-11-16 |
 | [0009](0009-zone-model-and-shared-domain-isolation.md) | Zone model: per-site visibility, per-zone policy, app on a shared domain | Accepted (visibility of anonymous and signed-in sites: addendum 2026-11-19) | 2026-11-16 |
 | [0010](0010-api-first-and-configuration-as-code.md) | API-first and configuration as code | Accepted (write-only secrets: addendum 2026-11-19) | 2026-11-16 |

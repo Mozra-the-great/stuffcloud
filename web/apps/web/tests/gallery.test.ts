@@ -4,11 +4,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 import Gallery from '../src/gallery/Gallery.svelte';
 import { GALLERY_COLOURS, GALLERY_FONTS } from '../src/gallery/swatches.ts';
 import { mountApp } from '../src/mount-app.ts';
-import { toaster } from '../src/ui/toast.svelte.ts';
+import { toast } from '@mozra-the-great/kern';
 import { dataTransferInit, readAppFile, readCustomProperties } from './helpers.ts';
 
 afterEach(() => {
-  toaster.clear();
+  toast.clear();
 });
 
 describe('component gallery', () => {
@@ -38,7 +38,7 @@ describe('component gallery', () => {
     render(Gallery);
     // button, link button
     expect(screen.getByRole('button', { name: 'Primary' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Link button' }).className).toContain('sc-btn');
+    expect(screen.getByRole('link', { name: 'Link button' }).className).toContain('k-button');
     // input, select, checkbox
     expect(screen.getByLabelText('Name')).toBeTruthy();
     expect(screen.getByLabelText('Expires').tagName).toBe('SELECT');
@@ -94,7 +94,11 @@ describe('component gallery', () => {
         expect(name, `${role} without a name: ${element.outerHTML}`).not.toBe('');
       }
     }
-    for (const field of document.querySelectorAll('input:not([hidden]), select')) {
+    // kern's FileDrop keeps its native file input out of the tab order and the accessibility tree
+    // (aria-hidden): its visible button is the control, named above.
+    for (const field of document.querySelectorAll(
+      'input:not([hidden]):not([aria-hidden="true"]), select',
+    )) {
       expect(
         (field as HTMLInputElement).labels?.length,
         `field without a label: ${field.outerHTML}`,
@@ -152,7 +156,7 @@ describe('component gallery', () => {
       zone,
       dataTransferInit([new File(['x'], 'a.pdf'), new File(['y'], 'b.pdf')]),
     );
-    expect(zone.parentElement?.querySelector('p')?.textContent).toBe('a.pdf, b.pdf');
+    expect(document.querySelector('p[aria-live="polite"]')?.textContent).toBe('a.pdf, b.pdf');
   });
 
   it('loads no external resource', () => {

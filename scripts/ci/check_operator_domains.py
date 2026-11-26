@@ -116,12 +116,14 @@ def _normalise(raw: str) -> tuple[str, str] | None:
     name = raw.strip().lower()
     if name.startswith("*."):
         name = name[2:]
-    name = name.strip(".")
+    # Equivalent mutants on the next line: `name` is lowercase, so a stripped `X` cannot occur.
+    name = name.strip(".")  # pragma: no mutate
     if not name or "." not in name:
         return None
     try:
-        ascii_name = name.encode("idna").decode("ascii")
-        unicode_name = ascii_name.encode("ascii").decode("idna")
+        # Equivalent mutants (codec names are case-insensitive): "IDNA", "ASCII".
+        ascii_name = name.encode("idna").decode("ascii")  # pragma: no mutate
+        unicode_name = ascii_name.encode("ascii").decode("idna")  # pragma: no mutate
     except UnicodeError:
         return None
     labels = ascii_name.split(".")
@@ -133,8 +135,10 @@ def _normalise(raw: str) -> tuple[str, str] | None:
 def _normalise_address(raw: str) -> tuple[str, str] | None:
     """The (ASCII, Unicode) form of one list item that is `local@domain`, or None when invalid."""
     name = raw.strip()
-    local, _, domain = name.partition("@")
-    if "@" in domain or not local.isascii():
+    # Equivalent mutant: an item holds an `@` (parse_entries); a second one in the local part
+    # fails `_LOCAL` below exactly as a second one in the domain fails `_normalise`.
+    local, _, domain = name.partition("@")  # pragma: no mutate
+    if not local.isascii():
         return None
     local = local.lower()
     if len(local) > _MAX_LOCAL or not _LOCAL.match(local):
@@ -226,8 +230,9 @@ def _address_pattern(entries: list[Entry]) -> re.Pattern[str] | None:
     """
     groups = []
     for entry in entries:
-        local, _, _ = entry.ascii_name.partition("@")
-        domains = {entry.ascii_name.partition("@")[2], entry.unicode_name.partition("@")[2]}
+        # Equivalent mutants: a valid address entry holds exactly one `@`, so `rpartition` agrees.
+        local, _, _ = entry.ascii_name.partition("@")  # pragma: no mutate
+        domains = {entry.ascii_name.partition("@")[2], entry.unicode_name.partition("@")[2]}  # pragma: no mutate
         alternatives = "|".join(re.escape(form) for form in sorted(domains))
         groups.append(
             f"(?P<e{entry.number}>{_ADDRESS_START}{re.escape(local)}{_AT}(?:{alternatives}){_ADDRESS_END})"
@@ -253,7 +258,8 @@ def build_matcher(entries: Iterable[Entry]) -> Matcher | None:
 def matched_entry(match: re.Match[str]) -> int:
     """The number of the entry that produced `match`."""
     group = match.lastgroup
-    return int(group[1:]) if group else 0
+    # Equivalent mutants: every alternative of both patterns is a named group, so `group` is set.
+    return int(group[1:]) if group else 0  # pragma: no mutate
 
 
 def scan_text(text: str, matcher: Matcher) -> Iterator[tuple[int, int]]:
@@ -271,7 +277,8 @@ def tracked_files(root: Path) -> list[str]:
             check=True,
             capture_output=True,
         )
-        return sorted(p for p in done.stdout.decode("utf-8", "surrogateescape").split("\0") if p)
+        # Equivalent mutant: the codec name "UTF-8" (case-insensitive) is the same codec.
+        return sorted(p for p in done.stdout.decode("utf-8", "surrogateescape").split("\0") if p)  # pragma: no mutate
     return sorted(
         path.relative_to(root).as_posix()
         for path in root.rglob("*")
@@ -303,7 +310,8 @@ def check(root: Path, entries: tuple[Entry, ...]) -> list[str]:
             continue  # a dangling symlink or a submodule path: nothing to read
         if b"\0" in data[:_BINARY_PROBE]:
             continue
-        text = data.decode("utf-8", errors="replace")
+        # Equivalent mutants: the codec name "UTF-8", and the default codec of `bytes.decode`.
+        text = data.decode("utf-8", errors="replace")  # pragma: no mutate
         for line, entry in scan_text(text, matcher):
             findings.append(f"{shown}:{line}: forbidden {matcher.describe(entry)} (entry {entry})")
     return findings

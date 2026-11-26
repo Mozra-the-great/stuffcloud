@@ -36,32 +36,29 @@
   keys between pages, Space selects, Shift extends, Ctrl+A selects all, Alt+arrow moves the page (with
   `onmove`); drag and drop is an extra. This wrapper maps page ids and a Set to kern's keys, draws the
   thumbnail (PageThumb, on a canvas) with the page number, and passes the texts from the catalogue.
-  The grid renders nothing for no pages: the `{#if}` is also the workaround for kern#175 (SelectGrid
-  throws when its last item goes away); waiting for kern#175, then it goes.
+  kern's grid renders nothing for no pages and survives its last page going away (kern#175, 0.14.0).
 -->
-{#if pages.length > 0}
-  <SelectGrid
-    class="page-grid"
-    items={pages}
-    key={(page: GridPage) => page.id}
-    itemLabel={(page: GridPage, index: number) => pageLabel(page, index + 1)}
-    selected={chosen}
-    {label}
-    reorderable={onmove !== undefined}
-    reorderHint={t('pdf.pages.reorderHint')}
-    onchange={(keys) => {
-      onselect(new Set(keys.map(Number)));
-    }}
-    {onmove}
-  >
-    {#snippet item(page: GridPage, index: number)}
-      <span class="cell">
-        <span class="picture"><PageThumb bitmap={store?.bitmap(page.id)} turn={page.turn} /></span>
-        <span class="number" aria-hidden="true">{index + 1}</span>
-      </span>
-    {/snippet}
-  </SelectGrid>
-{/if}
+<SelectGrid
+  class="page-grid"
+  items={pages}
+  key={(page: GridPage) => page.id}
+  itemLabel={(page: GridPage, index: number) => pageLabel(page, index + 1)}
+  selected={chosen}
+  {label}
+  reorderable={onmove !== undefined}
+  reorderHint={t('pdf.pages.reorderHint')}
+  onchange={(keys) => {
+    onselect(new Set(keys.map(Number)));
+  }}
+  {onmove}
+>
+  {#snippet item(page: GridPage, index: number)}
+    <span class="cell">
+      <span class="picture"><PageThumb bitmap={store?.bitmap(page.id)} turn={page.turn} /></span>
+      <span class="number" aria-hidden="true">{index + 1}</span>
+    </span>
+  {/snippet}
+</SelectGrid>
 
 <style>
   .cell {

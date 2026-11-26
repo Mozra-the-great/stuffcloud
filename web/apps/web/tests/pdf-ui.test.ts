@@ -342,6 +342,15 @@ describe('PageGrid', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
+  it('survives the last page going away and comes back with the pages', async () => {
+    const { rerender } = setup({ selected: new Set([0, 1]) });
+    expect(screen.getAllByRole('option')).toHaveLength(5);
+    await rerender({ pages: [], selected: new Set<number>() });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    await rerender({ pages, selected: new Set<number>() });
+    expect(screen.getAllByRole('option')).toHaveLength(5);
+  });
+
   it('toggles a page with a click and extends with Shift+click', async () => {
     const user = userEvent.setup();
     const { onselect } = setup({ selected: new Set([1]) });

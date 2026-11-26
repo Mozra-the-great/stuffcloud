@@ -25,6 +25,7 @@ export const de: Readonly<Record<MessageKey, Message>> = {
 
   'offline.title': 'Keine Verbindung',
   'offline.hint': 'Bereits geöffnete Tools funktionieren weiter.',
+  'offline.back': 'Verbindung ist wieder da',
 
   'status.loading': 'Seite wird geladen',
   'status.navigated': 'Gewechselt zu {title}',
@@ -231,8 +232,9 @@ export const de: Readonly<Record<MessageKey, Message>> = {
     'Länge, Masse, Temperatur, Daten, Zeit, Geschwindigkeit, Fläche und Volumen umrechnen. Einheit suchen und Genauigkeit einstellen.',
   'tool.unit-converter.keywords':
     'umrechnen umrechnung einheit länge masse gewicht temperatur daten bytes zeit geschwindigkeit fläche volumen',
-  'tool.copy': 'Kopieren',
   'tool.copied': '{value} kopiert',
+  'tool.downloadStarted': 'Download gestartet',
+  'tool.downloadFailed': 'Datei konnte nicht gespeichert werden.',
   'tool.copyFailed': 'Kopieren nicht möglich. Text markieren und von Hand kopieren.',
 
   'color.field.main': 'Farbe',

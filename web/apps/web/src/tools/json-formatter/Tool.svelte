@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
-  import { saveText } from '../../app/download.ts';
+  import DownloadButton from '../../app/DownloadButton.svelte';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
@@ -171,13 +171,12 @@
         <Textarea label={t('json.result')} value={output} readonly rows={12} spellcheck={false} />
         <div class="row">
           <CopyButton text={output} label={t('json.copy')} value={t('json.copied')} />
-          <Button
-            variant="secondary"
-            size="sm"
-            onclick={() => {
-              saveText('formatted.json', output, 'application/json');
-            }}>{t('json.download')}</Button
-          >
+          <DownloadButton
+            label={t('json.download')}
+            name="formatted.json"
+            text={output}
+            type="application/json"
+          />
           <Button variant="secondary" size="sm" onclick={useAsInput}>{t('json.useAsInput')}</Button>
         </div>
       </section>

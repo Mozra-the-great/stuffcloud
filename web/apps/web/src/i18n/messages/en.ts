@@ -29,6 +29,7 @@ export const en = {
 
   'offline.title': 'No connection',
   'offline.hint': 'Tools you already opened keep working.',
+  'offline.back': 'Connection is back',
 
   'status.loading': 'Loading page',
   'status.navigated': 'Navigated to {title}',
@@ -231,8 +232,9 @@ export const en = {
     'Convert length, mass, temperature, data, time, speed, area and volume. Search for a unit and set the precision.',
   'tool.unit-converter.keywords':
     'convert conversion unit length mass weight temperature data bytes time speed area volume metric imperial',
-  'tool.copy': 'Copy',
   'tool.copied': 'Copied {value}',
+  'tool.downloadStarted': 'Download started',
+  'tool.downloadFailed': 'Could not save the file.',
   'tool.copyFailed': 'Could not copy. Select the text and copy it by hand.',
 
   'color.field.main': 'Colour',

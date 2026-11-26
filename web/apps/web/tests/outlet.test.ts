@@ -1,7 +1,7 @@
+import { sharedAnnouncer } from '@mozra-the-great/kern';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Announcer } from '../src/app/announcer.svelte.ts';
 import Outlet from '../src/app/Outlet.svelte';
 import { buildRoutes } from '../src/app/routes.ts';
 import type { RouteModule } from '../src/app/router/router.svelte.ts';
@@ -136,8 +136,8 @@ describe('loading', () => {
     window.history.replaceState(null, '', '/');
     const router = createRouter([tool]);
     const stop = router.start();
-    const announcer = new Announcer();
-    render(Outlet, { props: { router, offline: false, announcer, progressDelayMs: 0 } });
+    sharedAnnouncer().clear();
+    render(Outlet, { props: { router, offline: false, progressDelayMs: 0 } });
     await screen.findByRole('heading', { level: 1, name: 'Your stuff, in your cloud.' });
     expect(screen.queryByRole('progressbar')).toBeNull();
 
@@ -157,7 +157,7 @@ describe('loading', () => {
 
     expect(screen.getByRole('main').getAttribute('aria-busy')).toBe('false');
     expect(screen.queryByRole('progressbar')).toBeNull();
-    expect(announcer.message).toBe('Navigated to Tool slow');
+    expect(sharedAnnouncer().polite).toBe('Navigated to Tool slow');
     stop();
   });
 
@@ -166,7 +166,7 @@ describe('loading', () => {
     const router = createRouter([]);
     const stop = router.start();
     render(Outlet, {
-      props: { router, offline: false, announcer: new Announcer(), progressDelayMs: 60_000 },
+      props: { router, offline: false, progressDelayMs: 60_000 },
     });
     await screen.findByRole('heading', { level: 1, name: 'Your stuff, in your cloud.' });
     router.navigate('/nope');
@@ -181,8 +181,7 @@ describe('loading', () => {
     window.history.replaceState(null, '', '/');
     const router = createRouter([tool]);
     const stop = router.start();
-    const announcer = new Announcer();
-    render(Outlet, { props: { router, offline: false, announcer } });
+    render(Outlet, { props: { router, offline: false } });
     await screen.findByRole('heading', { level: 1, name: 'Your stuff, in your cloud.' });
 
     router.navigate('/tools/slow');
@@ -204,7 +203,7 @@ describe('loading', () => {
     window.history.replaceState(null, '', '/');
     const router = createRouter([tool]);
     const stop = router.start();
-    render(Outlet, { props: { router, offline: false, announcer: new Announcer() } });
+    render(Outlet, { props: { router, offline: false } });
     await screen.findByRole('heading', { level: 1, name: 'Your stuff, in your cloud.' });
 
     router.navigate('/tools/slow');

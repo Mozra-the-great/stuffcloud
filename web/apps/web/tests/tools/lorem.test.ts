@@ -5,23 +5,15 @@ import { i18n } from '../../src/i18n/index.ts';
 import manifest from '../../src/tools/lorem/manifest.ts';
 import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
+import { captureDownloads, type DownloadCapture } from '../download-capture.ts';
 import { fieldErrorText } from '../helpers.ts';
 
-const downloads = vi.hoisted(() => ({
-  saved: [] as { name: string; text: string }[],
-}));
-
-vi.mock('../../src/app/download.ts', () => ({
-  saveText: (name: string, text: string) => {
-    downloads.saved.push({ name, text });
-  },
-  saveBlob: () => undefined,
-}));
+let downloads: DownloadCapture;
 
 type User = ReturnType<typeof userEvent.setup>;
 
 beforeEach(() => {
-  downloads.saved = [];
+  downloads = captureDownloads();
 });
 
 afterEach(() => {
@@ -141,7 +133,7 @@ describe('lorem', () => {
       expect(writeText).toHaveBeenCalledWith(shown);
     });
     await user.click(screen.getByRole('button', { name: 'Download as .txt' }));
-    expect(downloads.saved).toEqual([{ name: 'lorem-ipsum.txt', text: shown }]);
+    expect(await downloads.texts()).toEqual([{ name: 'lorem-ipsum.txt', text: shown }]);
   });
 
   it('cannot download when there is no text', async () => {

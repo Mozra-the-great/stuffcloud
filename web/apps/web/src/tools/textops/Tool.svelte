@@ -3,7 +3,7 @@
   import type { WorkerPool } from '@stuffcloud/tools';
   import { i18n, t, type MessageKey } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
-  import { saveText } from '../../app/download.ts';
+  import DownloadButton from '../../app/DownloadButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import { CASE_STYLES, type CaseStyle } from './case.ts';
@@ -259,10 +259,6 @@
     text = resultText;
     status = t('textops.moved');
   }
-
-  function download(): void {
-    saveText('text.txt', resultText);
-  }
 </script>
 
 <ToolFrame id="textops">
@@ -367,9 +363,12 @@
       />
       <div class="actions">
         <CopyButton text={resultText} label={t('textops.copy')} value={t('textops.copiedValue')} />
-        <Button variant="secondary" size="sm" disabled={resultText === ''} onclick={download}>
-          {t('textops.download')}
-        </Button>
+        <DownloadButton
+          label={t('textops.download')}
+          name="text.txt"
+          text={resultText}
+          disabled={resultText === ''}
+        />
         <Button variant="secondary" size="sm" disabled={resultText === ''} onclick={useResult}>
           {t('textops.use')}
         </Button>

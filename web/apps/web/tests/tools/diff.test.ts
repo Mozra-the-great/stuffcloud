@@ -152,7 +152,7 @@ describe('the line view, side by side', () => {
     const changed = defined(bodyRows()[0]);
     expect(within(changed).getByText('brown').tagName).toBe('DEL');
     expect(within(changed).getByText('red').tagName).toBe('INS');
-    expect(changed.querySelectorAll('.visually-hidden')).toHaveLength(2);
+    expect(changed.querySelectorAll('.vh')).toHaveLength(2);
     expect(changed.textContent).toContain('Removed line');
     expect(changed.textContent).toContain('Added line');
     const added = defined(bodyRows()[3]);

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Select, Button, Textarea } from '@mozra-the-great/kern';
   import { t, type MessageKey } from '../../i18n/index.ts';
-  import { saveText } from '../../app/download.ts';
+  import DownloadButton from '../../app/DownloadButton.svelte';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
@@ -124,13 +124,12 @@
         <Textarea label={t('sql.result')} value={output} readonly rows={14} spellcheck={false} />
         <div class="row">
           <CopyButton text={output} label={t('sql.copy')} value={t('sql.copied')} />
-          <Button
-            variant="secondary"
-            size="sm"
-            onclick={() => {
-              saveText('formatted.sql', output, 'application/sql');
-            }}>{t('sql.download')}</Button
-          >
+          <DownloadButton
+            label={t('sql.download')}
+            name="formatted.sql"
+            text={output}
+            type="application/sql"
+          />
           <Button
             variant="secondary"
             size="sm"

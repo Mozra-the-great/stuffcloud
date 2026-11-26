@@ -5,16 +5,16 @@ import { i18n } from '../../src/i18n/index.ts';
 import manifest from '../../src/tools/subnet/manifest.ts';
 import { toast } from '@mozra-the-great/kern';
 import { openTool } from '../tool-helpers.ts';
+import { captureDownloads, type DownloadCapture } from '../download-capture.ts';
 import { defined } from './defined.ts';
 
 type User = ReturnType<typeof userEvent.setup>;
 type Mode = 'info' | 'split' | 'summary' | 'contains';
 
-const download = vi.hoisted(() => ({ saveText: vi.fn() }));
-vi.mock('../../src/app/download.ts', () => download);
+let downloads: DownloadCapture;
 
 beforeEach(() => {
-  download.saveText.mockReset();
+  downloads = captureDownloads();
 });
 
 afterEach(() => {
@@ -381,10 +381,12 @@ describe('split', () => {
       );
     });
     await user.click(screen.getByRole('button', { name: 'Download as .txt' }));
-    expect(download.saveText).toHaveBeenCalledWith(
-      'subnets.txt',
-      '192.0.2.0/26\n192.0.2.64/26\n192.0.2.128/26\n192.0.2.192/26\n',
-    );
+    expect(await downloads.texts()).toEqual([
+      {
+        name: 'subnets.txt',
+        text: '192.0.2.0/26\n192.0.2.64/26\n192.0.2.128/26\n192.0.2.192/26\n',
+      },
+    ]);
   });
 });
 
@@ -470,10 +472,9 @@ describe('summarise', () => {
       expect(writeText).toHaveBeenCalledWith('192.0.2.0/24\n198.51.100.0/24');
     });
     await user.click(screen.getByRole('button', { name: 'Download IPv4 networks as .txt' }));
-    expect(download.saveText).toHaveBeenCalledWith(
-      'networks-ipv4.txt',
-      '192.0.2.0/24\n198.51.100.0/24\n',
-    );
+    expect(await downloads.texts()).toEqual([
+      { name: 'networks-ipv4.txt', text: '192.0.2.0/24\n198.51.100.0/24\n' },
+    ]);
     await user.click(screen.getByRole('button', { name: 'Copy Addresses covered' }));
     await waitFor(() => {
       expect(writeText).toHaveBeenLastCalledWith('512');

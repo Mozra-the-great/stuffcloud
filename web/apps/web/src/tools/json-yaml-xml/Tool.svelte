@@ -2,7 +2,7 @@
   import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
-  import { saveText } from '../../app/download.ts';
+  import DownloadButton from '../../app/DownloadButton.svelte';
   import CopyButton from '../../app/CopyButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
@@ -164,13 +164,6 @@
       text = result;
     }
   }
-
-  function download(): void {
-    if (result !== undefined) {
-      const file = FILE_TYPES[to];
-      saveText(`converted.${file.extension}`, result, file.type);
-    }
-  }
 </script>
 
 <ToolFrame id="json-yaml-xml">
@@ -256,7 +249,12 @@
         />
         <div class="row">
           <CopyButton text={result} label={t('convert.copy')} value={t('convert.copied')} />
-          <Button variant="secondary" size="sm" onclick={download}>{t('convert.download')}</Button>
+          <DownloadButton
+            label={t('convert.download')}
+            name={`converted.${FILE_TYPES[to].extension}`}
+            text={result}
+            type={FILE_TYPES[to].type}
+          />
         </div>
       </section>
     {/if}

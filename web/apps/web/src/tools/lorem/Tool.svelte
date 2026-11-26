@@ -2,7 +2,7 @@
   import { Input, Select, Button, Checkbox, Textarea } from '@mozra-the-great/kern';
   import { t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
-  import { saveText } from '../../app/download.ts';
+  import DownloadButton from '../../app/DownloadButton.svelte';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import ToolStatus from '../../app/ToolStatus.svelte';
   import { DEFAULT_COUNT, LIMITS, generateLorem, type LoremUnit } from './generate.ts';
@@ -42,10 +42,6 @@
     round += 1;
     status = result.ok ? t('lorem.announce') : '';
   }
-
-  function download(): void {
-    saveText('lorem-ipsum.txt', text);
-  }
 </script>
 
 <ToolFrame id="lorem">
@@ -77,9 +73,12 @@
       <Textarea label={t('lorem.text')} value={text} readonly rows={10} />
       <div class="actions">
         <CopyButton {text} label={t('lorem.copy')} value={t('lorem.copiedValue')} />
-        <Button variant="secondary" size="sm" disabled={text === ''} onclick={download}>
-          {t('lorem.download')}
-        </Button>
+        <DownloadButton
+          label={t('lorem.download')}
+          name="lorem-ipsum.txt"
+          {text}
+          disabled={text === ''}
+        />
       </div>
     </section>
   </div>

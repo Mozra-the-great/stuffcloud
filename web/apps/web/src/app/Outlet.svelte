@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { Progress } from '@mozra-the-great/kern';
+  import { announce, Progress } from '@mozra-the-great/kern';
   import { tick, untrack } from 'svelte';
   import { i18n, t } from '../i18n/index.ts';
-  import type { Announcer } from './announcer.svelte.ts';
   import ErrorState from './ErrorState.svelte';
   import { documentTitle, focusHeading, headingText } from './focus.ts';
   import type { ResolvedRoute, RouteComponent, Router } from './router/router.svelte.ts';
@@ -11,12 +10,11 @@
     router: Router;
     /** The browser reports no connection (changes the wording of a load failure). */
     offline: boolean;
-    announcer: Announcer;
     /** How long a page may load before the progress bar shows (no flash for cached chunks). */
     progressDelayMs?: number;
   }
 
-  let { router, offline, announcer, progressDelayMs = 150 }: Props = $props();
+  let { router, offline, progressDelayMs = 150 }: Props = $props();
 
   interface View {
     readonly component: RouteComponent;
@@ -80,7 +78,7 @@
     if (navigated || recovering) {
       focusHeading(main);
       window.scrollTo(0, 0);
-      announcer.announce(t('status.navigated', { title: headingText(main) }));
+      announce(t('status.navigated', { title: headingText(main) }));
     }
   }
 

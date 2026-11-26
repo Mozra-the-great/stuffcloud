@@ -2,7 +2,7 @@ import type { MountedVariant, VariantContext } from './types.ts';
 
 /**
  * One `<img>` per mascot. With `animated`, the CSS class `bench-bob` switches the two poses with
- * a `transform` keyframe animation and `steps(1)` (the shipped `Mascot.svelte` technique); without
+ * a `transform` keyframe animation and `steps(1)` (the technique of the shipped kern `Mascot`); without
  * it the image stays still, which is the control of the benchmark.
  */
 export function mountImages(context: VariantContext, animated: boolean): MountedVariant {

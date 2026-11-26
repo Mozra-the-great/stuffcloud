@@ -44,7 +44,7 @@ crates/app/     LAN API (axum): config (env + _FILE), resource conventions (reso
 docker/app/     Dockerfile (distroless, non-root) + bootstrap.dev.json for the dev stack
 web/            pnpm workspace (Node 24, own lockfile; the backend never depends on it)
   apps/web/     Svelte + Vite SPA (static build): src/styles (generated tokens.css, fonts.css, theme.css),
-                src/ui (base components, `Mascot` + mascot catalogue), src/app (app shell, router, pages,
+                src/ui (base components not yet from kern), src/app (app shell, router, pages, mascot art URLs,
                 tool registry + `ToolFrame`), src/tools/<id>/ (one directory per tool: manifest.ts + Tool.svelte),
                 src/pdf (what the PDF tools share: engine on pdf-lib, workers + pools, pictures on pdf.js,
                 page grid, ZIP writer; ADR 0013; the network scan covers it like src/tools),

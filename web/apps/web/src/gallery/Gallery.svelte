@@ -1,5 +1,13 @@
 <script lang="ts">
-  import { Card, CodeBlock, Progress, Tile, TileGrid } from '@mozra-the-great/kern';
+  import {
+    Card,
+    CodeBlock,
+    Mascot,
+    MASCOT_NAMES,
+    Progress,
+    Tile,
+    TileGrid,
+  } from '@mozra-the-great/kern';
   import '../styles/index.css';
   import Button from '../ui/Button.svelte';
   import Checkbox from '../ui/Checkbox.svelte';
@@ -7,8 +15,6 @@
   import FileDropzone from '../ui/FileDropzone.svelte';
   import Input from '../ui/Input.svelte';
   import LinkButton from '../ui/LinkButton.svelte';
-  import Mascot from '../ui/Mascot.svelte';
-  import { MASCOT_NAMES } from '../ui/mascots.ts';
   import Select from '../ui/Select.svelte';
   import TabLinks from '../ui/TabLinks.svelte';
   import Tabs from '../ui/Tabs.svelte';
@@ -16,6 +22,7 @@
   import { toaster, type ToastKind } from '../ui/toast.svelte.ts';
   import type { SelectOption, TabItem, TabLink } from '../ui/types.ts';
   import { GALLERY_COLOURS, GALLERY_FONTS } from './swatches.ts';
+  import { MASCOT_URLS } from '../app/mascots.ts';
 
   const selectOptions: readonly SelectOption[] = [
     { value: 'one', label: 'One day' },
@@ -65,17 +72,17 @@
   <section aria-labelledby="g-mascot">
     <h2 class="label" id="g-mascot">Mascot</h2>
     <div class="stage">
-      <Mascot name="stuffy" scale={16} compactScale={9} />
+      <Mascot name="stuffy" src={MASCOT_URLS.stuffy} scale={16} compactScale={9} />
     </div>
     <ul class="cast">
       {#each MASCOT_NAMES as name (name)}
         <li>
-          <Mascot {name} scale={6} />
+          <Mascot {name} src={MASCOT_URLS[name]} scale={6} />
           <code>{name}</code>
         </li>
       {/each}
       <li>
-        <Mascot name="stuffy" scale={6} animated={false} />
+        <Mascot name="stuffy" src={MASCOT_URLS.stuffy} scale={6} animated={false} />
         <code>still</code>
       </li>
     </ul>

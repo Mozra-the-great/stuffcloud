@@ -1,4 +1,4 @@
-import { BOB_OFFSET_PX } from '../../src/ui/motion.ts';
+import { BOB_OFFSET_PX } from '@mozra-the-great/kern';
 import { buildSpriteSheet } from '../sheet.ts';
 import type { MountedVariant, VariantContext } from './types.ts';
 

@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { Tile, TileGrid } from '@mozra-the-great/kern';
+  import { Mascot, Tile, TileGrid } from '@mozra-the-great/kern';
   import { i18n, t } from '../../i18n/index.ts';
-  import Mascot from '../../ui/Mascot.svelte';
   import TabLinks from '../../ui/TabLinks.svelte';
   import type { TabLink } from '../../ui/types.ts';
   import { getTools } from '../context.ts';
@@ -16,6 +15,7 @@
     usedCategories,
   } from '../tools.ts';
   import './page.css';
+  import { MASCOT_URLS } from '../mascots.ts';
 
   let { query }: RouteProps = $props();
 
@@ -41,7 +41,7 @@
   {/if}
   {#if visible.length === 0}
     <div class="empty">
-      <Mascot name="stuffy" scale={8} compactScale={6} />
+      <Mascot name="stuffy" src={MASCOT_URLS.stuffy} scale={8} compactScale={6} />
       <p class="note">{t('tools.empty')}</p>
     </div>
   {:else}

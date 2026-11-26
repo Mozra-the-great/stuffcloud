@@ -1,4 +1,4 @@
-import { BOB_OFFSET_PX, BOB_PERIOD_MS } from '../../src/ui/motion.ts';
+import { BOB_OFFSET_PX, BOB_PERIOD_MS } from '@mozra-the-great/kern';
 import type { MountedVariant, VariantContext } from './types.ts';
 
 /** 0 is the rest pose, 1 the raised one. */

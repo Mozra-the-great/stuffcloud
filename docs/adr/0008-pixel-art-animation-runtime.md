@@ -29,7 +29,7 @@ What the delivered art and the design reference actually contain:
 ## Decision
 
 1. **The mascot is an `<img>` of its SVG file, animated by a CSS `transform` keyframe animation
-   with `steps(1)` timing** (`web/apps/web/src/ui/Mascot.svelte`, the same two poses and timing
+   with `steps(1)` timing** (kern's `Mascot` since ADR 0014, before that `src/ui/Mascot.svelte`; the same two poses and timing
    as the design reference). No canvas, no sprite sheet, no script per frame. Travelling
    easter eggs use the same technique with `translate` keyframes on the same single frame.
 2. **Integer scales only.** The component takes `scale` (and `compactScale` for phones,
@@ -213,4 +213,4 @@ check on a real low-end device remains open (see below).
 - [SPEC 12](../SPEC.md#12-design-and-ux), [16.1](../SPEC.md#16-decisions-on-the-former-open-questions), `docs/design/README.md` ("Mascots and easter eggs", "Sprite sources"), `docs/design/prototypes/stuff.css` (`.bob`)
 - Issues [#10](https://github.com/Mozra-the-great/stuffcloud/issues/10) (T-02), [#9](https://github.com/Mozra-the-great/stuffcloud/issues/9) and PR [#112](https://github.com/Mozra-the-great/stuffcloud/pull/112) (T-01, tokens and components), [#13](https://github.com/Mozra-the-great/stuffcloud/issues/13), [#14](https://github.com/Mozra-the-great/stuffcloud/issues/14), [#29](https://github.com/Mozra-the-great/stuffcloud/issues/29)
 - [ADR 0004](0004-client-side-tools.md) (heavy work in workers), [ADR 0007](0007-test-strategy.md)
-- Code: `web/apps/web/src/ui/Mascot.svelte`, `mascots.ts`, `motion.ts`; benchmark `web/apps/web/bench/`
+- Code: kern's `Mascot`, `MASCOT_SOURCES` and `BOB_*` (ADR 0014; until then `src/ui/Mascot.svelte`, `mascots.ts`, `motion.ts`), the art URLs in `web/apps/web/src/app/mascots.ts`; benchmark `web/apps/web/bench/`

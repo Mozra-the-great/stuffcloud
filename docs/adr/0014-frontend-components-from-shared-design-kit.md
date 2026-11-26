@@ -174,6 +174,16 @@ instead of green and 75 selectors depend on `.tool-status`), `ReorderList` and `
 (`SortableList`, `SelectGrid`) and `Sticker` (`Mascot` with code art). `src/pdf/LiveStatus.svelte` keeps its
 two regions with `ToolStatus`.
 
+## Addendum: reorder list and page grid (2026-11-26, #121, PR #195)
+
+The merge tool's file list is kern's `SortableList`; `src/pdf/PageGrid.svelte` is a thin wrapper around
+kern's `SelectGrid` (page ids and a `Set` mapped to kern's keys, the thumbnail on a canvas, the page
+number, texts from the catalogue). This replaces the "still local" sentence about `ReorderList` and
+`PageGrid` in the app-local addendum; `ReorderList.svelte`, `grid-nav.ts` and their duplicated tests are
+gone (kern's `tests/dom/sortablelist.test.ts`, `tests/dom/selectgrid.test.ts` and `tests/unit/reorder.test.ts`
+cover the same cases). Accepted difference: kern's list buttons are ghost buttons. Gap: kern#175 (the
+grid throws when its last item goes away); the wrapper renders it only while there are pages.
+
 ## Links
 
 - Issue [#121](https://github.com/Mozra-the-great/stuffcloud/issues/121), kern

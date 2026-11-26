@@ -36,8 +36,8 @@ What the delivered art and the design reference actually contain:
    `max-width: 760px`) as whole CSS pixels per art pixel; fractions are cut off and anything
    below 1 becomes 1. `width` and `height` attributes and CSS custom properties reserve the
    exact box before the image loads, so there is no layout shift. The design's 256, 160, 150
-   and 110 px widths become scales 16, 10, 9 and 6 (`integerScale()` picks the largest whole
-   scale for a target width).
+   and 110 px widths become scales 16, 10, 9 and 6 (callers pass these as `scale` /
+   `compactScale`; kern's `integerScale()` picks the largest whole scale for a target width).
 3. **Paused when it cannot be seen.** One `IntersectionObserver` per mascot and a
    `visibilitychange` listener set `data-motion` to `running`, `paused` or `still`; CSS maps
    `paused` to `animation-play-state: paused`. Both run on state changes only, never per frame.

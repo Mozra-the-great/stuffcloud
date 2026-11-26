@@ -80,6 +80,22 @@ async fn a_temporary_refusal_may_be_tried_again() {
 }
 
 #[tokio::test]
+async fn an_answer_that_is_no_smtp_is_a_protocol_error() {
+    let fake = Fake::start(Script {
+        greeting: "this is not a reply code",
+        ..Script::default()
+    })
+    .await;
+    let error = SmtpTransport::new(Duration::from_secs(5))
+        .send(&server(fake.port, SmtpSecurity::None), &mail())
+        .await
+        .unwrap_err();
+    assert_eq!(error, SendError::new(FailureKind::Protocol));
+    assert!(error.is_transient());
+    assert!(fake.seen().messages.is_empty());
+}
+
+#[tokio::test]
 async fn a_closed_port_is_a_connection_error() {
     let port = {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();

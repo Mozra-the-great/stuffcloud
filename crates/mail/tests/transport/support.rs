@@ -28,6 +28,8 @@ pub(crate) struct Script {
     pub(crate) rcpt_reply: &'static str,
     /// Accept the connection and say nothing.
     pub(crate) silent: bool,
+    /// What the server says when the connection opens.
+    pub(crate) greeting: &'static str,
 }
 
 impl Default for Script {
@@ -36,6 +38,7 @@ impl Default for Script {
             offer_starttls: false,
             rcpt_reply: "250 2.1.5 ok",
             silent: false,
+            greeting: "220 fake.example.net ESMTP ready",
         }
     }
 }
@@ -73,7 +76,7 @@ where
 {
     let mut stream = BufReader::new(stream);
     if greet
-        && send(&mut stream, "220 fake.example.net ESMTP ready")
+        && send(&mut stream, script.greeting)
             .await
             .is_err()
     {

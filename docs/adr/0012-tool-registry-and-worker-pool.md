@@ -107,13 +107,13 @@ promise must also be something the build can check, not only a sentence in the U
   tree-shaking disabled tools needs a build-time filter and is not worth it before the admin toggle.
 - Negative: cancelling a job costs a worker start (and the data it held) the next time work arrives.
 - Negative: the size budgets are declared and range-checked here, but compared with the build
-  output only by T-25 ([#29](https://github.com/Mozra-the-great/stuffcloud/issues/29)).
+  output only by T-25 ([#29](https://github.com/Mozra-the-great/stuffcloud/issues/29), now in place).
 
 ## Open points
 
 - The shared asset loader (WASM and model files from the own origin, with progress) and its single
   exemption in the network scan: with the first tool that needs one (T-10, [#15](https://github.com/Mozra-the-great/stuffcloud/issues/15)).
-- Budget enforcement against the build output, per tool: T-25 ([#29](https://github.com/Mozra-the-great/stuffcloud/issues/29)).
+- Budget enforcement against the build output, per tool: done in T-25 ([#29](https://github.com/Mozra-the-great/stuffcloud/issues/29)): CI job `perf-budgets`, budgets in gzip KiB, numbers and rules in [`docs/PERFORMANCE.md`](../PERFORMANCE.md). The decision above is unchanged.
 - The admin toggle replacing `tools.config.json`: A-09 ([#39](https://github.com/Mozra-the-great/stuffcloud/issues/39)).
 - Real-browser coverage of the worker pool and the "no request carries file content" test: T-06
   ([#14](https://github.com/Mozra-the-great/stuffcloud/issues/14)). The pool was run once by hand in

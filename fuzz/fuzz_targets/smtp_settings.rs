@@ -13,11 +13,11 @@ use serde_json::Value;
 use stuffcloud_core::body::{BodyError, MAX_FIELD_ERRORS, Writable, canonical, parse_writable};
 use stuffcloud_core::smtp::{
     FILE_SUFFIX, SECRET_PREFIX, SECRET_SHAPE_MESSAGE, SecretRefError, Smtp, SmtpSecurity,
-    valid_from_name, valid_host,
+    is_unsafe_char, valid_from_name, valid_host,
 };
 
 fn no_control(text: &str) -> bool {
-    !text.chars().any(char::is_control)
+    !text.chars().any(is_unsafe_char)
 }
 
 /// Every sentence an error at `/password` may be.

@@ -231,24 +231,41 @@ pub fn valid_host(host: &str) -> bool {
     !last_is_numeric
 }
 
+/// Whether a character has no place in a name or a login: a control character, a line or
+/// paragraph separator (they end a line in other readers than ours), or an invisible formatting
+/// character (zero-width characters, the direction overrides that make a name read differently
+/// than it is written, the byte order mark).
+#[must_use]
+pub fn is_unsafe_char(c: char) -> bool {
+    c.is_control()
+        || matches!(
+            c,
+            '\u{200B}'..='\u{200F}'
+                | '\u{2028}'..='\u{202E}'
+                | '\u{2060}'..='\u{2064}'
+                | '\u{2066}'..='\u{2069}'
+                | '\u{FEFF}'
+        )
+}
+
 /// Whether a text is a login name of an SMTP server: 1 to [`MAX_USERNAME_LEN`] bytes, no
-/// control character.
+/// control or invisible formatting character ([`is_unsafe_char`]).
 fn valid_username(username: &str) -> bool {
     !username.is_empty()
         && username.len() <= MAX_USERNAME_LEN
-        && !username.chars().any(char::is_control)
+        && !username.chars().any(is_unsafe_char)
 }
 
 /// Whether a text is a display name of the sender: 1 to [`MAX_FROM_NAME_CHARS`] characters, no
-/// control character, no `<`, `>`, `"` or `\` (they would blur where the name ends and the
-/// address begins), no space at either end.
+/// control or invisible formatting character ([`is_unsafe_char`]), no `<`, `>`, `"` or `\` (they
+/// would blur where the name ends and the address begins), no space at either end.
 #[must_use]
 pub fn valid_from_name(name: &str) -> bool {
     let chars = name.chars().count();
     (1..=MAX_FROM_NAME_CHARS).contains(&chars)
         && !name
             .chars()
-            .any(|c| c.is_control() || matches!(c, '<' | '>' | '"' | '\\'))
+            .any(|c| is_unsafe_char(c) || matches!(c, '<' | '>' | '"' | '\\'))
         && name.trim() == name
 }
 
@@ -655,6 +672,9 @@ mod tests {
             "a\0b".to_owned(),
             "a\tb".to_owned(),
             "a\u{85}b".to_owned(),
+            "a\u{2028}b".to_owned(),
+            "a\u{202e}b".to_owned(),
+            "a\u{200b}b".to_owned(),
         ] {
             smtp.username = Some(bad.clone());
             assert_eq!(
@@ -758,6 +778,11 @@ mod tests {
             " a".to_owned(),
             "a ".to_owned(),
             "\u{a0}a".to_owned(),
+            "a\u{2029}b".to_owned(),
+            "a\u{202e}b".to_owned(),
+            "a\u{2066}b".to_owned(),
+            "a\u{200b}b".to_owned(),
+            "\u{feff}a".to_owned(),
         ] {
             smtp.from_name = Some(bad.clone());
             assert_eq!(
@@ -930,6 +955,35 @@ mod tests {
                 }
                 other => panic!("{other:?}"),
             }
+        }
+    }
+
+    #[test]
+    fn unsafe_characters() {
+        for c in [
+            '\0', '\r', '\n', '\t', '\u{7f}', '\u{85}', '\u{2028}', '\u{2029}', '\u{202a}',
+            '\u{202e}', '\u{200b}', '\u{200f}', '\u{2060}', '\u{2064}', '\u{2066}', '\u{2069}',
+            '\u{feff}',
+        ] {
+            assert!(is_unsafe_char(c), "{c:?}");
+        }
+        // The neighbours of the ranges, and ordinary text, are fine.
+        for c in [
+            'a',
+            ' ',
+            '\u{fc}',
+            '\u{a0}',
+            '\u{200a}',
+            '\u{2010}',
+            '\u{2027}',
+            '\u{202f}',
+            '\u{205f}',
+            '\u{2065}',
+            '\u{206a}',
+            '\u{fefe}',
+            '\u{1f600}',
+        ] {
+            assert!(!is_unsafe_char(c), "{c:?}");
         }
     }
 

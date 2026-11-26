@@ -9,7 +9,8 @@ use axum::http::{HeaderMap, Method, Request, StatusCode};
 use serde_json::Value;
 use stuffcloud_app::access::{AccessPolicy, MatrixPolicy};
 use stuffcloud_app::auth::AuthSettings;
-use stuffcloud_app::config::Limits;
+use stuffcloud_app::config::{Limits, MapEnvironment};
+use stuffcloud_app::mail::{Delivery, Mailer, QUEUE_CAPACITY, Worker};
 use stuffcloud_app::server::router;
 use stuffcloud_app::state::{AppState, Clock};
 use stuffcloud_core::csrf::Origin;
@@ -17,6 +18,7 @@ use stuffcloud_core::policy::{Decision, Requirement, Subject};
 use stuffcloud_core::session::{Role, Timeouts, UserKind};
 use stuffcloud_core::token::Token;
 use stuffcloud_db::{Database, NewSession, Session, token_hash};
+use stuffcloud_mail::Recording;
 use tower::ServiceExt;
 
 /// Lets every request through: for tests of the resource conventions, which are about bodies,
@@ -80,6 +82,9 @@ impl Clock for SteppingClock {
         EPOCH + self.offset.fetch_add(self.step, Ordering::SeqCst)
     }
 }
+
+/// The value of the secret `STUFFCLOUD_SECRET_SMTP` of an app built with [`TestApp::with_mail`].
+pub(crate) const SMTP_PASSWORD: &str = "smtp-test-password";
 
 /// The app address of every test app: a name that a hosted site may share (RFC 2606).
 pub(crate) const APP_ORIGIN: &str = "https://app.example.com";
@@ -148,6 +153,20 @@ pub(crate) struct TestApp {
     pub(crate) clock: Arc<SteppingClock>,
     pub(crate) state: AppState,
     pub(crate) router: Router,
+    /// The mails the app delivered (an app built with [`TestApp::with_mail`]).
+    pub(crate) mail: Recording,
+    /// The worker of a queue that nobody empties, kept so the queue stays open.
+    _stalled: Option<Worker>,
+}
+
+/// What a test app does with mail.
+enum MailMode {
+    /// No mailer.
+    Off,
+    /// A worker that delivers to [`TestApp::mail`], with this environment for secrets.
+    Working(MapEnvironment),
+    /// A queue of this size without a worker.
+    Stalled(usize),
 }
 
 /// Which policy the test app uses.
@@ -178,7 +197,39 @@ impl TestApp {
         Self::build(policy, limits, SteppingClock::default())
     }
 
+    /// A test app whose mailer works: its mails go to [`TestApp::mail`] and the retries wait 10
+    /// milliseconds. The secret `STUFFCLOUD_SECRET_SMTP` is [`SMTP_PASSWORD`].
+    pub(crate) fn with_mail(policy: Policy) -> Self {
+        Self::build_with(
+            policy,
+            Limits::default(),
+            SteppingClock::default(),
+            MailMode::Working(
+                MapEnvironment::default().with("STUFFCLOUD_SECRET_SMTP", SMTP_PASSWORD),
+            ),
+        )
+    }
+
+    /// A test app whose mail queue holds `capacity` requests and is never emptied.
+    pub(crate) fn with_stalled_mail(policy: Policy, capacity: usize) -> Self {
+        Self::build_with(
+            policy,
+            Limits::default(),
+            SteppingClock::default(),
+            MailMode::Stalled(capacity),
+        )
+    }
+
     fn build(policy: Policy, limits: Limits, clock: SteppingClock) -> Self {
+        Self::build_with(policy, limits, clock, MailMode::Off)
+    }
+
+    fn build_with(
+        policy: Policy,
+        limits: Limits,
+        clock: SteppingClock,
+        mail_mode: MailMode,
+    ) -> Self {
         let dir = tempfile::tempdir().unwrap();
         let db = Arc::new(Database::open(&dir.path().join("test.sqlite3")).unwrap());
         let _ = db.migrate().unwrap();
@@ -188,6 +239,18 @@ impl TestApp {
         };
         let clock = Arc::new(clock);
         let shared_clock: Arc<dyn Clock> = Arc::<SteppingClock>::clone(&clock);
+        let mail = Recording::new();
+        let (mailer, worker, stalled) = match mail_mode {
+            MailMode::Off => (Mailer::disabled(), None, None),
+            MailMode::Working(env) => {
+                let (mailer, worker) = Mailer::queue(QUEUE_CAPACITY);
+                (mailer, Some((worker, env)), None)
+            }
+            MailMode::Stalled(capacity) => {
+                let (mailer, worker) = Mailer::queue(capacity);
+                (mailer, None, Some(worker))
+            }
+        };
         let state = AppState::new(
             Arc::clone(&db),
             policy,
@@ -199,13 +262,26 @@ impl TestApp {
                 max_sessions: 10,
             },
             cheap_accounts(),
+            mailer,
         );
+        if let Some((worker, env)) = worker {
+            let _worker = worker.spawn(
+                state.clone(),
+                Delivery::with_delays(
+                    Arc::new(mail.clone()),
+                    Arc::new(env),
+                    vec![std::time::Duration::from_millis(10); 4],
+                ),
+            );
+        }
         Self {
             dir,
             db,
             clock,
             router: router(state.clone()),
             state,
+            mail,
+            _stalled: stalled,
         }
     }
 

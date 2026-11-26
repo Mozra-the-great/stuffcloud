@@ -109,10 +109,10 @@ Components
 - **Deployment**: Docker Compose (app, edge, Caddy, cloudflared) in an LXC/VM on
   Proxmox; images published to GHCR; Ansible role in `homelab-infra` later.
 
-Repository layout (Cargo workspace): `crates/core`, `crates/db`, `crates/app`,
-`crates/edge`, `crates/cli`; `fuzz/` (cargo-fuzz targets, own workspace);
+Repository layout (Cargo workspace): `crates/core`, `crates/db`, `crates/mail` (the optional
+SMTP transport and message builder, ADR 0015), `crates/app`, `crates/edge`, `crates/cli`; `fuzz/` (cargo-fuzz targets, own workspace);
 `web/` (pnpm workspace: `apps/web` Svelte + Vite SPA, `packages/tools`,
-`packages/api-client`). `crates/core`, `crates/db`, `crates/app`, `fuzz/` and the
+`packages/api-client`). `crates/core`, `crates/db`, `crates/mail`, `crates/app`, `fuzz/` and the
 `web/` scaffold exist so far; `edge` and `cli` are added in the phase that needs them
 (section 15). The SQLite driver is `rusqlite` (ADR 0001, addendum).
 
@@ -311,8 +311,15 @@ Authentication
   every session of the account when redeemed. Without SMTP an admin issues the link
   (`POST /api/v1/admin/users/{login}/password-reset`) or the operator does on the host
   (`stuffcloud-app reset-link <login>`; for an admin account only the host command issues one);
-  with SMTP (A-10) the account asks for it itself. A password change needs the current password,
-  ends the account's other sessions and voids an open reset link.
+  with SMTP (A-10, ADR 0015) the account asks for it itself: `POST
+  /api/v1/auth/password-reset/request` (login name or address, language `de` or `en`) answers `202`
+  with no body for every name, known or not, an admin, an account without an address or a service
+  account, and mails the link, in plain text and only to the address stored for the account, after
+  the answer. Per client address 5 requests are free, then waits up to an hour; an account is sent
+  at most one link per 5 minutes and three an hour, and a valid link of an admin is not replaced;
+  admin accounts get no link by mail. Without SMTP the request is `409
+  mail-not-configured` and `GET /api/v1/features` says `{"mail": false}`. A password change needs the
+  current password, ends the account's other sessions and voids an open reset link.
 - Sessions: `__Host-` prefixed, HttpOnly, Secure, SameSite=Lax cookies, host-only on the
   app address (no `Domain=` attribute); `Origin` check and CSRF token on every
   state-changing request (section 5.5). Session tokens are random, stored only as hashes,
@@ -327,8 +334,15 @@ Authentication
   addenda A-02 and #134). API tokens for the CLI and automation (hashed at
   rest, scoped incl. admin scopes, revocable) and service accounts without interactive login
   (section 10.4).
-- E-mail is **optional** infrastructure (SMTP configurable). Without SMTP:
-  no reminders, no self-service reset; an admin resets instead.
+- E-mail is **optional** infrastructure (SMTP configurable, A-10, ADR 0015). Without SMTP:
+  no reminders, no self-service reset; an admin resets instead, and nothing else changes. The
+  settings group `smtp` (`/api/v1/settings/smtp`) holds the host, port, security (`starttls`, `tls`,
+  or `none` for a local mail catcher, never with a login), the username, the password as a
+  reference to deployment configuration (`{"ref": "STUFFCLOUD_SECRET_SMTP"}`; write-only values
+  come with [#152](https://github.com/Mozra-the-great/stuffcloud/issues/152)) and the sender. Mail
+  is plain text in German or English, with no remote image and no tracking, queued in memory (never
+  stored with a token in it), retried after 15 seconds, 1, 5 and 15 minutes, and logged without any
+  address, name or token. The dev stack's Mailpit catches it.
 
 ## 7. Toolbox
 
@@ -765,6 +779,17 @@ Test layers and what each must cover:
   session; the audit log holds no login name, address or token. Fuzz targets `account` (login
   names, addresses, the password policy) and `forwarded_for` (trusted proxies and
   `X-Forwarded-For`).
+- **Mail tests** (A-10): the `smtp` group is tested at every boundary (host names and addresses,
+  ports, the login pair, `none` without credentials, the sender and its name, secret references,
+  and that a secret value is refused without being echoed), with property tests and the regression
+  corpus of header and protocol injections and the fuzz target `smtp_settings`; the message builder
+  is fed the same hostile values and may not grow a header or a recipient; the SMTP transport runs
+  against fake servers in plain text, with TLS from the first byte and with `STARTTLS` (which is
+  required: a server without it gets nothing), including an untrusted certificate, a wrong name and a
+  wrong password; the queue, the retries, the end of the schedule, the full queue and the logs (no
+  address, name, token or server text) are tested with a recording transport; every login name or
+  address, known or not, gets the same answer to a request for a reset link; the dev-stack smoke test
+  registers an account, asks for a reset mail, reads it in Mailpit and redeems the link.
 - **Cookie check** (since A-02): `scripts/ci/check_cookies.py` fails on any cookie with a
   `Domain=` attribute in any Rust file of the repository (sources, tests, `build.rs`, fuzz
   targets), Caddy file or script of `web/`, on `Set-Cookie` outside the cookie module, on cookie

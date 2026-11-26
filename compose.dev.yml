@@ -12,7 +12,8 @@
 #            docker/app/bootstrap.dev.json once (SPEC 10.7). It trusts the `X-Forwarded-For` of
 #            the stack network (STUFFCLOUD_TRUSTED_PROXIES), so the login throttles see each
 #            client behind Caddy instead of one shared address (#146)
-#   mailpit  mail catcher (A-10 uses it): SMTP on 1025, UI through Caddy
+#   mailpit  mail catcher: SMTP on 1025, UI through Caddy. The app sends its mail (the password
+#            reset mail, A-10) to `mailpit:1025`: the `smtp` group of docker/app/bootstrap.dev.json
 #   Later: `edge` (H-19, #104) joins with its Dockerfile.
 #
 # Every service is hardened the same way and CI enforces it for every service in this file

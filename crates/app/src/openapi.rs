@@ -12,6 +12,7 @@ use utoipa::openapi::OpenApi as Document;
 use crate::accounts::{self, AccountProfile};
 use crate::health::{self, HealthStatus};
 use crate::invitations::{self, InvitationCreated, InvitationList, InvitationView, ResetLink};
+use crate::mail_api::{self, Features};
 use crate::metrics;
 use crate::problem::ProblemBody;
 use crate::resource::{FieldChange, ResourceMeta, WriteChange};
@@ -20,6 +21,7 @@ use crate::settings;
 use stuffcloud_core::account::{
     InvitationRequest, LoginRequest, PasswordChangeRequest, PasswordResetRequest, RegisterRequest,
 };
+use stuffcloud_core::mail::ResetMailRequest;
 
 /// The API description.
 #[derive(Debug, OpenApi)]
@@ -40,6 +42,8 @@ use stuffcloud_core::account::{
         accounts::login,
         accounts::register,
         accounts::reset_password,
+        mail_api::request_password_reset,
+        mail_api::get_features,
         accounts::get_account,
         accounts::change_password,
         invitations::create_invitation,
@@ -52,6 +56,9 @@ use stuffcloud_core::account::{
         settings::get_signup,
         settings::put_signup,
         settings::delete_signup,
+        settings::get_smtp,
+        settings::put_smtp,
+        settings::delete_smtp,
     ),
     components(schemas(
         HealthStatus,
@@ -73,6 +80,8 @@ use stuffcloud_core::account::{
         InvitationView,
         InvitationList,
         ResetLink,
+        ResetMailRequest,
+        Features,
     )),
     tags(
         (name = "operations", description = "Probes, metrics and the API description"),

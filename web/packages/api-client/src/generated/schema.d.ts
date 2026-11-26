@@ -120,6 +120,23 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/v1/auth/password-reset/request": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        /** `POST /api/v1/auth/password-reset/request`. */
+        readonly post: operations["requestPasswordReset"];
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/v1/auth/register": {
         readonly parameters: {
             readonly query?: never;
@@ -167,6 +184,23 @@ export interface paths {
         readonly post?: never;
         /** `DELETE /api/v1/auth/sessions` (logout everywhere). */
         readonly delete: operations["deleteSessions"];
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/v1/features": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** `GET /api/v1/features`. */
+        readonly get: operations["getFeatures"];
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
         readonly options?: never;
         readonly head?: never;
         readonly patch?: never;
@@ -222,6 +256,25 @@ export interface paths {
         readonly post?: never;
         /** `DELETE /api/v1/settings/signup` (reset to the defaults). */
         readonly delete: operations["deleteSignup"];
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/v1/settings/smtp": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** `GET /api/v1/settings/smtp`. */
+        readonly get: operations["getSmtp"];
+        /** `PUT /api/v1/settings/smtp`. */
+        readonly put: operations["putSmtp"];
+        readonly post?: never;
+        /** `DELETE /api/v1/settings/smtp` (the instance sends no mail again). */
+        readonly delete: operations["deleteSmtp"];
         readonly options?: never;
         readonly head?: never;
         readonly patch?: never;
@@ -327,6 +380,49 @@ export interface components {
             /** @description Read-only facts; ignored when the document is sent back with `PUT`. */
             readonly meta: components["schemas"]["ResourceMeta"];
         };
+        /** @description A resource as `GET` returns it: the writable shape plus `meta`. */
+        readonly Envelope_Smtp: {
+            /**
+             * @description The sender address of every mail.
+             * @example noreply@example.com
+             */
+            readonly from: string;
+            /**
+             * @description The name shown next to the sender address; `null` for none.
+             * @example stuffcloud
+             */
+            readonly from_name?: string | null;
+            /**
+             * @description The server: a host name or an IP address.
+             * @example smtp.example.com
+             */
+            readonly host: string;
+            readonly password?: components["schemas"]["SecretRef"] | null;
+            /**
+             * Format: int32
+             * @description The port (1 to 65535).
+             * @example 587
+             */
+            readonly port: number;
+            /** @description How the connection is secured. */
+            readonly security: components["schemas"]["SmtpSecurity"];
+            /**
+             * @description The login of the server; `null` for a server without authentication.
+             * @example stuffcloud
+             */
+            readonly username?: string | null;
+        } & {
+            /** @description Read-only facts; ignored when the document is sent back with `PUT`. */
+            readonly meta: components["schemas"]["ResourceMeta"];
+        };
+        /** @description What this instance can do that depends on how it is set up. */
+        readonly Features: {
+            /**
+             * @description Whether the instance can send mail (the settings group `smtp` exists): with it an account
+             *     can ask for a password reset link itself, without it an admin issues the link.
+             */
+            readonly mail: boolean;
+        };
         /** @description One changed field. */
         readonly FieldChange: {
             /** @description Value after the write (absent for a delete). */
@@ -397,6 +493,11 @@ export interface components {
              */
             readonly id: number;
         };
+        /**
+         * @description The language of a mail.
+         * @enum {string}
+         */
+        readonly Language: "en" | "de";
         /** @description `POST /api/v1/auth/login`. */
         readonly LoginRequest: {
             /**
@@ -485,6 +586,15 @@ export interface components {
             /** @description The token for `POST /api/v1/auth/password-reset`. */
             readonly token: string;
         };
+        /** @description `POST /api/v1/auth/password-reset/request`: ask for a reset link by e-mail. */
+        readonly ResetMailRequest: {
+            readonly language?: components["schemas"]["Language"] | null;
+            /**
+             * @description The login name or the e-mail address of the account.
+             * @example alice
+             */
+            readonly login: string;
+        };
         /** @description The read-only part of a resource document. */
         readonly ResourceMeta: {
             /** @description Creation time (RFC 3339, UTC). */
@@ -507,6 +617,16 @@ export interface components {
          * @enum {string}
          */
         readonly Role: "user" | "moderator" | "admin";
+        /** @description A reference to a secret of the deployment configuration (the SMTP password). */
+        readonly SecretRef: {
+            /**
+             * @description The name of the variable (without `_FILE`): `STUFFCLOUD_SECRET_` and then capital
+             *     letters, digits and `_`. The app reads the variable, or the file named by the variable
+             *     with `_FILE` appended.
+             * @example STUFFCLOUD_SECRET_SMTP
+             */
+            readonly ref: string;
+        };
         /** @description `GET /api/v1/auth/session`. */
         readonly SessionState: {
             /** @description Whether the request carried a valid session. */
@@ -551,6 +671,43 @@ export interface components {
          * @enum {string}
          */
         readonly SignupMode: "open" | "invite-only" | "oidc-only";
+        /** @description Settings group `smtp`. A group that was never written means there is no mail. */
+        readonly Smtp: {
+            /**
+             * @description The sender address of every mail.
+             * @example noreply@example.com
+             */
+            readonly from: string;
+            /**
+             * @description The name shown next to the sender address; `null` for none.
+             * @example stuffcloud
+             */
+            readonly from_name?: string | null;
+            /**
+             * @description The server: a host name or an IP address.
+             * @example smtp.example.com
+             */
+            readonly host: string;
+            readonly password?: components["schemas"]["SecretRef"] | null;
+            /**
+             * Format: int32
+             * @description The port (1 to 65535).
+             * @example 587
+             */
+            readonly port: number;
+            /** @description How the connection is secured. */
+            readonly security: components["schemas"]["SmtpSecurity"];
+            /**
+             * @description The login of the server; `null` for a server without authentication.
+             * @example stuffcloud
+             */
+            readonly username?: string | null;
+        };
+        /**
+         * @description How the connection to the SMTP server is secured.
+         * @enum {string}
+         */
+        readonly SmtpSecurity: "starttls" | "tls" | "none";
         /**
          * @description Kind of an account (SPEC 10.4).
          * @enum {string}
@@ -578,6 +735,16 @@ export interface components {
             /** @description Whether this was a dry run (then nothing was changed). */
             readonly dry_run: boolean;
             readonly resource?: components["schemas"]["Envelope_Signup"] | null;
+            /** @description What happened. */
+            readonly result: components["schemas"]["WriteChange"];
+        };
+        /** @description The answer to a write. */
+        readonly WriteResult_Smtp: {
+            /** @description Every field that changed (or would change). */
+            readonly diff: readonly components["schemas"]["FieldChange"][];
+            /** @description Whether this was a dry run (then nothing was changed). */
+            readonly dry_run: boolean;
+            readonly resource?: components["schemas"]["Envelope_Smtp"] | null;
             /** @description What happened. */
             readonly result: components["schemas"]["WriteChange"];
         };
@@ -1091,6 +1258,88 @@ export interface operations {
             };
         };
     };
+    readonly requestPasswordReset: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header: {
+                /** @description The CSRF token from GET /api/v1/auth/session */
+                readonly "X-CSRF-Token": string;
+            };
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** @description The login name or e-mail address, and the language of the mail */
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["ResetMailRequest"];
+            };
+        };
+        readonly responses: {
+            /** @description Accepted: if the account exists, has an e-mail address, is not an admin and was not sent a link in the last 5 minutes, a mail with a reset link is on its way (the answer is the same for every account) */
+            readonly 202: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Malformed body */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Origin or CSRF check failed */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description This instance sends no mail (mail-not-configured); ask an administrator for a link */
+            readonly 409: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Body is not JSON */
+            readonly 415: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Invalid fields (empty or too long) */
+            readonly 422: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Too many requests from this client, or too many mails waiting; see Retry-After */
+            readonly 429: {
+                headers: {
+                    /** @description Seconds until the next request is taken */
+                    readonly "Retry-After"?: number;
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     readonly register: {
         readonly parameters: {
             readonly query?: never;
@@ -1262,6 +1511,26 @@ export interface operations {
                 };
                 content: {
                     readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readonly getFeatures: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description What this instance can do */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Features"];
                 };
             };
         };
@@ -1651,6 +1920,231 @@ export interface operations {
                 };
                 content: {
                     readonly "application/json": components["schemas"]["WriteResult_Signup"];
+                };
+            };
+            /** @description Malformed header or query */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not authenticated */
+            readonly 401: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Authenticated, but the account or token lacks the permission admin:settings:write (docs/api/permissions.md) */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Never written */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description If-Match failed */
+            readonly 412: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readonly getSmtp: {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Where the instance sends its mail (the password only as a reference to the deployment configuration) */
+            readonly 200: {
+                headers: {
+                    /** @description Strong entity tag, for If-Match */
+                    readonly ETag?: string;
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["Envelope_Smtp"];
+                };
+            };
+            /** @description Not authenticated */
+            readonly 401: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Authenticated, but the account or token lacks the permission admin:settings:read (docs/api/permissions.md) */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Never written: the instance sends no mail */
+            readonly 404: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readonly putSmtp: {
+        readonly parameters: {
+            readonly query?: {
+                /** @description Validate and report the diff, change nothing */
+                readonly dry_run?: boolean;
+            };
+            readonly header?: {
+                /** @description Write only if the current ETag matches */
+                readonly "If-Match"?: string | null;
+                /** @description `*`: create only */
+                readonly "If-None-Match"?: string | null;
+            };
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        /** @description The full writable shape; a `meta` member is ignored. The password is a reference to the deployment configuration (an object with a `ref` member naming a STUFFCLOUD_SECRET_ variable) or null */
+        readonly requestBody: {
+            readonly content: {
+                readonly "application/json": components["schemas"]["Smtp"];
+            };
+        };
+        readonly responses: {
+            /** @description Updated or unchanged (or a dry run) */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["WriteResult_Smtp"];
+                };
+            };
+            /** @description Created */
+            readonly 201: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["WriteResult_Smtp"];
+                };
+            };
+            /** @description Malformed body, header or query */
+            readonly 400: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not authenticated */
+            readonly 401: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Authenticated, but the account or token lacks the permission admin:settings:write (docs/api/permissions.md) */
+            readonly 403: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description If-Match / If-None-Match failed */
+            readonly 412: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Body too large */
+            readonly 413: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Body is not JSON */
+            readonly 415: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Invalid fields, all of them listed */
+            readonly 422: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    readonly deleteSmtp: {
+        readonly parameters: {
+            readonly query?: {
+                /** @description Report what would be deleted, change nothing */
+                readonly dry_run?: boolean;
+            };
+            readonly header?: {
+                /** @description Delete only if the current ETag matches */
+                readonly "If-Match"?: string | null;
+            };
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly requestBody?: never;
+        readonly responses: {
+            /** @description Deleted (or a dry run) */
+            readonly 200: {
+                headers: {
+                    readonly [name: string]: unknown;
+                };
+                content: {
+                    readonly "application/json": components["schemas"]["WriteResult_Smtp"];
                 };
             };
             /** @description Malformed header or query */

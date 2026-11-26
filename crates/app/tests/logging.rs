@@ -128,6 +128,7 @@ async fn logs_contain_no_addresses_tokens_cookies_or_queries() {
             .unwrap(),
             stuffcloud_core::client_ip::ProxyList::default(),
         ),
+        stuffcloud_app::mail::Mailer::disabled(),
     );
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();

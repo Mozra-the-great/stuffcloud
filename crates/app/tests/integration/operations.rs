@@ -46,6 +46,7 @@ async fn readiness_fails_on_an_unmigrated_database() {
         Limits::default(),
         auth_settings(),
         crate::common::cheap_accounts(),
+        stuffcloud_app::mail::Mailer::disabled(),
     );
     let app = router(state);
     let response =
@@ -181,6 +182,7 @@ async fn slow_requests_hit_the_time_limit() {
         limits,
         auth_settings(),
         crate::common::cheap_accounts(),
+        stuffcloud_app::mail::Mailer::disabled(),
     );
     // The middleware of the real router around a handler that is too slow and one that is not.
     let app = axum::Router::new()

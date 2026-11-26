@@ -14,6 +14,7 @@ import contextlib
 import io
 import json
 import pathlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -225,7 +226,15 @@ class TestLockfile(unittest.TestCase):
 
     def test_the_web_lockfile_parses_and_lists_the_design_kit(self):
         text = (nl.WEB / "pnpm-lock.yaml").read_text(encoding="utf-8")
-        self.assertIn(("@mozra-the-great/kern", "0.12.3"), nl.lockfile_packages(text))
+        manifest = json.loads((nl.WEB / "apps" / "web" / "package.json").read_text(encoding="utf-8"))
+        # The version is the one in the release URL the app pins, so a kern bump needs no edit here.
+        url = manifest["dependencies"]["@mozra-the-great/kern"]
+        match = re.fullmatch(r"https://github\.com/Mozra-the-great/kern/releases/download/v([0-9.]+)/"
+                             r"mozra-the-great-kern-([0-9.]+)\.tgz", url)
+        self.assertIsNotNone(match, url)
+        assert match is not None
+        self.assertEqual(match.group(1), match.group(2))
+        self.assertIn(("@mozra-the-great/kern", match.group(1)), nl.lockfile_packages(text))
 
     def test_platforms_are_the_union_over_the_project_packages(self):
         self.assertEqual(

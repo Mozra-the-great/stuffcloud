@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   of every decoding error for all three kinds of line break, the data URI, the media type pattern, the file types a browser would run, the
   size limits at exactly the limit, and `worker.ts` run as a worker including the buffer that moves; padding and the alphabet in use no
   longer depend on a buffer size or a string label. (#188)
+- Measured cost of the full StrykerJS run in ADR 0007 (#162): the tools in four local shards took 2.3 to over 3.5 hours each, the
+  end of a run is slow where the tests use large inputs, so the shards of `web-mutants-full` get 330 minutes instead of 120. (#192)
 - Mutation testing of the Python CI helpers (#161, ADR 0007 addendum): job `mutation-python` in `ci.yml` (part of
   `build`; it never skips itself) and the nightly `deep-tests.yml` run [mutmut](https://github.com/boxed/mutmut) 3
   over every `scripts/ci/*.py`, and `scripts/ci/mutation_gate.py` fails on any mutant no test noticed (`mutmut run`

@@ -109,10 +109,10 @@ Components
 - **Deployment**: Docker Compose (app, edge, Caddy, cloudflared) in an LXC/VM on
   Proxmox; images published to GHCR; Ansible role in `homelab-infra` later.
 
-Repository layout (Cargo workspace): `crates/core`, `crates/db`, `crates/app`,
-`crates/edge`, `crates/cli`; `fuzz/` (cargo-fuzz targets, own workspace);
+Repository layout (Cargo workspace): `crates/core`, `crates/db`, `crates/mail` (the optional
+SMTP transport and message builder, ADR 0015), `crates/app`, `crates/edge`, `crates/cli`; `fuzz/` (cargo-fuzz targets, own workspace);
 `web/` (pnpm workspace: `apps/web` Svelte + Vite SPA, `packages/tools`,
-`packages/api-client`). `crates/core`, `crates/db`, `crates/app`, `fuzz/` and the
+`packages/api-client`). `crates/core`, `crates/db`, `crates/mail`, `crates/app`, `fuzz/` and the
 `web/` scaffold exist so far; `edge` and `cli` are added in the phase that needs them
 (section 15). The SQLite driver is `rusqlite` (ADR 0001, addendum).
 

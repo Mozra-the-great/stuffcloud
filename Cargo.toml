@@ -1,8 +1,8 @@
 # stuffcloud Rust workspace (docs/SPEC.md, section 4).
 #
 # crates/core: domain types and validation without I/O; crates/db: SQLite (WAL), migrations
-# and the resource store; crates/app: the LAN API (axum). edge (public endpoints) and cli
-# join them in phases 3 and later.
+# and the resource store; crates/mail: the optional SMTP transport and message builder;
+# crates/app: the LAN API (axum). edge (public endpoints) and cli join them in phases 3 and later.
 # fuzz/ is a separate workspace because cargo-fuzz needs a nightly toolchain.
 
 [workspace]

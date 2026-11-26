@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   of every decoding error for all three kinds of line break, the data URI, the media type pattern, the file types a browser would run, the
   size limits at exactly the limit, and `worker.ts` run as a worker including the buffer that moves; padding and the alphabet in use no
   longer depend on a buffer size or a string label. (#188)
+- No surviving mutant in the password generator and the JWT tool (#162): the entropy count against a brute-force count, the
+  limits and character sets of the generator, and for JWT every way a key, a PEM block and the time claims can be wrong, keys that are
+  imported as not extractable, and a signature check that fails inside WebCrypto; a key import now answers `{ key }` or `{ error }`
+  instead of a boolean a later `catch` could mask. (#191)
 - Mutation testing of the Python CI helpers (#161, ADR 0007 addendum): job `mutation-python` in `ci.yml` (part of
   `build`; it never skips itself) and the nightly `deep-tests.yml` run [mutmut](https://github.com/boxed/mutmut) 3
   over every `scripts/ci/*.py`, and `scripts/ci/mutation_gate.py` fails on any mutant no test noticed (`mutmut run`

@@ -50,16 +50,9 @@ export function decodeBase64Url(text: string): Uint8Array<ArrayBuffer> | undefin
   if (!BASE64URL.test(text) || text.length % 4 === 1) {
     return undefined;
   }
-  const padded = text
-    .replaceAll('-', '+')
-    .replaceAll('_', '/')
-    .padEnd(Math.ceil(text.length / 4) * 4, '=');
-  const binary = atob(padded);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-  return bytes;
+  // `atob` takes Base64 without padding (WHATWG "forgiving-base64"); only a length of 1 modulo 4 is refused above.
+  const binary = atob(text.replaceAll('-', '+').replaceAll('_', '/'));
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
 /** Standard Base64 or Base64url, with or without padding. */
@@ -67,11 +60,12 @@ export function decodeBase64Any(text: string): Uint8Array<ArrayBuffer> | undefin
   return decodeBase64Url(text.replace(/[\s=]/g, '').replaceAll('+', '-').replaceAll('/', '_'));
 }
 
-function utf8(bytes: Uint8Array): string | undefined {
+/** The bytes as UTF-8 text, or `null` when they are not UTF-8. */
+function utf8(bytes: Uint8Array): string | null {
   try {
     return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   } catch {
-    return undefined;
+    return null;
   }
 }
 
@@ -106,6 +100,7 @@ export function decodeToken(input: string): DecodeResult {
   if (parts.length !== 3) {
     return { ok: false, error: 'parts' };
   }
+  // Stryker disable next-line StringLiteral: `parts` has exactly three entries here, so the defaults are never used
   const [headerPart = '', payloadPart = '', signature = ''] = parts;
   const headerBytes = decodeBase64Url(headerPart);
   const payloadBytes = decodeBase64Url(payloadPart);
@@ -114,7 +109,7 @@ export function decodeToken(input: string): DecodeResult {
   }
   const headerSource = utf8(headerBytes);
   const payloadSource = utf8(payloadBytes);
-  if (headerSource === undefined || payloadSource === undefined) {
+  if (headerSource === null || payloadSource === null) {
     return { ok: false, error: 'utf8' };
   }
   let header: unknown;
@@ -172,6 +167,11 @@ export interface TimeClaimProblem {
 /** The largest instant a JavaScript date can hold, in milliseconds. */
 const MAX_DATE = 8.64e15;
 
+/** `Number.isFinite` as a type guard; false for everything that is not a number. */
+function isFiniteNumber(value: unknown): value is number {
+  return Number.isFinite(value);
+}
+
 /**
  * The time claims of a payload read against `now` (milliseconds). A claim that is not a number a date can
  * hold is reported as a problem. A token is expired from the moment `exp` is reached, and not valid
@@ -191,7 +191,7 @@ export function timeClaims(
       continue;
     }
     const value = payload[name];
-    if (typeof value !== 'number' || !Number.isFinite(value) || Math.abs(value * 1000) > MAX_DATE) {
+    if (!isFiniteNumber(value) || Math.abs(value * 1000) > MAX_DATE) {
       problems.push({ name, value });
       continue;
     }
@@ -271,10 +271,8 @@ export function readPem(text: string): Pem | undefined {
   if (!trimmed.startsWith(begin)) {
     return undefined;
   }
+  // No closing `-----` after the label gives -1, a label that no footer can match: the check below refuses it.
   const labelEnd = trimmed.indexOf('-----', begin.length);
-  if (labelEnd < 0) {
-    return undefined;
-  }
   const label = trimmed.slice(begin.length, labelEnd);
   const footer = `-----END ${label}-----`;
   if (!trimmed.endsWith(footer)) {
@@ -288,9 +286,7 @@ function isPrivateLabel(label: string): boolean {
   return label.includes('PRIVATE');
 }
 
-type KeyImport =
-  | { readonly ok: true; readonly key: CryptoKey }
-  | { readonly ok: false; readonly error: VerifyErrorCode };
+type KeyImport = { readonly key: CryptoKey } | { readonly error: VerifyErrorCode };
 
 function algorithmOf(spec: Spec): HmacImportParams | RsaHashedImportParams | EcKeyImportParams {
   switch (spec.family) {
@@ -301,6 +297,7 @@ function algorithmOf(spec: Spec): HmacImportParams | RsaHashedImportParams | EcK
     case 'rsa-pss':
       return { name: 'RSA-PSS', hash: spec.hash };
     case 'ecdsa':
+      // Stryker disable next-line StringLiteral: every ECDSA entry of SPECS names its curve, so the default is never used
       return { name: 'ECDSA', namedCurve: spec.curve ?? 'P-256' };
   }
 }
@@ -315,62 +312,61 @@ async function importKey(spec: Spec, keyText: string, secretIsBase64: boolean): 
       // An HMAC secret is never a public key: taking a pasted PEM public key as the secret is the
       // classic algorithm-confusion attack, so a key that looks like one is refused.
       if (isPem) {
-        return { ok: false, error: 'key-kind' };
+        return { error: 'key-kind' };
       }
       if (isJwk) {
-        const jwk = JSON.parse(text) as unknown;
-        if (!isObject(jwk) || jwk['kty'] !== 'oct' || typeof jwk['k'] !== 'string') {
-          return { ok: false, error: 'key-kind' };
+        // The text starts with `{`, so it is an object or it does not parse (and the catch below answers).
+        const jwk = JSON.parse(text) as JsonObject;
+        if (jwk['kty'] !== 'oct' || typeof jwk['k'] !== 'string') {
+          return { error: 'key-kind' };
         }
         return {
-          ok: true,
           key: await crypto.subtle.importKey('jwk', jwk as JsonWebKey, algorithm, false, [
             'verify',
           ]),
         };
       }
       const bytes = secretIsBase64 ? decodeBase64Any(text) : new TextEncoder().encode(keyText);
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,BlockStatement: without this check `importKey` throws for a missing or an empty key, and the catch below gives the same answer
       if (bytes === undefined || bytes.length === 0) {
-        return { ok: false, error: 'key-invalid' };
+        return { error: 'key-invalid' };
       }
       return {
-        ok: true,
         key: await crypto.subtle.importKey('raw', bytes, algorithm, false, ['verify']),
       };
     }
     // RSA and EC need a public key: a pasted secret or private key is refused with a reason.
     if (isPem) {
       const pem = readPem(text);
+      // Stryker disable next-line ConditionalExpression,BlockStatement,OptionalChaining: without this check `pem.der` or `importKey` throws, and the catch below gives the same answer
       if (pem?.der === undefined) {
-        return { ok: false, error: 'key-invalid' };
+        return { error: 'key-invalid' };
       }
       if (isPrivateLabel(pem.label)) {
-        return { ok: false, error: 'key-private' };
+        return { error: 'key-private' };
       }
       if (pem.label !== 'PUBLIC KEY') {
-        return { ok: false, error: 'key-pem' };
+        return { error: 'key-pem' };
       }
       return {
-        ok: true,
         key: await crypto.subtle.importKey('spki', pem.der, algorithm, false, ['verify']),
       };
     }
     if (isJwk) {
-      const jwk = JSON.parse(text) as unknown;
-      if (!isObject(jwk) || (jwk['kty'] !== 'RSA' && jwk['kty'] !== 'EC')) {
-        return { ok: false, error: 'key-kind' };
+      const jwk = JSON.parse(text) as JsonObject;
+      if (jwk['kty'] !== 'RSA' && jwk['kty'] !== 'EC') {
+        return { error: 'key-kind' };
       }
       if (Object.hasOwn(jwk, 'd')) {
-        return { ok: false, error: 'key-private' };
+        return { error: 'key-private' };
       }
       return {
-        ok: true,
         key: await crypto.subtle.importKey('jwk', jwk as JsonWebKey, algorithm, false, ['verify']),
       };
     }
-    return { ok: false, error: 'key-kind' };
+    return { error: 'key-kind' };
   } catch {
-    return { ok: false, error: 'key-invalid' };
+    return { error: 'key-invalid' };
   }
 }
 
@@ -412,8 +408,8 @@ export async function verifyToken(
     return { ok: false, error: 'bad-signature' };
   }
   const imported = await importKey(spec, keyText, secretIsBase64);
-  if (!imported.ok) {
-    return imported;
+  if (!('key' in imported)) {
+    return { ok: false, error: imported.error };
   }
   const data = new TextEncoder().encode(token.signingInput);
   try {

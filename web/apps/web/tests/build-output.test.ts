@@ -48,14 +48,17 @@ describe('production build output', () => {
   it('ships kern’s Code theme only, and both pages select it (ADR 0014)', () => {
     for (const page of ['index.html', 'gallery.html']) {
       const html = readFileSync(files.get(page) ?? '', 'utf8');
-      expect(html).toMatch(/<body data-theme="code">/);
-      expect(html).not.toMatch(/<html[^>]*data-theme/);
+      expect(html).toMatch(/<html[^>]*data-theme="code"/);
+      expect(html).not.toMatch(/<body[^>]*data-theme/);
     }
     const css = text(/\.css$/).join('\n');
     expect(css).toMatch(/\[data-theme\^=['"]?code['"]?\]/);
     expect(css).toContain('--k-bg:#101012');
-    // The design has no body line height; kern's theme rule sets 1.5 (kern#145).
-    expect(css).toContain('body[data-theme]{line-height:normal}');
+    // The design has no body line height: kern's Code theme sets `normal` itself (kern#145), so the app
+    // carries no override.
+    expect(css).not.toContain('body[data-theme]{line-height');
+    // On the root the theme follows the reader's default font size (kern#144), not a px size.
+    expect(css).toMatch(/font-size:calc\(var\(--k-root-scale\)\s*\*\s*1rem\)/);
     for (const other of ['flower', 'pop', 'line']) {
       expect(css).not.toMatch(new RegExp(`\\[data-theme\\^=['"]?${other}['"]?\\]`));
     }

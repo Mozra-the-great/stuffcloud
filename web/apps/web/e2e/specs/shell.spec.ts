@@ -267,9 +267,10 @@ test.describe('smoke screenshots', () => {
 });
 
 test.describe('design kit theme (ADR 0014)', () => {
-  test('kern’s Code theme is on the body and keeps the design’s text metrics', async ({ page }) => {
+  test('kern’s Code theme is on the root and keeps the design’s text metrics', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('body')).toHaveAttribute('data-theme', 'code');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'code');
+    await expect(page.locator('body')).not.toHaveAttribute('data-theme');
     const metrics = await page.evaluate(() => {
       const root = getComputedStyle(document.documentElement);
       const body = getComputedStyle(document.body);

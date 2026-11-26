@@ -332,6 +332,21 @@ describe('search', () => {
     expect(window.location.pathname).toBe('/tools/merge-pdf');
   });
 
+  it('adds no landmark of its own: one banner and one contentinfo while it is open (kern#154)', async () => {
+    const user = userEvent.setup();
+    renderShell('/');
+    await heading('Your stuff, in your cloud.');
+    expect(screen.getAllByRole('banner', { hidden: true })).toHaveLength(1);
+    expect(screen.getAllByRole('contentinfo', { hidden: true })).toHaveLength(1);
+
+    await user.keyboard('{Control>}k{/Control}');
+    expect(document.querySelector('dialog')?.hasAttribute('open')).toBe(true);
+    // The title row and footer of kern's Modal carry role="none", so the dialog adds no second
+    // banner or contentinfo next to the shell's own.
+    expect(screen.getAllByRole('banner', { hidden: true })).toHaveLength(1);
+    expect(screen.getAllByRole('contentinfo', { hidden: true })).toHaveLength(1);
+  });
+
   it('opens from the header button and from Cmd+K', async () => {
     const user = userEvent.setup();
     renderShell('/');

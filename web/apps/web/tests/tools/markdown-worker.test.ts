@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { isInput, markdownToHtml, runTask } from '../../src/tools/markdown/parse.ts';
 import { createPool } from '../../src/tools/markdown/pool.ts';
+import { talkToWorker } from '../worker-entry.ts';
 
 describe('markdown worker', () => {
   it('turns Markdown into HTML, unclean as it is: the page cleans it', () => {
@@ -15,6 +16,24 @@ describe('markdown worker', () => {
     expect(isInput({})).toBe(false);
     expect(isInput(null)).toBe(false);
     expect(isInput('x')).toBe(false);
+    expect(isInput(undefined)).toBe(false);
+    expect(isInput(5)).toBe(false);
+  });
+
+  it('answers the requests of the page from worker.ts: Markdown in, HTML out, anything else refused', async () => {
+    const replies = await talkToWorker(
+      () => import('../../src/tools/markdown/worker.ts'),
+      [
+        { type: 'run', id: 1, input: { source: '# T' } },
+        { type: 'run', id: 2, input: { source: 5 } },
+      ],
+    );
+    expect(replies).toContainEqual({ type: 'result', id: 1, output: '<h1>T</h1>\n' });
+    expect(replies).toContainEqual({
+      type: 'error',
+      id: 2,
+      message: 'the worker received input it cannot work with',
+    });
   });
 
   it('starts one worker from worker.ts as a module, so that it can be stopped', () => {

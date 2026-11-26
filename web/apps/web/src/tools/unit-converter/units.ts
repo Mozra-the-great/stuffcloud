@@ -249,7 +249,8 @@ export function parseNumber(text: string): ParsedNumber {
   if (cleaned === '') {
     return { ok: false, error: 'empty' };
   }
-  if (!DECIMAL.test(cleaned) || (cleaned.includes('.') && cleaned.includes(','))) {
+  // A text with a dot and a comma does not match `DECIMAL`, which allows one separator.
+  if (!DECIMAL.test(cleaned)) {
     return { ok: false, error: 'syntax' };
   }
   const value = Number(cleaned.replace(',', '.'));
@@ -262,7 +263,8 @@ export const DEFAULT_PRECISION = 6;
 
 /** Significant digits from text: out of range or unreadable falls back to the nearest valid value. */
 export function parsePrecision(text: string): number {
-  const value = Number(text.trim());
+  // `Number` ignores white space around the digits, but reads a text of white space only as 0.
+  const value = Number(text);
   if (text.trim() === '' || !Number.isFinite(value)) {
     return DEFAULT_PRECISION;
   }
@@ -277,14 +279,14 @@ export function parsePrecision(text: string): number {
 export function formatValue(value: number, precision: number): string {
   const digits = Math.min(MAX_PRECISION, Math.max(MIN_PRECISION, Math.round(precision)));
   const rounded = Number(value.toPrecision(digits));
-  if (rounded === 0) {
-    return '0';
-  }
   const size = Math.abs(rounded);
-  if (size >= 1e15 || size < 1e-6) {
-    const [mantissa = '', exponent = ''] = rounded.toExponential(digits - 1).split('e');
-    const trimmed = mantissa.includes('.') ? mantissa.replace(/\.?0+$/, '') : mantissa;
-    return `${trimmed}e${exponent}`;
+  // `String` writes 0 and -0 as '0', and a value below 1e-6 `String` writes the exponent form itself, in the same shape as here.
+  if (size >= 1e15) {
+    const exponential = rounded.toExponential(digits - 1);
+    const cut = exponential.indexOf('e');
+    // The mantissa is one digit, a dot and more digits, or one digit: only zeros after the dot go.
+    const trimmed = exponential.slice(0, cut).replace(/\.?0+$/, '');
+    return `${trimmed}e${exponential.slice(cut + 1)}`;
   }
   return String(rounded);
 }
@@ -309,7 +311,8 @@ export function convert(category: Category, from: Unit, to: Unit, value: number)
   if (!Number.isFinite(base)) {
     return { ok: false, error: 'overflow' };
   }
-  if (category.minimumBase !== undefined && base < category.minimumBase - MINIMUM_SLACK) {
+  const floor = category.minimumBase ?? Number.NEGATIVE_INFINITY;
+  if (base < floor - MINIMUM_SLACK) {
     return { ok: false, error: 'below-absolute-zero' };
   }
   const result = from === to ? value : to.fromBase(base);
@@ -373,14 +376,13 @@ export const MAX_HITS = 12;
  */
 export function searchUnits(query: string): readonly UnitHit[] {
   const words = normalize(query)
-    .split(/\s+/)
+    .split(/\s/)
     .filter((word) => word !== '');
   if (words.length === 0) {
     return [];
   }
   const joined = words.join(' ');
-  const ranked: { hit: UnitHit; rank: number; order: number }[] = [];
-  let order = 0;
+  const ranked: { hit: UnitHit; rank: number }[] = [];
   for (const category of CATEGORIES) {
     for (const unit of category.units) {
       const names = [normalize(unitName(unit, 'en')), normalize(unitName(unit, 'de'))];
@@ -390,7 +392,6 @@ export function searchUnits(query: string): readonly UnitHit[] {
         normalize(categoryName(category, 'en')),
         normalize(categoryName(category, 'de')),
       ].join(' ');
-      order += 1;
       if (!words.every((word) => haystack.includes(word))) {
         continue;
       }
@@ -400,11 +401,14 @@ export function searchUnits(query: string): readonly UnitHit[] {
       } else if (own.some((text) => text.startsWith(joined))) {
         rank = 1;
       }
-      ranked.push({ hit: { category, unit }, rank, order });
+      ranked.push({ hit: { category, unit }, rank });
     }
   }
-  return ranked
-    .sort((a, b) => a.rank - b.rank || a.order - b.order)
-    .slice(0, MAX_HITS)
-    .map((entry) => entry.hit);
+  return (
+    ranked
+      // `sort` is stable, so hits of one rank stay in table order.
+      .sort((a, b) => a.rank - b.rank)
+      .slice(0, MAX_HITS)
+      .map((entry) => entry.hit)
+  );
 }

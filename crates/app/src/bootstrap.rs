@@ -319,6 +319,7 @@ mod tests {
             })),
             vec![
                 ("/version".to_owned(), FieldErrorCode::InvalidValue),
+                ("/settings/nope".to_owned(), FieldErrorCode::UnknownField),
                 (
                     "/settings/reserved-names/x".to_owned(),
                     FieldErrorCode::UnknownField
@@ -327,7 +328,6 @@ mod tests {
                     "/settings/reserved-names/names/1".to_owned(),
                     FieldErrorCode::InvalidValue
                 ),
-                ("/settings/nope".to_owned(), FieldErrorCode::UnknownField),
                 ("/zones".to_owned(), FieldErrorCode::UnknownField),
             ]
         );

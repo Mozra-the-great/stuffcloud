@@ -655,6 +655,112 @@
         }
       }
     },
+    "/api/v1/auth/password-reset/request": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "`POST /api/v1/auth/password-reset/request`.",
+        "operationId": "requestPasswordReset",
+        "parameters": [
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "description": "The CSRF token from GET /api/v1/auth/session",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The login name or e-mail address, and the language of the mail",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetMailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted: if the account exists, has an e-mail address, is not an admin and was not sent a link in the last 5 minutes, a mail with a reset link is on its way (the answer is the same for every account)"
+          },
+          "400": {
+            "description": "Malformed body",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF check failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "This instance sends no mail (mail-not-configured); ask an administrator for a link",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Body is not JSON",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields (empty or too long)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this client, or too many mails waiting; see Retry-After",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 0
+                },
+                "description": "Seconds until the next request is taken"
+              }
+            },
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/register": {
       "post": {
         "tags": [
@@ -873,6 +979,27 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/features": {
+      "get": {
+        "tags": [
+          "operations"
+        ],
+        "summary": "`GET /api/v1/features`.",
+        "operationId": "getFeatures",
+        "responses": {
+          "200": {
+            "description": "What this instance can do",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Features"
                 }
               }
             }
@@ -1453,6 +1580,302 @@
         }
       }
     },
+    "/api/v1/settings/smtp": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "`GET /api/v1/settings/smtp`.",
+        "operationId": "getSmtp",
+        "responses": {
+          "200": {
+            "description": "Where the instance sends its mail (the password only as a reference to the deployment configuration)",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Strong entity tag, for If-Match"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Smtp"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated, but the account or token lacks the permission admin:settings:read (docs/api/permissions.md)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Never written: the instance sends no mail",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "`PUT /api/v1/settings/smtp`.",
+        "operationId": "putSmtp",
+        "parameters": [
+          {
+            "name": "dry_run",
+            "in": "query",
+            "description": "Validate and report the diff, change nothing",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Write only if the current ETag matches",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "`*`: create only",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The full writable shape; a `meta` member is ignored. The password is a reference to the deployment configuration (an object with a `ref` member naming a STUFFCLOUD_SECRET_ variable) or null",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Smtp"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated or unchanged (or a dry run)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WriteResult_Smtp"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WriteResult_Smtp"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed body, header or query",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated, but the account or token lacks the permission admin:settings:write (docs/api/permissions.md)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "If-Match / If-None-Match failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Body is not JSON",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid fields, all of them listed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "`DELETE /api/v1/settings/smtp` (the instance sends no mail again).",
+        "operationId": "deleteSmtp",
+        "parameters": [
+          {
+            "name": "dry_run",
+            "in": "query",
+            "description": "Report what would be deleted, change nothing",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Delete only if the current ETag matches",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted (or a dry run)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WriteResult_Smtp"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed header or query",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authenticated, but the account or token lacks the permission admin:settings:write (docs/api/permissions.md)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Never written",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "If-Match failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/healthz": {
       "get": {
         "tags": [
@@ -1653,6 +2076,97 @@
         ],
         "description": "A resource as `GET` returns it: the writable shape plus `meta`."
       },
+      "Envelope_Smtp": {
+        "allOf": [
+          {
+            "type": "object",
+            "description": "Settings group `smtp`. A group that was never written means there is no mail.",
+            "required": [
+              "host",
+              "port",
+              "security",
+              "from"
+            ],
+            "properties": {
+              "from": {
+                "type": "string",
+                "description": "The sender address of every mail.",
+                "example": "noreply@example.com"
+              },
+              "from_name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The name shown next to the sender address; `null` for none.",
+                "example": "stuffcloud"
+              },
+              "host": {
+                "type": "string",
+                "description": "The server: a host name or an IP address.",
+                "example": "smtp.example.com"
+              },
+              "password": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/SecretRef",
+                    "description": "The password as a reference to the deployment configuration; `null` without a login."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "port": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The port (1 to 65535).",
+                "example": 587,
+                "minimum": 0
+              },
+              "security": {
+                "$ref": "#/components/schemas/SmtpSecurity",
+                "description": "How the connection is secured."
+              },
+              "username": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The login of the server; `null` for a server without authentication.",
+                "example": "stuffcloud"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "meta"
+            ],
+            "properties": {
+              "meta": {
+                "$ref": "#/components/schemas/ResourceMeta",
+                "description": "Read-only facts; ignored when the document is sent back with `PUT`."
+              }
+            }
+          }
+        ],
+        "description": "A resource as `GET` returns it: the writable shape plus `meta`."
+      },
+      "Features": {
+        "type": "object",
+        "description": "What this instance can do that depends on how it is set up.",
+        "required": [
+          "mail"
+        ],
+        "properties": {
+          "mail": {
+            "type": "boolean",
+            "description": "Whether the instance can send mail (the settings group `smtp` exists): with it an account\ncan ask for a password reset link itself, without it an admin issues the link."
+          }
+        }
+      },
       "FieldChange": {
         "type": "object",
         "description": "One changed field.",
@@ -1818,6 +2332,14 @@
             "description": "Id (to revoke it)."
           }
         }
+      },
+      "Language": {
+        "type": "string",
+        "description": "The language of a mail.",
+        "enum": [
+          "en",
+          "de"
+        ]
       },
       "LoginRequest": {
         "type": "object",
@@ -1993,6 +2515,32 @@
           }
         }
       },
+      "ResetMailRequest": {
+        "type": "object",
+        "description": "`POST /api/v1/auth/password-reset/request`: ask for a reset link by e-mail.",
+        "required": [
+          "login"
+        ],
+        "properties": {
+          "language": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Language",
+                "description": "The language of the mail (`en` when absent)."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "login": {
+            "type": "string",
+            "description": "The login name or the e-mail address of the account.",
+            "example": "alice"
+          }
+        },
+        "additionalProperties": false
+      },
       "ResourceMeta": {
         "type": "object",
         "description": "The read-only part of a resource document.",
@@ -2031,6 +2579,20 @@
           "moderator",
           "admin"
         ]
+      },
+      "SecretRef": {
+        "type": "object",
+        "description": "A reference to a secret of the deployment configuration (the SMTP password).",
+        "required": [
+          "ref"
+        ],
+        "properties": {
+          "ref": {
+            "type": "string",
+            "description": "The name of the variable (without `_FILE`): `STUFFCLOUD_SECRET_` and then capital\nletters, digits and `_`. The app reads the variable, or the file named by the variable\nwith `_FILE` appended.",
+            "example": "STUFFCLOUD_SECRET_SMTP"
+          }
+        }
       },
       "SessionState": {
         "type": "object",
@@ -2142,6 +2704,76 @@
           "oidc-only"
         ]
       },
+      "Smtp": {
+        "type": "object",
+        "description": "Settings group `smtp`. A group that was never written means there is no mail.",
+        "required": [
+          "host",
+          "port",
+          "security",
+          "from"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "The sender address of every mail.",
+            "example": "noreply@example.com"
+          },
+          "from_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The name shown next to the sender address; `null` for none.",
+            "example": "stuffcloud"
+          },
+          "host": {
+            "type": "string",
+            "description": "The server: a host name or an IP address.",
+            "example": "smtp.example.com"
+          },
+          "password": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SecretRef",
+                "description": "The password as a reference to the deployment configuration; `null` without a login."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "port": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The port (1 to 65535).",
+            "example": 587,
+            "minimum": 0
+          },
+          "security": {
+            "$ref": "#/components/schemas/SmtpSecurity",
+            "description": "How the connection is secured."
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The login of the server; `null` for a server without authentication.",
+            "example": "stuffcloud"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SmtpSecurity": {
+        "type": "string",
+        "description": "How the connection to the SMTP server is secured.",
+        "enum": [
+          "starttls",
+          "tls",
+          "none"
+        ]
+      },
       "UserKind": {
         "type": "string",
         "description": "Kind of an account (SPEC 10.4).",
@@ -2221,6 +2853,43 @@
             "oneOf": [
               {
                 "$ref": "#/components/schemas/Envelope_Signup",
+                "description": "The resource after the write; absent after a delete."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result": {
+            "$ref": "#/components/schemas/WriteChange",
+            "description": "What happened."
+          }
+        }
+      },
+      "WriteResult_Smtp": {
+        "type": "object",
+        "description": "The answer to a write.",
+        "required": [
+          "result",
+          "dry_run",
+          "diff"
+        ],
+        "properties": {
+          "diff": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldChange"
+            },
+            "description": "Every field that changed (or would change)."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Whether this was a dry run (then nothing was changed)."
+          },
+          "resource": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Envelope_Smtp",
                 "description": "The resource after the write; absent after a delete."
               },
               {

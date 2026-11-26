@@ -7,6 +7,7 @@ import {
   digestBytes,
   digestText,
   fromHex,
+  lengthField,
   matchingAlgorithms,
   parseExpected,
   toBase64,
@@ -118,16 +119,38 @@ describe.each(ALGORITHMS)('%s (incremental)', (algorithm) => {
 });
 
 describe('the length field', () => {
-  it('counts a length whose bit count needs more than 32 bits (more than 512 MiB, SHA-256)', () => {
-    const chunk = new Uint8Array(1 << 24);
-    const hasher = createHasher('SHA-256');
-    const expected = createHash('sha256');
-    for (let index = 0; index < 33; index += 1) {
-      hasher.update(chunk);
-      expected.update(chunk);
+  const hex = (bytes: number, fieldBytes: number): string => toHex(lengthField(bytes, fieldBytes));
+
+  it('is the bit length, big-endian, in 8 bytes (SHA-1, SHA-256) or 16 (SHA-384, SHA-512)', () => {
+    expect(hex(0, 8)).toBe('0000000000000000');
+    expect(hex(3, 8)).toBe('0000000000000018');
+    expect(hex(3, 16)).toBe('00000000000000000000000000000018');
+  });
+
+  it('carries into the high word once the bit count needs more than 32 bits (512 MiB)', () => {
+    // 2^29 bytes are 2^32 bits: the first length whose bit count does not fit into 32 bits.
+    expect(hex(2 ** 29 - 1, 8)).toBe('00000000fffffff8');
+    expect(hex(2 ** 29, 8)).toBe('0000000100000000');
+    expect(hex(2 ** 29 + 1, 8)).toBe('0000000100000008');
+    // 33 chunks of 16 MiB, the size the old end-to-end case hashed.
+    expect(hex(33 * 2 ** 24, 8)).toBe('0000000108000000');
+    expect(hex(2 ** 29, 16)).toBe('00000000000000000000000100000000');
+  });
+
+  it('keeps every bit up to the largest safe integer (2^53 - 1 bytes are 2^56 - 8 bits)', () => {
+    expect(hex(2 ** 32, 8)).toBe('0000000800000000');
+    expect(hex(Number.MAX_SAFE_INTEGER, 8)).toBe('00fffffffffffff8');
+    expect(hex(Number.MAX_SAFE_INTEGER, 16)).toBe('000000000000000000fffffffffffff8');
+  });
+
+  it('is what the hashers append: a digest over more than one block agrees with node', () => {
+    const data = bytesOf(1_000_003, 7);
+    for (const algorithm of ALGORITHMS) {
+      expect(hashed(algorithm, [data.subarray(0, 4099), data.subarray(4099)])).toBe(
+        reference(algorithm, data),
+      );
     }
-    expect(toHex(hasher.digest())).toBe(expected.digest('hex'));
-  }, 120_000);
+  });
 });
 
 describe('WebCrypto and the incremental hashers agree', () => {

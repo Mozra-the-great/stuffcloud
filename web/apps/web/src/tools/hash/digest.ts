@@ -43,6 +43,19 @@ function rotr(value: number, bits: number): number {
   return (value >>> bits) | (value << (32 - bits));
 }
 
+/**
+ * The length field that ends the padding: the message length in bits as a big-endian number of
+ * `fieldBytes` bytes (8 for SHA-1 and SHA-256, 16 for SHA-384 and SHA-512). `bytes` is a safe
+ * integer, so the bit count stays below 2^56 and the high 8 bytes of a 16-byte field stay zero.
+ */
+export function lengthField(bytes: number, fieldBytes: number): Uint8Array {
+  const field = new Uint8Array(fieldBytes);
+  const view = new DataView(field.buffer);
+  view.setUint32(fieldBytes - 8, Math.floor(bytes / 536_870_912));
+  view.setUint32(fieldBytes - 4, (bytes << 3) >>> 0);
+  return field;
+}
+
 /** Buffers the input into blocks and pads it (the Merkle-Damgard layout shared by the SHA-1 and SHA-2 families). */
 abstract class BlockHasher implements Hasher {
   readonly #block: Uint8Array;
@@ -79,11 +92,7 @@ abstract class BlockHasher implements Hasher {
     const zeros = (size - ((this.#filled + 1 + this.#lengthBytes) % size)) % size;
     const tail = new Uint8Array(1 + zeros + this.#lengthBytes);
     tail[0] = 0x80;
-    const view = new DataView(tail.buffer);
-    // The length in bits, as a big-endian number in the last bytes (the high bytes of a
-    // 128-bit length stay zero: a JavaScript length never needs them).
-    view.setUint32(tail.length - 8, Math.floor(this.#length / 536_870_912));
-    view.setUint32(tail.length - 4, (this.#length << 3) >>> 0);
+    tail.set(lengthField(this.#length, this.#lengthBytes), 1 + zeros);
     this.#feed(tail);
     return this.output();
   }

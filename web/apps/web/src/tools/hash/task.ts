@@ -22,13 +22,20 @@ export function isInput(value: unknown): value is Input {
   );
 }
 
-/** The work of the tool: every digest of the file in one pass. It runs in the worker, so it must not touch the DOM. */
-export async function runTask({ file }: Input, { progress }: TaskContext): Promise<Output> {
+/**
+ * The work of the tool: every digest of the file in one pass. It runs in the worker, so it must not touch the DOM.
+ * `chunkSize` is a parameter only so that a test can read a file in several pieces without hashing megabytes.
+ */
+export async function runTask(
+  { file }: Input,
+  { progress }: TaskContext,
+  chunkSize: number = CHUNK_SIZE,
+): Promise<Output> {
   const hashers = ALGORITHMS.map((algorithm) => [algorithm, createHasher(algorithm)] as const);
   // The progress total must be positive, also for an empty file.
   const total = Math.max(file.size, 1);
-  for (let offset = 0; offset < file.size; offset += CHUNK_SIZE) {
-    const chunk = new Uint8Array(await file.slice(offset, offset + CHUNK_SIZE).arrayBuffer());
+  for (let offset = 0; offset < file.size; offset += chunkSize) {
+    const chunk = new Uint8Array(await file.slice(offset, offset + chunkSize).arrayBuffer());
     for (const [, hasher] of hashers) {
       hasher.update(chunk);
     }

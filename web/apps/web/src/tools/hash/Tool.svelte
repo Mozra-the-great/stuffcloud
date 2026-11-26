@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Progress } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { i18n, t } from '../../i18n/index.ts';
   import CopyButton from '../../app/CopyButton.svelte';
@@ -8,7 +9,6 @@
   import Button from '../../ui/Button.svelte';
   import FileDropzone from '../../ui/FileDropzone.svelte';
   import Input from '../../ui/Input.svelte';
-  import Progress from '../../ui/Progress.svelte';
   import Select from '../../ui/Select.svelte';
   import {
     ALGORITHMS,
@@ -213,6 +213,7 @@
         {/if}
         {#if working}
           <Progress
+            hideLabel
             label={t('hash.progress', { name: fileName })}
             value={done}
             max={total}

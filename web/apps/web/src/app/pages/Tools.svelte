@@ -1,9 +1,8 @@
 <script lang="ts">
+  import { Tile, TileGrid } from '@mozra-the-great/kern';
   import { i18n, t } from '../../i18n/index.ts';
   import Mascot from '../../ui/Mascot.svelte';
   import TabLinks from '../../ui/TabLinks.svelte';
-  import Tile from '../../ui/Tile.svelte';
-  import TileGrid from '../../ui/TileGrid.svelte';
   import type { TabLink } from '../../ui/types.ts';
   import { getTools } from '../context.ts';
   import type { RouteProps } from '../router/router.svelte.ts';

@@ -55,8 +55,13 @@ describe('component gallery', () => {
     expect(screen.getByRole('region', { name: 'Notifications' })).toBeTruthy();
     // progress
     expect(screen.getAllByRole('progressbar')).toHaveLength(3);
+    // the bars are bare, as designed: the label names them but is not painted (kern `hideLabel`)
+    expect(screen.getByRole('progressbar', { name: 'Upload' })).toBeTruthy();
+    expect(screen.queryByText('Upload')).toBeNull();
     // code block
-    expect(screen.getByRole('region', { name: 'Deploy command' })).toBeTruthy();
+    // (kern names the box as a focusable region only while it scrolls, which jsdom never does)
+    expect(screen.getByText('stuffcloud deploy ./dist --expires 7d')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeTruthy();
     // dropzone
     expect(screen.getByRole('group', { name: 'drop PDFs here' })).toBeTruthy();
   });

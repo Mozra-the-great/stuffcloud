@@ -1,21 +1,17 @@
 <script lang="ts">
+  import { Card, CodeBlock, Progress, Tile, TileGrid } from '@mozra-the-great/kern';
   import '../styles/index.css';
   import Button from '../ui/Button.svelte';
-  import Card from '../ui/Card.svelte';
   import Checkbox from '../ui/Checkbox.svelte';
-  import CodeBlock from '../ui/CodeBlock.svelte';
   import Dialog from '../ui/Dialog.svelte';
   import FileDropzone from '../ui/FileDropzone.svelte';
   import Input from '../ui/Input.svelte';
   import LinkButton from '../ui/LinkButton.svelte';
   import Mascot from '../ui/Mascot.svelte';
   import { MASCOT_NAMES } from '../ui/mascots.ts';
-  import Progress from '../ui/Progress.svelte';
   import Select from '../ui/Select.svelte';
   import TabLinks from '../ui/TabLinks.svelte';
   import Tabs from '../ui/Tabs.svelte';
-  import Tile from '../ui/Tile.svelte';
-  import TileGrid from '../ui/TileGrid.svelte';
   import ToastRegion from '../ui/ToastRegion.svelte';
   import { toaster, type ToastKind } from '../ui/toast.svelte.ts';
   import type { SelectOption, TabItem, TabLink } from '../ui/types.ts';
@@ -147,7 +143,7 @@
 
   <section aria-labelledby="g-cards">
     <h2 class="label" id="g-cards">Card, tile</h2>
-    <Card>
+    <Card as="div">
       <span class="label">Card</span>
       <span>Content</span>
     </Card>
@@ -205,9 +201,9 @@
   <section aria-labelledby="g-progress">
     <h2 class="label" id="g-progress">Progress</h2>
     <div class="stack">
-      <Progress label="Upload" value={40} />
-      <Progress label="Storage" value={100} tone="warn" />
-      <Progress label="Working" />
+      <Progress hideLabel label="Upload" value={40} />
+      <Progress hideLabel label="Storage" value={100} tone="warn" />
+      <Progress hideLabel label="Working" />
     </div>
   </section>
 

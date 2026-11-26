@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Progress } from '@mozra-the-great/kern';
   import ToolFrame from '../../app/ToolFrame.svelte';
   import { i18n, t } from '../../i18n/index.ts';
   import { buildFiles } from '../../pdf/client.ts';
@@ -16,7 +17,6 @@
   import FileDropzone from '../../ui/FileDropzone.svelte';
   import Input from '../../ui/Input.svelte';
   import LinkButton from '../../ui/LinkButton.svelte';
-  import Progress from '../../ui/Progress.svelte';
   import Select from '../../ui/Select.svelte';
 
   const doc = new SingleDocument();
@@ -238,6 +238,7 @@
 
   {#if working}
     <Progress
+      hideLabel
       label={t('pdf.progress')}
       value={completed}
       max={total}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Progress } from '@mozra-the-great/kern';
   import type { WorkerPool } from '@stuffcloud/tools';
   import { t } from '../../i18n/index.ts';
   import { saveBlob, saveText } from '../../app/download.ts';
@@ -10,7 +11,6 @@
   import Checkbox from '../../ui/Checkbox.svelte';
   import FileDropzone from '../../ui/FileDropzone.svelte';
   import Input from '../../ui/Input.svelte';
-  import Progress from '../../ui/Progress.svelte';
   import Select from '../../ui/Select.svelte';
   import {
     MAX_DECODE_FILE_BYTES,
@@ -335,6 +335,7 @@
         {/if}
         {#if working}
           <Progress
+            hideLabel
             label={t('base64.working', { name: file?.name ?? '' })}
             value={done}
             max={total}

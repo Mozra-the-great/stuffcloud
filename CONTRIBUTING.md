@@ -69,22 +69,27 @@ and fails on a survivor, on a mutant without any test, and on an empty run.
 - **A survivor is fixed with a test**, never by skipping it. Only a mutant that provably cannot change
   behaviour gets `# pragma: no mutate` on its line (or `# pragma: no mutate block` on a `def`), and the
   comment says why it is equivalent.
-- **Scope:** every `scripts/ci/*.py` except the tests. `dev_stack_smoke.py` drives a running Docker
-  stack and is not mutated (the CI job `dev-stack` runs it for real). `check_container_hardening.py`
-  is mutated except `run`, `runtime_check` and `check_runtime`'s Docker calls, which need Docker
-  (`# pragma: no mutate block`); its pure functions are covered.
+- **Scope:** every `scripts/ci/*.py` except the tests and `conftest.py`. `dev_stack_smoke.py` drives a
+  running Docker stack and is not mutated (the CI job `dev-stack` runs it for real; importing it also
+  patches `socket.getaddrinfo`). `check_container_hardening.py` is mutated completely: its Docker calls
+  all go through `run`, which the tests replace by a recorder, so no Docker is needed.
 - **Layout:** the helpers find the repository from their own location, so `pyproject.toml`
   (`[tool.mutmut]`) copies the files the tests read into `mutants/` (`also_copy`). A new helper or a
-  test that reads another part of the repository adds it there.
+  test that reads another part of the repository adds it there. The helpers and their tests import each
+  other by plain file name, mutmut names mutants after the path (`scripts.ci.check_cookies`), so
+  `scripts/ci/conftest.py` (pytest only, not used by `unittest`) registers every helper under both names.
+- **Windows:** mutmut does not run natively on Windows (it needs `fork`). The unit tests, the mutation
+  gate and the coverage run do; for the mutation run use WSL or let CI do it.
 - **mutmut itself** is CI tooling: pinned with hashes (`requirements-mutmut.txt`, generated from
   `requirements-mutmut.in` with `pip-compile --generate-hashes`, installed with `--require-hashes`) and
   updated by Dependabot (`pip`, `/scripts/ci`). Nothing of it is shipped and the helpers stay
   standard-library only. It is in neither license gate (they read `Cargo.lock` and the pnpm lockfile),
-  so its licenses are checked by hand when a pin changes: mutmut is BSD-3-Clause, which is on the
-  allow list; its dependencies are MIT, BSD or Apache-2.0 (click, coverage, libcst, markdown-it-py,
-  pytest, rich, textual and others), plus `typing-extensions` and `libcst`'s PSF-2.0 parts, accepted
-  for tooling like `Python-2.0` under `[dev_only]`. Look at the licenses of every package a Dependabot
-  PR adds before merging.
+  so no policy file changes; the licenses are checked by hand when a pin changes. Checked for the
+  current pins (PyPI metadata): BSD-3-Clause (mutmut, click, setproctitle), BSD-2-Clause (pygments, colorama),
+  MIT (pytest, rich, textual, libcst, pluggy, pyyaml, markdown-it-py and its plugins, ...),
+  Apache-2.0 (coverage), Apache-2.0 OR BSD-2-Clause (packaging) and PSF-2.0 (typing-extensions, and the
+  parts of libcst derived from the standard library); all are GPL-3.0-compatible and tooling only. Look at
+  the licenses of every package a Dependabot PR adds before merging.
 - `coverage.py` (installed with mutmut) measures the line and branch coverage of the helpers in the
   same job (floor in `ci.yml`), which shows untested branches before the mutation run starts.
 

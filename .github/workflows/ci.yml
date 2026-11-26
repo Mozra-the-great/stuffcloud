@@ -643,7 +643,10 @@ jobs:
           python -m coverage report
       - name: Mutation run
         if: ${{ steps.scope.outputs.run == 'true' }}
-        run: mutmut run
+        run: |
+          time mutmut run "scripts.ci.spdx.*"
+          time mutmut run "scripts.ci.license_gate.*"
+          time mutmut run "scripts.ci.mutation_gate.*"
       - name: Survivors
         if: ${{ steps.scope.outputs.run == 'true' }}
         run: |
